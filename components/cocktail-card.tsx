@@ -16,15 +16,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
   const [imageError, setImageError] = useState(false)
 
   // Verwende immer Platzhalterbilder für die problematischen Cocktails
-  const problematicCocktails = [
-    "long-island-iced-tea",
-    "bahama-mama",
-    "malibu-ananas-updated",
-    "swimmingpool",
-    "tequila-sunrise",
-    "touch-down",
-    "zombie",
-  ]
+  const problematicCocktails: string[] = []
 
   // Generiere ein Platzhalterbild mit dem Namen des Cocktails
   const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
@@ -40,7 +32,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
       } bg-white border-[hsl(var(--cocktail-card-border))]`}
       onClick={onClick}
     >
-      <div className="relative aspect-square w-full" style={{ maxHeight: "140px", height: "140px" }}>
+      <div className="relative aspect-square w-full">
         <Image
           src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}

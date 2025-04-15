@@ -386,7 +386,7 @@ export default function Home() {
 
               <div className="grid grid-cols-3 gap-3">
                 {/* Zeige bis zu 30 Cocktails an */}
-                {cocktails.slice(0, 30).map((cocktail) => (
+                {cocktails.map((cocktail) => (
                   <CocktailCard
                     key={cocktail.id}
                     cocktail={cocktail}
