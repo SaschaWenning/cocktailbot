@@ -70,6 +70,13 @@ export default function Home() {
   const loadCocktails = async () => {
     try {
       const cocktails = await getAllCocktails()
+
+      // Protokolliere die geladenen Cocktails für Debugging-Zwecke
+      console.log(
+        "Geladene Cocktails:",
+        cocktails.map((c) => ({ id: c.id, name: c.name, image: c.image })),
+      )
+
       setCocktailsData(cocktails)
     } catch (error) {
       console.error("Fehler beim Laden der Cocktails:", error)
@@ -280,12 +287,14 @@ export default function Home() {
         <>
           {selectedCocktail ? (
             <div className="space-y-4">
+              {/* Cocktail-Detailansicht */}
               <CocktailCard
                 cocktail={cocktailsData.find((c) => c.id === selectedCocktail)!}
                 selected={true}
                 onClick={() => {}}
               />
 
+              {/* Bearbeitungsbutton */}
               <div className="flex justify-end mt-2">
                 <Button
                   variant="outline"
@@ -301,6 +310,7 @@ export default function Home() {
                 </Button>
               </div>
 
+              {/* Größenauswahl */}
               <Card className="border-[hsl(var(--cocktail-card-border))] bg-white">
                 <CardContent className="pt-6">
                   <div className="space-y-3">
@@ -337,6 +347,7 @@ export default function Home() {
                 </CardContent>
               </Card>
 
+              {/* Warnung bei nicht ausreichenden Zutaten */}
               {!checkIngredientsAvailable() && (
                 <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
                   <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
@@ -346,6 +357,7 @@ export default function Home() {
                 </Alert>
               )}
 
+              {/* Aktionsbuttons */}
               <div className="flex gap-2">
                 <Button className="flex-1" variant="outline" onClick={() => setSelectedCocktail(null)}>
                   Abbrechen
@@ -357,6 +369,7 @@ export default function Home() {
             </div>
           ) : (
             <>
+              {/* Überschrift und Button für neues Rezept */}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Verfügbare Cocktails</h2>
                 <Button
@@ -370,6 +383,7 @@ export default function Home() {
                 </Button>
               </div>
 
+              {/* Warnung bei niedrigen Füllständen */}
               {lowIngredients.length > 0 && (
                 <Alert className="mb-4 bg-[hsl(var(--cocktail-warning))]/10 border-[hsl(var(--cocktail-warning))]/30">
                   <AlertTriangle className="h-4 w-4 text-[hsl(var(--cocktail-warning))]" />
@@ -384,8 +398,9 @@ export default function Home() {
                 </Alert>
               )}
 
+              {/* Cocktail-Grid */}
               <div className="grid grid-cols-3 gap-3">
-                {/* Zeige bis zu 30 Cocktails an */}
+                {/* Zeige alle Cocktails an */}
                 {cocktails.map((cocktail) => (
                   <CocktailCard
                     key={cocktail.id}
