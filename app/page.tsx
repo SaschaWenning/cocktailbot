@@ -25,6 +25,8 @@ import { getIngredientLevels } from "@/lib/ingredient-level-service"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
+import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
 
 export default function Home() {
   const [selectedCocktail, setSelectedCocktail] = useState<string | null>(null)
@@ -46,6 +48,7 @@ export default function Home() {
   const [lowIngredients, setLowIngredients] = useState<string[]>([])
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
+  const [imageError, setImageError] = useState(false)
 
   // Filtere Cocktails nach alkoholisch und nicht-alkoholisch
   const alcoholicCocktails = cocktailsData.filter((cocktail) => cocktail.alcoholic)
@@ -258,6 +261,147 @@ export default function Home() {
     return ingredient ? ingredient.name : id
   }
 
+  // Neue Komponente für die Cocktail-Detailansicht
+  const CocktailDetail = ({ cocktail }: { cocktail: Cocktail }) => {
+    // Generiere ein Platzhalterbild mit dem Namen des Cocktails
+    const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+
+    // Bildpfad-Logik
+    let imageSrc = cocktail.image || ""
+    if (cocktail.alcoholic) {
+      const fileName = imageSrc.split("/").pop() || ""
+      imageSrc = `/images/cocktails/${fileName}`
+    } else if (imageSrc && !imageSrc.startsWith("/")) {
+      imageSrc = `/${imageSrc}`
+    }
+    imageSrc = imageSrc.split("?")[0]
+
+    const handleImageError = () => {
+      setImageError(true)
+    }
+
+    const finalImageSrc = imageError ? placeholderImage : imageSrc
+
+    return (
+      <Card className="overflow-hidden transition-all bg-white border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
+        <div className="flex flex-col md:flex-row">
+          {/* Bild-Container (links) */}
+          <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
+            <Image
+              src={finalImageSrc || "/placeholder.svg"}
+              alt={cocktail.name}
+              fill
+              className="object-cover"
+              onError={handleImageError}
+              sizes="(max-width: 768px) 100vw, 33vw"
+              priority
+            />
+          </div>
+
+          {/* Inhalt-Container (rechts) */}
+          <div className="flex-1 p-4 flex flex-col">
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
+              <Badge variant={cocktail.alcoholic ? "default" : "outline"} className="text-xs">
+                {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
+              </Badge>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 flex-1">
+              {/* Linke Spalte: Beschreibung und Zutaten */}
+              <div className="md:w-1/2">
+                <p className="text-sm text-[hsl(var(--cocktail-text-muted))] mb-4">{cocktail.description}</p>
+
+                <div>
+                  <h4 className="text-base font-semibold mb-2">Zutaten:</h4>
+                  <ul className="text-sm space-y-1 text-[hsl(var(--cocktail-text))]">
+                    {cocktail.ingredients.map((ingredient, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-1">•</span>
+                        <span>{ingredient}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Rechte Spalte: Größenauswahl und Buttons */}
+              <div className="md:w-1/2 flex flex-col">
+                <div className="space-y-3 mb-4">
+                  <h4 className="text-base font-semibold">Cocktailgröße wählen:</h4>
+                  <RadioGroup
+                    value={selectedSize.toString()}
+                    onValueChange={(value) => setSelectedSize(Number.parseInt(value))}
+                    className="flex flex-col gap-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="200" id="size-200" />
+                      <Label htmlFor="size-200" className="cursor-pointer">
+                        200ml
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="300" id="size-300" />
+                      <Label htmlFor="size-300" className="cursor-pointer">
+                        300ml
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="400" id="size-400" />
+                      <Label htmlFor="size-400" className="cursor-pointer">
+                        400ml
+                      </Label>
+                    </div>
+                  </RadioGroup>
+
+                  <div className="text-xs text-[hsl(var(--cocktail-text-muted))]">
+                    Originalrezept: ca. {getCurrentVolume()}ml
+                  </div>
+                </div>
+
+                {/* Warnung bei nicht ausreichenden Zutaten */}
+                {!checkIngredientsAvailable() && (
+                  <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30 mb-4">
+                    <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                    <AlertDescription className="text-[hsl(var(--cocktail-error))] text-xs">
+                      Nicht genügend Zutaten vorhanden! Bitte fülle die Zutaten nach.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Aktionsbuttons */}
+                <div className="flex flex-col gap-2 mt-auto">
+                  <Button onClick={handleMakeCocktail} disabled={!checkIngredientsAvailable()} className="w-full">
+                    Cocktail zubereiten
+                  </Button>
+                  <Button variant="outline" onClick={() => setSelectedCocktail(null)} className="w-full">
+                    Abbrechen
+                  </Button>
+                </div>
+
+                {/* Bearbeitungsbutton */}
+                <div className="flex justify-end mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleEditClick(cocktail.id)
+                    }}
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Rezept bearbeiten
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
   // Gemeinsame Komponente für die Cocktail-Anzeige
   const CocktailDisplay = ({ cocktails }: { cocktails: Cocktail[] }) => (
     <>
@@ -286,87 +430,8 @@ export default function Home() {
       ) : (
         <>
           {selectedCocktail ? (
-            <div className="space-y-4">
-              {/* Cocktail-Detailansicht */}
-              <CocktailCard
-                cocktail={cocktailsData.find((c) => c.id === selectedCocktail)!}
-                selected={true}
-                onClick={() => {}}
-              />
-
-              {/* Bearbeitungsbutton */}
-              <div className="flex justify-end mt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleEditClick(selectedCocktail)
-                  }}
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  Rezept bearbeiten
-                </Button>
-              </div>
-
-              {/* Größenauswahl */}
-              <Card className="border-[hsl(var(--cocktail-card-border))] bg-white">
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium">Cocktailgröße wählen:</h3>
-                    <RadioGroup
-                      value={selectedSize.toString()}
-                      onValueChange={(value) => setSelectedSize(Number.parseInt(value))}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="200" id="size-200" />
-                        <Label htmlFor="size-200" className="cursor-pointer">
-                          200ml
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="300" id="size-300" />
-                        <Label htmlFor="size-300" className="cursor-pointer">
-                          300ml
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="400" id="size-400" />
-                        <Label htmlFor="size-400" className="cursor-pointer">
-                          400ml
-                        </Label>
-                      </div>
-                    </RadioGroup>
-
-                    <div className="text-xs text-[hsl(var(--cocktail-text-muted))] mt-2">
-                      Originalrezept: ca. {getCurrentVolume()}ml
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Warnung bei nicht ausreichenden Zutaten */}
-              {!checkIngredientsAvailable() && (
-                <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-                  <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-                  <AlertDescription className="text-[hsl(var(--cocktail-error))]">
-                    Nicht genügend Zutaten vorhanden! Bitte fülle die Zutaten nach.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Aktionsbuttons */}
-              <div className="flex gap-2">
-                <Button className="flex-1" variant="outline" onClick={() => setSelectedCocktail(null)}>
-                  Abbrechen
-                </Button>
-                <Button className="flex-1" onClick={handleMakeCocktail} disabled={!checkIngredientsAvailable()}>
-                  Cocktail zubereiten
-                </Button>
-              </div>
-            </div>
+            // Verwende die neue Detailansicht-Komponente
+            <CocktailDetail cocktail={cocktailsData.find((c) => c.id === selectedCocktail)!} />
           ) : (
             <>
               {/* Überschrift und Button für neues Rezept */}

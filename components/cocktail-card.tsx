@@ -26,19 +26,23 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
     // Versuche, den Bildpfad zu korrigieren
     let src = cocktail.image || ""
 
-    // Wenn der Pfad nicht mit / oder http beginnt, füge / hinzu
-    if (src && !src.startsWith("/") && !src.startsWith("http")) {
-      src = `/${src}`
-    }
-
-    // Für Cocktails mit Alkohol, versuche das Bild aus dem Cocktails-Ordner zu laden
-    if (cocktail.alcoholic && !src.includes("/images/cocktails/")) {
-      // Extrahiere den Dateinamen aus dem Pfad
+    // Für Cocktails mit Alkohol, verwende immer den Pfad im Cocktails-Ordner
+    if (cocktail.alcoholic) {
+      // Extrahiere den Dateinamen aus dem Pfad (egal ob URL oder lokaler Pfad)
       const fileName = src.split("/").pop() || ""
       // Erstelle einen neuen Pfad im Cocktails-Ordner
       src = `/images/cocktails/${fileName}`
+    } else {
+      // Für nicht-alkoholische Cocktails, stelle sicher, dass der Pfad mit / beginnt
+      if (src && !src.startsWith("/")) {
+        src = `/${src}`
+      }
     }
 
+    // Entferne eventuelle URL-Parameter
+    src = src.split("?")[0]
+
+    console.log(`Bildpfad für ${cocktail.name}: ${src}`)
     setImageSrc(src)
   }, [cocktail])
 
