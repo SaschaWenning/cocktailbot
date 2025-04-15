@@ -15,15 +15,17 @@ interface CocktailCardProps {
 export default function CocktailCard({ cocktail, selected = false, onClick }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
 
-  // Verwende immer Platzhalterbilder für die problematischen Cocktails
-  const problematicCocktails: string[] = []
-
   // Generiere ein Platzhalterbild mit dem Namen des Cocktails
   const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
 
-  // Verwende Platzhalterbild für problematische Cocktails oder wenn ein Fehler auftritt
-  const imageSrc =
-    imageError || problematicCocktails.includes(cocktail.id) ? placeholderImage : cocktail.image || placeholderImage
+  // Versuche, den Bildpfad zu korrigieren, falls er nicht mit / beginnt
+  let imageSrc = cocktail.image
+  if (imageSrc && !imageSrc.startsWith("/") && !imageSrc.startsWith("http")) {
+    imageSrc = `/${imageSrc}`
+  }
+
+  // Verwende Platzhalterbild wenn ein Fehler auftritt oder kein Bild vorhanden ist
+  const finalImageSrc = imageError || !imageSrc ? placeholderImage : imageSrc
 
   return (
     <Card
@@ -32,9 +34,9 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
       } bg-white border-[hsl(var(--cocktail-card-border))]`}
       onClick={onClick}
     >
-      <div className="relative aspect-square w-full">
+      <div className={`relative aspect-square w-full ${selected ? "max-w-[30%] mx-auto" : ""}`}>
         <Image
-          src={imageSrc || "/placeholder.svg"}
+          src={finalImageSrc || "/placeholder.svg"}
           alt={cocktail.name}
           fill
           className="object-cover"

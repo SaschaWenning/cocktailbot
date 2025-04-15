@@ -265,7 +265,15 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     // Lade die Standard-Cocktails
     const { cocktails: defaultCocktails } = await import("@/data/cocktails")
 
-    // Suche nach dem Abschnitt mit den zusätzlichen Cocktails und aktualisiere die Bildpfade
+    // Korrigiere die Bildpfade für alle Cocktails
+    const correctedDefaultCocktails = defaultCocktails.map((cocktail) => {
+      // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
+      let image = cocktail.image
+      if (image && !image.startsWith("/") && !image.startsWith("http")) {
+        image = `/${image}`
+      }
+      return { ...cocktail, image }
+    })
 
     // Definiere die zusätzlichen Cocktails
     const additionalCocktails: Cocktail[] = [
@@ -425,7 +433,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "tropical-sunrise",
         name: "Tropical Sunrise",
         description: "Erfrischender alkoholfreier Cocktail mit Ananas, Orange und Grenadine",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/palm-glow.png",
         alcoholic: false,
         ingredients: ["120ml Ananassaft", "120ml Orangensaft", "20ml Grenadine", "10ml Limettensaft"],
         recipe: [
@@ -441,7 +449,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "passion-fizz",
         name: "Passion Fizz",
         description: "Sprudelnder alkoholfreier Cocktail mit Maracuja und Sodawasser",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/vibrant-passion-fizz.png",
         alcoholic: false,
         ingredients: ["150ml Maracujasaft", "100ml Sodawasser", "20ml Vanillesirup", "10ml Limettensaft"],
         recipe: [
@@ -457,7 +465,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "orange-vanilla-dream",
         name: "Orange Vanilla Dream",
         description: "Cremiger alkoholfreier Cocktail mit Orange und Vanille",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/citrus-swirl-sunset.png",
         alcoholic: false,
         ingredients: ["200ml Orangensaft", "30ml Vanillesirup", "70ml Sodawasser"],
         recipe: [
@@ -472,7 +480,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "berry-splash",
         name: "Berry Splash",
         description: "Fruchtiger alkoholfreier Cocktail mit Grenadine und Zitrusfrüchten",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/bursting-berries.png",
         alcoholic: false,
         ingredients: [
           "30ml Grenadine",
@@ -495,7 +503,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "pineapple-passion",
         name: "Pineapple Passion",
         description: "Exotischer alkoholfreier Cocktail mit Ananas und Maracuja",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/tropical-blend.png",
         alcoholic: false,
         ingredients: ["150ml Ananassaft", "100ml Maracujasaft", "15ml Limettensaft", "15ml Vanillesirup"],
         recipe: [
@@ -511,7 +519,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "citrus-cooler",
         name: "Citrus Cooler",
         description: "Erfrischender alkoholfreier Cocktail mit Limette und Sodawasser",
-        image: "/placeholder.svg?height=200&width=400",
+        image: "/placeholder.svg?height=400&width=400&query=Citrus%20Cooler",
         alcoholic: false,
         ingredients: ["40ml Limettensaft", "20ml Vanillesirup", "200ml Sodawasser", "10ml Grenadine"],
         recipe: [
@@ -523,11 +531,21 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       },
     ]
 
+    // Korrigiere die Bildpfade für die zusätzlichen Cocktails
+    const correctedAdditionalCocktails = additionalCocktails.map((cocktail) => {
+      // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
+      let image = cocktail.image
+      if (image && !image.startsWith("/") && !image.startsWith("http")) {
+        image = `/${image}`
+      }
+      return { ...cocktail, image }
+    })
+
     // Erstelle eine Map für die Cocktails, um Duplikate zu vermeiden
     const cocktailMap = new Map<string, Cocktail>()
 
     // Füge zuerst die Standard-Cocktails hinzu und ersetze "rum" durch "brauner rum"
-    for (const cocktail of defaultCocktails) {
+    for (const cocktail of correctedDefaultCocktails) {
       // Überspringe den ursprünglichen Malibu Ananas, da wir eine aktualisierte Version haben
       // Überspringe auch Gin Tonic und Cuba Libre
       if (cocktail.id === "malibu-ananas" || cocktail.id === "gin-tonic" || cocktail.id === "cuba-libre") continue
@@ -550,7 +568,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     }
 
     // Füge die zusätzlichen Cocktails hinzu
-    for (const cocktail of additionalCocktails) {
+    for (const cocktail of correctedAdditionalCocktails) {
       cocktailMap.set(cocktail.id, cocktail)
     }
 
@@ -571,6 +589,13 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
             ? ingredient.replace("Rum", "Brauner Rum")
             : ingredient,
         )
+
+        // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
+        let image = updatedCocktail.image
+        if (image && !image.startsWith("/") && !image.startsWith("http")) {
+          image = `/${image}`
+        }
+        updatedCocktail.image = image
 
         // Füge den aktualisierten Cocktail zur Map hinzu
         cocktailMap.set(cocktail.id, updatedCocktail)
