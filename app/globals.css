@@ -114,7 +114,7 @@
 /* Größere Schrift für die gesamte App */
 html,
 body {
-  font-size: 24px; /* Doppelt so groß wie der Standardwert von 16px */
+  font-size: 48px; /* Vervierfacht so groß wie der Standardwert von 16px */
 }
 
 /* Anpassungen für bestimmte Elemente, damit die Proportionen stimmen */
@@ -157,8 +157,9 @@ h3 {
 /* Größere Buttons für bessere Touch-Bedienung */
 button,
 .button {
-  min-height: 3rem;
+  min-height: 3.5rem;
   font-size: 1rem;
+  padding: 0.75rem 1.5rem;
 }
 
 /* Größere Eingabefelder */
@@ -168,4 +169,49 @@ textarea {
   font-size: 1rem;
   height: auto;
   padding: 0.75rem;
+}
+
+/* Größere Tabs */
+.tabs-list button {
+  min-height: 4rem;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+}
+
+/* Größere Abstände */
+.p-3 {
+  padding: 1rem;
+}
+
+.p-4 {
+  padding: 1.5rem;
+}
+
+.gap-2 {
+  gap: 0.75rem;
+}
+
+.gap-3 {
+  gap: 1rem;
+}
+
+.gap-4 {
+  gap: 1.5rem;
+}
+
+.mt-2 {
+  margin-top: 0.75rem;
+}
+
+.mt-4 {
+  margin-top: 1.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1.5rem;
+}
+
+/* Anpassungen für die Cocktail-Karten */
+.grid-cols-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* Ändere auf 2 Spalten für größere Karten */
 }

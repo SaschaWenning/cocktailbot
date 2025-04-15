@@ -379,7 +379,7 @@ export default function Home() {
                 </Alert>
               )}
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {cocktails.map((cocktail) => (
                   <CocktailCard
                     key={cocktail.id}

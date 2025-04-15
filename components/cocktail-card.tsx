@@ -15,13 +15,23 @@ interface CocktailCardProps {
 export default function CocktailCard({ cocktail, selected = false, onClick }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
 
-  // Verbesserte Bildpfad-Logik
-  let imageSrc = cocktail.image
+  // Verwende immer Platzhalterbilder für die problematischen Cocktails
+  const problematicCocktails = [
+    "long-island-iced-tea",
+    "bahama-mama",
+    "malibu-ananas-updated",
+    "swimmingpool",
+    "tequila-sunrise",
+    "touch-down",
+    "zombie",
+  ]
 
-  // Wenn das Bild mit "/placeholder" beginnt oder ein Fehler auftritt, verwenden wir ein Platzhalterbild
-  if (imageError || imageSrc?.startsWith("/placeholder")) {
-    imageSrc = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
-  }
+  // Generiere ein Platzhalterbild mit dem Namen des Cocktails
+  const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+
+  // Verwende Platzhalterbild für problematische Cocktails oder wenn ein Fehler auftritt
+  const imageSrc =
+    imageError || problematicCocktails.includes(cocktail.id) ? placeholderImage : cocktail.image || placeholderImage
 
   return (
     <Card
@@ -37,7 +47,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
           fill
           className="object-cover"
           onError={() => setImageError(true)}
-          sizes="(max-width: 768px) 100vw, 33vw"
+          sizes="(max-width: 768px) 100vw, 50vw"
           priority={selected}
         />
       </div>
