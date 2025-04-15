@@ -40,7 +40,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
       } bg-white border-[hsl(var(--cocktail-card-border))]`}
       onClick={onClick}
     >
-      <div className="relative aspect-square w-full">
+      <div className="relative aspect-square w-full" style={{ maxHeight: "140px", height: "140px" }}>
         <Image
           src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}
