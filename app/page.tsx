@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
@@ -313,15 +312,21 @@ export default function Home() {
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="200" id="size-200" />
-                        <Label htmlFor="size-200">200ml</Label>
+                        <Label htmlFor="size-200" className="cursor-pointer">
+                          200ml
+                        </Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="300" id="size-300" />
-                        <Label htmlFor="size-300">300ml</Label>
+                        <Label htmlFor="size-300" className="cursor-pointer">
+                          300ml
+                        </Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="400" id="size-400" />
-                        <Label htmlFor="size-400">400ml</Label>
+                        <Label htmlFor="size-400" className="cursor-pointer">
+                          400ml
+                        </Label>
                       </div>
                     </RadioGroup>
 
@@ -379,7 +384,7 @@ export default function Home() {
                 </Alert>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {cocktails.map((cocktail) => (
                   <CocktailCard
                     key={cocktail.id}
@@ -402,62 +407,116 @@ export default function Home() {
       </header>
 
       <main className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="mx-4 mt-2 justify-start bg-white border border-[hsl(var(--cocktail-card-border))] tabs-list">
-            <TabsTrigger value="cocktails" className="flex items-center gap-1">
+        <div className="h-full flex flex-col">
+          <div className="mx-4 mt-2 flex justify-start bg-white border border-[hsl(var(--cocktail-card-border))] rounded-md tabs-list">
+            <button
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "cocktails" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => {
+                if (activeTab === "cocktails" && selectedCocktail) {
+                  setSelectedCocktail(null)
+                } else {
+                  setActiveTab("cocktails")
+                  if (selectedCocktail) setSelectedCocktail(null)
+                }
+              }}
+            >
               <Wine className="h-4 w-4" />
               Cocktails
-            </TabsTrigger>
-            <TabsTrigger value="virgin-cocktails" className="flex items-center gap-1">
+            </button>
+            <button
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "virgin-cocktails" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => {
+                if (activeTab === "virgin-cocktails" && selectedCocktail) {
+                  setSelectedCocktail(null)
+                } else {
+                  setActiveTab("virgin-cocktails")
+                  if (selectedCocktail) setSelectedCocktail(null)
+                }
+              }}
+            >
               <GlassWater className="h-4 w-4" />
               Virgin Cocktails
-            </TabsTrigger>
-            <TabsTrigger value="shots">Shots</TabsTrigger>
-            <TabsTrigger value="levels">Füllstände</TabsTrigger>
-            <TabsTrigger value="calibration">Pumpenkalibrierung</TabsTrigger>
-            <TabsTrigger value="cleaning">Reinigung</TabsTrigger>
-          </TabsList>
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "shots" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("shots")}
+            >
+              Shots
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "levels" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("levels")}
+            >
+              Füllstände
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "calibration" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("calibration")}
+            >
+              Pumpenkalibrierung
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "cleaning" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("cleaning")}
+            >
+              Reinigung
+            </button>
+          </div>
 
-          <TabsContent value="cocktails" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
-            <CocktailDisplay cocktails={alcoholicCocktails} />
-          </TabsContent>
+          <div className="flex-1 overflow-hidden">
+            {activeTab === "cocktails" && (
+              <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
+                <CocktailDisplay cocktails={alcoholicCocktails} />
+              </div>
+            )}
 
-          <TabsContent value="virgin-cocktails" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
-            <CocktailDisplay cocktails={virginCocktails} />
-          </TabsContent>
+            {activeTab === "virgin-cocktails" && (
+              <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
+                <CocktailDisplay cocktails={virginCocktails} />
+              </div>
+            )}
 
-          <TabsContent value="shots" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
-            <Card className="border-[hsl(var(--cocktail-card-border))] bg-white mb-4">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <GlassWater className="h-6 w-6 text-[hsl(var(--cocktail-primary))]" />
-                  <h2 className="text-xl font-semibold">Shots (40ml)</h2>
-                </div>
-                <p className="text-[hsl(var(--cocktail-text-muted))]">
-                  Wähle eine Zutat aus, um einen 40ml Shot zuzubereiten.
-                </p>
-              </CardContent>
-            </Card>
+            {activeTab === "shots" && (
+              <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
+                <Card className="border-[hsl(var(--cocktail-card-border))] bg-white mb-4">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <GlassWater className="h-6 w-6 text-[hsl(var(--cocktail-primary))]" />
+                      <h2 className="text-xl font-semibold">Shots (40ml)</h2>
+                    </div>
+                    <p className="text-[hsl(var(--cocktail-text-muted))]">
+                      Wähle eine Zutat aus, um einen 40ml Shot zuzubereiten.
+                    </p>
+                  </CardContent>
+                </Card>
 
-            <ShotSelector
-              pumpConfig={pumpConfig}
-              ingredientLevels={ingredientLevels}
-              onShotComplete={loadIngredientLevels}
-            />
-          </TabsContent>
+                <ShotSelector
+                  pumpConfig={pumpConfig}
+                  ingredientLevels={ingredientLevels}
+                  onShotComplete={loadIngredientLevels}
+                />
+              </div>
+            )}
 
-          <TabsContent value="levels" className="flex-1 overflow-auto p-4 touch-pan-y">
-            <IngredientLevels pumpConfig={pumpConfig} />
-          </TabsContent>
+            {activeTab === "levels" && (
+              <div className="h-full overflow-auto p-4 touch-pan-y">
+                <IngredientLevels pumpConfig={pumpConfig} />
+              </div>
+            )}
 
-          <TabsContent value="calibration" className="flex-1 overflow-auto p-4 touch-pan-y">
-            <PumpCalibration pumpConfig={pumpConfig} />
-          </TabsContent>
+            {activeTab === "calibration" && (
+              <div className="h-full overflow-auto p-4 touch-pan-y">
+                <PumpCalibration pumpConfig={pumpConfig} />
+              </div>
+            )}
 
-          <TabsContent value="cleaning" className="flex-1 overflow-auto p-4 touch-pan-y">
-            <PumpCleaning pumpConfig={pumpConfig} />
-          </TabsContent>
-        </Tabs>
+            {activeTab === "cleaning" && (
+              <div className="h-full overflow-auto p-4 touch-pan-y">
+                <PumpCleaning pumpConfig={pumpConfig} />
+              </div>
+            )}
+          </div>
+        </div>
       </main>
 
       {/* Passwort-Modal */}
