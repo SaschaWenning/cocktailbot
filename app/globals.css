@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Benutzerdefinierte Farbpalette für die Cocktail-App */
+:root {
+  --cocktail-bg: 210 40% 98%;
+  --cocktail-card-bg: 210 40% 96.1%;
+  --cocktail-card-border: 214 32% 91%;
+  --cocktail-text: 222 47% 11.2%;
+  --cocktail-text-muted: 215 16% 47%;
+  --cocktail-primary: 221 83% 53.3%;
+  --cocktail-primary-hover: 221 83% 45%;
+  --cocktail-accent: 199 89% 48%;
+  --cocktail-success: 142 76% 36%;
+  --cocktail-warning: 38 92% 50%;
+  --cocktail-error: 0 84% 60%;
+}
+
+/* Verbesserte Touch-Scrolling-Funktionalität */
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Verstecke Scrollbars aber behalte Funktionalität */
+.overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+/* Anpassungen für Touch-Geräte */
+@media (pointer: coarse) {
+  /* Verbesserte Scrolling-Bereiche */
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    touch-action: pan-y;
+    cursor: grab;
+  }
+
+  /* Größere Klickbereiche für Tabs */
+  .tabs-list button {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+}
+
+/* Nach den bestehenden CSS-Regeln folgende Anpassungen hinzufügen: */
+
+/* Größere Schrift für die gesamte App */
+html,
+body {
+  font-size: 24px; /* Doppelt so groß wie der Standardwert von 16px */
+}
+
+/* Anpassungen für bestimmte Elemente, damit die Proportionen stimmen */
+h1 {
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-base {
+  font-size: 1rem;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+}
+
+.text-xl {
+  font-size: 1.25rem;
+}
+
+.text-2xl {
+  font-size: 1.5rem;
+}
+
+/* Größere Buttons für bessere Touch-Bedienung */
+button,
+.button {
+  min-height: 3rem;
+  font-size: 1rem;
+}
+
+/* Größere Eingabefelder */
+input,
+select,
+textarea {
+  font-size: 1rem;
+  height: auto;
+  padding: 0.75rem;
+}
