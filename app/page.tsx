@@ -23,8 +23,6 @@ import {
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
 import PasswordModal from "@/components/password-modal"
 import RecipeEditor from "@/components/recipe-editor"
 import RecipeCreator from "@/components/recipe-creator"
@@ -37,6 +35,7 @@ import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -314,6 +313,9 @@ export default function Home() {
 
     const finalImageSrc = imageError ? placeholderImage : imageSrc
 
+    // Verfügbare Größen
+    const availableSizes = [200, 300, 400]
+
     return (
       <Card className="overflow-hidden transition-all bg-white border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
         <div className="flex flex-col md:flex-row">
@@ -359,32 +361,27 @@ export default function Home() {
 
               {/* Rechte Spalte: Größenauswahl und Buttons */}
               <div className="md:w-1/2 flex flex-col">
-                <div className="space-y-3 mb-4">
-                  <h4 className="text-base font-semibold">Cocktailgröße wählen:</h4>
-                  <RadioGroup
-                    value={selectedSize.toString()}
-                    onValueChange={(value) => setSelectedSize(Number.parseInt(value))}
-                    className="flex flex-col gap-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="200" id="size-200" />
-                      <Label htmlFor="size-200" className="cursor-pointer">
-                        200ml
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="300" id="size-300" />
-                      <Label htmlFor="size-300" className="cursor-pointer">
-                        300ml
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="400" id="size-400" />
-                      <Label htmlFor="size-400" className="cursor-pointer">
-                        400ml
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                <div className="space-y-2 mb-4">
+                  <h4 className="text-base mb-2">Cocktailgröße wählen:</h4>
+
+                  {/* Neue Größenauswahl ohne Punkte */}
+                  <div className="flex gap-4">
+                    {availableSizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={cn(
+                          "text-sm py-1 px-2 rounded",
+                          selectedSize === size
+                            ? "font-semibold border-b-2 border-black"
+                            : "text-gray-500 hover:text-black",
+                        )}
+                      >
+                        {size}ml
+                      </button>
+                    ))}
+                  </div>
 
                   <div className="text-xs text-[hsl(var(--cocktail-text-muted))]">
                     Originalrezept: ca. {getCurrentVolume()}ml
