@@ -10,7 +10,17 @@ import PumpCleaning from "@/components/pump-cleaning"
 import IngredientLevels from "@/components/ingredient-levels"
 import ShotSelector from "@/components/shot-selector"
 import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Check, Edit, Plus, AlertTriangle, GlassWater, Wine } from "lucide-react"
+import {
+  AlertCircle,
+  Check,
+  Edit,
+  Plus,
+  AlertTriangle,
+  GlassWater,
+  Wine,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -27,6 +37,9 @@ import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
+
+// Anzahl der Cocktails pro Seite
+const COCKTAILS_PER_PAGE = 9
 
 export default function Home() {
   const [selectedCocktail, setSelectedCocktail] = useState<string | null>(null)
@@ -50,9 +63,28 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
 
+  // Paginierung
+  const [currentPage, setCurrentPage] = useState(1)
+  const [virginCurrentPage, setVirginCurrentPage] = useState(1)
+
   // Filtere Cocktails nach alkoholisch und nicht-alkoholisch
   const alcoholicCocktails = cocktailsData.filter((cocktail) => cocktail.alcoholic)
   const virginCocktails = cocktailsData.filter((cocktail) => !cocktail.alcoholic)
+
+  // Berechne die Gesamtanzahl der Seiten
+  const totalPages = Math.ceil(alcoholicCocktails.length / COCKTAILS_PER_PAGE)
+  const virginTotalPages = Math.ceil(virginCocktails.length / COCKTAILS_PER_PAGE)
+
+  // Hole die Cocktails für die aktuelle Seite
+  const getCurrentPageCocktails = (cocktails: Cocktail[], page: number) => {
+    const startIndex = (page - 1) * COCKTAILS_PER_PAGE
+    const endIndex = startIndex + COCKTAILS_PER_PAGE
+    return cocktails.slice(startIndex, endIndex)
+  }
+
+  // Aktuelle Seite von Cocktails
+  const currentPageCocktails = getCurrentPageCocktails(alcoholicCocktails, currentPage)
+  const currentPageVirginCocktails = getCurrentPageCocktails(virginCocktails, virginCurrentPage)
 
   // Lade Füllstände, Pumpenkonfiguration und Cocktails beim ersten Rendern
   useEffect(() => {
@@ -402,8 +434,55 @@ export default function Home() {
     )
   }
 
+  // Paginierungskomponente
+  const Pagination = ({
+    currentPage,
+    totalPages,
+    onPageChange,
+  }: {
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void
+  }) => {
+    return (
+      <div className="flex justify-center items-center gap-2 mt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="h-10 w-10 p-0"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <span className="text-sm font-medium">
+          Seite {currentPage} von {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="h-10 w-10 p-0"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
+      </div>
+    )
+  }
+
   // Gemeinsame Komponente für die Cocktail-Anzeige
-  const CocktailDisplay = ({ cocktails }: { cocktails: Cocktail[] }) => (
+  const CocktailDisplay = ({
+    cocktails,
+    currentPage,
+    totalPages,
+    onPageChange,
+  }: {
+    cocktails: Cocktail[]
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void
+  }) => (
     <>
       {isMaking ? (
         <Card className="border-[hsl(var(--cocktail-card-border))] bg-white">
@@ -465,7 +544,7 @@ export default function Home() {
 
               {/* Cocktail-Grid */}
               <div className="grid grid-cols-3 gap-3">
-                {/* Zeige alle Cocktails an */}
+                {/* Zeige nur die Cocktails der aktuellen Seite an */}
                 {cocktails.map((cocktail) => (
                   <CocktailCard
                     key={cocktail.id}
@@ -474,6 +553,11 @@ export default function Home() {
                   />
                 ))}
               </div>
+
+              {/* Paginierung */}
+              {totalPages > 1 && (
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
+              )}
             </>
           )}
         </>
@@ -547,13 +631,23 @@ export default function Home() {
           <div className="flex-1 overflow-hidden">
             {activeTab === "cocktails" && (
               <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
-                <CocktailDisplay cocktails={alcoholicCocktails} />
+                <CocktailDisplay
+                  cocktails={currentPageCocktails}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             )}
 
             {activeTab === "virgin-cocktails" && (
               <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
-                <CocktailDisplay cocktails={virginCocktails} />
+                <CocktailDisplay
+                  cocktails={currentPageVirginCocktails}
+                  currentPage={virginCurrentPage}
+                  totalPages={virginTotalPages}
+                  onPageChange={setVirginCurrentPage}
+                />
               </div>
             )}
 
