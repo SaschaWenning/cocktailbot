@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
@@ -11,11 +10,21 @@ import PumpCleaning from "@/components/pump-cleaning"
 import IngredientLevels from "@/components/ingredient-levels"
 import ShotSelector from "@/components/shot-selector"
 import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Check, Edit, Plus, AlertTriangle, GlassWater, Wine } from "lucide-react"
+import {
+  AlertCircle,
+  Check,
+  Edit,
+  Plus,
+  AlertTriangle,
+  GlassWater,
+  Wine,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Lock,
+} from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
 import PasswordModal from "@/components/password-modal"
 import RecipeEditor from "@/components/recipe-editor"
 import RecipeCreator from "@/components/recipe-creator"
@@ -26,6 +35,12 @@ import { getIngredientLevels } from "@/lib/ingredient-level-service"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
+import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+
+// Anzahl der Cocktails pro Seite
+const COCKTAILS_PER_PAGE = 9
 
 export default function Home() {
   const [selectedCocktail, setSelectedCocktail] = useState<string | null>(null)
@@ -47,10 +62,32 @@ export default function Home() {
   const [lowIngredients, setLowIngredients] = useState<string[]>([])
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
+  const [imageError, setImageError] = useState(false)
+  const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
+  const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
+
+  // Paginierung
+  const [currentPage, setCurrentPage] = useState(1)
+  const [virginCurrentPage, setVirginCurrentPage] = useState(1)
 
   // Filtere Cocktails nach alkoholisch und nicht-alkoholisch
   const alcoholicCocktails = cocktailsData.filter((cocktail) => cocktail.alcoholic)
   const virginCocktails = cocktailsData.filter((cocktail) => !cocktail.alcoholic)
+
+  // Berechne die Gesamtanzahl der Seiten
+  const totalPages = Math.ceil(alcoholicCocktails.length / COCKTAILS_PER_PAGE)
+  const virginTotalPages = Math.ceil(virginCocktails.length / COCKTAILS_PER_PAGE)
+
+  // Hole die Cocktails für die aktuelle Seite
+  const getCurrentPageCocktails = (cocktails: Cocktail[], page: number) => {
+    const startIndex = (page - 1) * COCKTAILS_PER_PAGE
+    const endIndex = startIndex + COCKTAILS_PER_PAGE
+    return cocktails.slice(startIndex, endIndex)
+  }
+
+  // Aktuelle Seite von Cocktails
+  const currentPageCocktails = getCurrentPageCocktails(alcoholicCocktails, currentPage)
+  const currentPageVirginCocktails = getCurrentPageCocktails(virginCocktails, virginCurrentPage)
 
   // Lade Füllstände, Pumpenkonfiguration und Cocktails beim ersten Rendern
   useEffect(() => {
@@ -71,6 +108,13 @@ export default function Home() {
   const loadCocktails = async () => {
     try {
       const cocktails = await getAllCocktails()
+
+      // Protokolliere die geladenen Cocktails für Debugging-Zwecke
+      console.log(
+        "Geladene Cocktails:",
+        cocktails.map((c) => ({ id: c.id, name: c.name, image: c.image })),
+      )
+
       setCocktailsData(cocktails)
     } catch (error) {
       console.error("Fehler beim Laden der Cocktails:", error)
@@ -101,12 +145,31 @@ export default function Home() {
 
   const handleEditClick = (cocktailId: string) => {
     setCocktailToEdit(cocktailId)
+    setPasswordAction("edit")
+    setShowPasswordModal(true)
+  }
+
+  const handleDeleteClick = (cocktailId: string) => {
+    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
+    if (cocktail) {
+      setCocktailToDelete(cocktail)
+      setShowDeleteConfirmation(true)
+    }
+  }
+
+  const handleCalibrationClick = () => {
+    setPasswordAction("calibration")
     setShowPasswordModal(true)
   }
 
   const handlePasswordSuccess = () => {
     setShowPasswordModal(false)
-    setShowRecipeEditor(true)
+    if (passwordAction === "edit") {
+      setShowRecipeEditor(true)
+    } else if (passwordAction === "calibration") {
+      setIsCalibrationLocked(false)
+      setActiveTab("calibration")
+    }
   }
 
   const handleRecipeSave = async (updatedCocktail: Cocktail) => {
@@ -252,8 +315,213 @@ export default function Home() {
     return ingredient ? ingredient.name : id
   }
 
+  // Neue Komponente für die Cocktail-Detailansicht
+  const CocktailDetail = ({ cocktail }: { cocktail: Cocktail }) => {
+    // Generiere ein Platzhalterbild mit dem Namen des Cocktails
+    const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+
+    // Bildpfad-Logik
+    let imageSrc = cocktail.image || ""
+    if (cocktail.alcoholic) {
+      const fileName = imageSrc.split("/").pop() || ""
+      imageSrc = `/images/cocktails/${fileName}`
+    } else if (imageSrc && !imageSrc.startsWith("/")) {
+      imageSrc = `/${imageSrc}`
+    }
+    imageSrc = imageSrc.split("?")[0]
+
+    const handleImageError = () => {
+      setImageError(true)
+    }
+
+    const finalImageSrc = imageError ? placeholderImage : imageSrc
+
+    // Verfügbare Größen
+    const availableSizes = [200, 300, 400]
+
+    // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
+    const isCustomRecipe = cocktail.id.startsWith("custom-")
+
+    return (
+      <Card className="overflow-hidden transition-all bg-white border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
+        <div className="flex flex-col md:flex-row">
+          {/* Bild-Container (links) */}
+          <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
+            <Image
+              src={finalImageSrc || "/placeholder.svg"}
+              alt={cocktail.name}
+              fill
+              className="object-cover"
+              onError={handleImageError}
+              sizes="(max-width: 768px) 100vw, 33vw"
+              priority
+            />
+          </div>
+
+          {/* Inhalt-Container (rechts) */}
+          <div className="flex-1 p-4 flex flex-col">
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
+              <Badge variant={cocktail.alcoholic ? "default" : "outline"} className="text-xs">
+                {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
+              </Badge>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 flex-1">
+              {/* Linke Spalte: Beschreibung und Zutaten */}
+              <div className="md:w-1/2">
+                <p className="text-sm text-[hsl(var(--cocktail-text-muted))] mb-4">{cocktail.description}</p>
+
+                <div>
+                  <h4 className="text-base font-semibold mb-2">Zutaten:</h4>
+                  <ul className="text-sm space-y-1 text-[hsl(var(--cocktail-text))]">
+                    {cocktail.ingredients.map((ingredient, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-1">•</span>
+                        <span>{ingredient}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Rechte Spalte: Größenauswahl und Buttons */}
+              <div className="md:w-1/2 flex flex-col">
+                <div className="space-y-2 mb-4">
+                  <h4 className="text-base mb-2">Cocktailgröße wählen:</h4>
+
+                  {/* Neue Größenauswahl ohne Punkte */}
+                  <div className="flex gap-4">
+                    {availableSizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={cn(
+                          "text-sm py-1 px-2 rounded",
+                          selectedSize === size
+                            ? "font-semibold border-b-2 border-black"
+                            : "text-gray-500 hover:text-black",
+                        )}
+                      >
+                        {size}ml
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="text-xs text-[hsl(var(--cocktail-text-muted))]">
+                    Originalrezept: ca. {getCurrentVolume()}ml
+                  </div>
+                </div>
+
+                {/* Warnung bei nicht ausreichenden Zutaten */}
+                {!checkIngredientsAvailable() && (
+                  <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30 mb-4">
+                    <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                    <AlertDescription className="text-[hsl(var(--cocktail-error))] text-xs">
+                      Nicht genügend Zutaten vorhanden! Bitte fülle die Zutaten nach.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Aktionsbuttons */}
+                <div className="flex flex-col gap-2 mt-auto">
+                  <Button onClick={handleMakeCocktail} disabled={!checkIngredientsAvailable()} className="w-full">
+                    Cocktail zubereiten
+                  </Button>
+                  <Button variant="outline" onClick={() => setSelectedCocktail(null)} className="w-full">
+                    Abbrechen
+                  </Button>
+                </div>
+
+                {/* Bearbeitungs- und Löschbuttons */}
+                <div className="flex justify-between mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleEditClick(cocktail.id)
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Bearbeiten
+                  </Button>
+
+                  {/* Löschbutton - nur für benutzerdefinierte Rezepte */}
+                  {isCustomRecipe && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex items-center gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteClick(cocktail.id)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Löschen
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  // Paginierungskomponente
+  const Pagination = ({
+    currentPage,
+    totalPages,
+    onPageChange,
+  }: {
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void
+  }) => {
+    return (
+      <div className="flex justify-center items-center gap-2 mt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="h-10 w-10 p-0"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <span className="text-sm font-medium">
+          Seite {currentPage} von {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="h-10 w-10 p-0"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
+      </div>
+    )
+  }
+
   // Gemeinsame Komponente für die Cocktail-Anzeige
-  const CocktailDisplay = ({ cocktails }: { cocktails: Cocktail[] }) => (
+  const CocktailDisplay = ({
+    cocktails,
+    currentPage,
+    totalPages,
+    onPageChange,
+  }: {
+    cocktails: Cocktail[]
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void
+  }) => (
     <>
       {isMaking ? (
         <Card className="border-[hsl(var(--cocktail-card-border))] bg-white">
@@ -280,78 +548,11 @@ export default function Home() {
       ) : (
         <>
           {selectedCocktail ? (
-            <div className="space-y-4">
-              <CocktailCard
-                cocktail={cocktailsData.find((c) => c.id === selectedCocktail)!}
-                selected={true}
-                onClick={() => {}}
-              />
-
-              <div className="flex justify-end mt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleEditClick(selectedCocktail)
-                  }}
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  Rezept bearbeiten
-                </Button>
-              </div>
-
-              <Card className="border-[hsl(var(--cocktail-card-border))] bg-white">
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium">Cocktailgröße wählen:</h3>
-                    <RadioGroup
-                      value={selectedSize.toString()}
-                      onValueChange={(value) => setSelectedSize(Number.parseInt(value))}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="200" id="size-200" />
-                        <Label htmlFor="size-200">200ml</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="300" id="size-300" />
-                        <Label htmlFor="size-300">300ml</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="400" id="size-400" />
-                        <Label htmlFor="size-400">400ml</Label>
-                      </div>
-                    </RadioGroup>
-
-                    <div className="text-xs text-[hsl(var(--cocktail-text-muted))] mt-2">
-                      Originalrezept: ca. {getCurrentVolume()}ml
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {!checkIngredientsAvailable() && (
-                <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-                  <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-                  <AlertDescription className="text-[hsl(var(--cocktail-error))]">
-                    Nicht genügend Zutaten vorhanden! Bitte fülle die Zutaten nach.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex gap-2">
-                <Button className="flex-1" variant="outline" onClick={() => setSelectedCocktail(null)}>
-                  Abbrechen
-                </Button>
-                <Button className="flex-1" onClick={handleMakeCocktail} disabled={!checkIngredientsAvailable()}>
-                  Cocktail zubereiten
-                </Button>
-              </div>
-            </div>
+            // Verwende die neue Detailansicht-Komponente
+            <CocktailDetail cocktail={cocktailsData.find((c) => c.id === selectedCocktail)!} />
           ) : (
             <>
+              {/* Überschrift und Button für neues Rezept */}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Verfügbare Cocktails</h2>
                 <Button
@@ -365,6 +566,7 @@ export default function Home() {
                 </Button>
               </div>
 
+              {/* Warnung bei niedrigen Füllständen */}
               {lowIngredients.length > 0 && (
                 <Alert className="mb-4 bg-[hsl(var(--cocktail-warning))]/10 border-[hsl(var(--cocktail-warning))]/30">
                   <AlertTriangle className="h-4 w-4 text-[hsl(var(--cocktail-warning))]" />
@@ -379,15 +581,23 @@ export default function Home() {
                 </Alert>
               )}
 
+              {/* Cocktail-Grid */}
               <div className="grid grid-cols-3 gap-3">
+                {/* Zeige nur die Cocktails der aktuellen Seite an */}
                 {cocktails.map((cocktail) => (
                   <CocktailCard
                     key={cocktail.id}
                     cocktail={cocktail}
                     onClick={() => setSelectedCocktail(cocktail.id)}
+                    onDelete={handleDeleteClick}
                   />
                 ))}
               </div>
+
+              {/* Paginierung */}
+              {totalPages > 1 && (
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
+              )}
             </>
           )}
         </>
@@ -402,62 +612,133 @@ export default function Home() {
       </header>
 
       <main className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="mx-4 mt-2 justify-start bg-white border border-[hsl(var(--cocktail-card-border))] tabs-list">
-            <TabsTrigger value="cocktails" className="flex items-center gap-1">
+        <div className="h-full flex flex-col">
+          <div className="mx-4 mt-2 flex justify-start bg-white border border-[hsl(var(--cocktail-card-border))] rounded-md tabs-list">
+            <button
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "cocktails" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => {
+                if (activeTab === "cocktails" && selectedCocktail) {
+                  setSelectedCocktail(null)
+                } else {
+                  setActiveTab("cocktails")
+                  if (selectedCocktail) setSelectedCocktail(null)
+                }
+              }}
+            >
               <Wine className="h-4 w-4" />
               Cocktails
-            </TabsTrigger>
-            <TabsTrigger value="virgin-cocktails" className="flex items-center gap-1">
+            </button>
+            <button
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "virgin-cocktails" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => {
+                if (activeTab === "virgin-cocktails" && selectedCocktail) {
+                  setSelectedCocktail(null)
+                } else {
+                  setActiveTab("virgin-cocktails")
+                  if (selectedCocktail) setSelectedCocktail(null)
+                }
+              }}
+            >
               <GlassWater className="h-4 w-4" />
               Virgin Cocktails
-            </TabsTrigger>
-            <TabsTrigger value="shots">Shots</TabsTrigger>
-            <TabsTrigger value="levels">Füllstände</TabsTrigger>
-            <TabsTrigger value="calibration">Pumpenkalibrierung</TabsTrigger>
-            <TabsTrigger value="cleaning">Reinigung</TabsTrigger>
-          </TabsList>
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "shots" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("shots")}
+            >
+              Shots
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "levels" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("levels")}
+            >
+              Füllstände
+            </button>
+            <button
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "calibration" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => {
+                if (isCalibrationLocked) {
+                  handleCalibrationClick()
+                } else {
+                  setActiveTab("calibration")
+                }
+              }}
+            >
+              {isCalibrationLocked && <Lock className="h-4 w-4 mr-1" />}
+              Pumpenkalibrierung
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "cleaning" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => setActiveTab("cleaning")}
+            >
+              Reinigung
+            </button>
+          </div>
 
-          <TabsContent value="cocktails" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
-            <CocktailDisplay cocktails={alcoholicCocktails} />
-          </TabsContent>
+          <div className="flex-1 overflow-hidden">
+            {activeTab === "cocktails" && (
+              <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
+                <CocktailDisplay
+                  cocktails={currentPageCocktails}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
 
-          <TabsContent value="virgin-cocktails" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
-            <CocktailDisplay cocktails={virginCocktails} />
-          </TabsContent>
+            {activeTab === "virgin-cocktails" && (
+              <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
+                <CocktailDisplay
+                  cocktails={currentPageVirginCocktails}
+                  currentPage={virginCurrentPage}
+                  totalPages={virginTotalPages}
+                  onPageChange={setVirginCurrentPage}
+                />
+              </div>
+            )}
 
-          <TabsContent value="shots" className="flex-1 overflow-auto p-4 space-y-4 touch-pan-y">
-            <Card className="border-[hsl(var(--cocktail-card-border))] bg-white mb-4">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <GlassWater className="h-6 w-6 text-[hsl(var(--cocktail-primary))]" />
-                  <h2 className="text-xl font-semibold">Shots (40ml)</h2>
-                </div>
-                <p className="text-[hsl(var(--cocktail-text-muted))]">
-                  Wähle eine Zutat aus, um einen 40ml Shot zuzubereiten.
-                </p>
-              </CardContent>
-            </Card>
+            {activeTab === "shots" && (
+              <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
+                <Card className="border-[hsl(var(--cocktail-card-border))] bg-white mb-4">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <GlassWater className="h-6 w-6 text-[hsl(var(--cocktail-primary))]" />
+                      <h2 className="text-xl font-semibold">Shots (40ml)</h2>
+                    </div>
+                    <p className="text-[hsl(var(--cocktail-text-muted))]">
+                      Wähle eine Zutat aus, um einen 40ml Shot zuzubereiten.
+                    </p>
+                  </CardContent>
+                </Card>
 
-            <ShotSelector
-              pumpConfig={pumpConfig}
-              ingredientLevels={ingredientLevels}
-              onShotComplete={loadIngredientLevels}
-            />
-          </TabsContent>
+                <ShotSelector
+                  pumpConfig={pumpConfig}
+                  ingredientLevels={ingredientLevels}
+                  onShotComplete={loadIngredientLevels}
+                />
+              </div>
+            )}
 
-          <TabsContent value="levels" className="flex-1 overflow-auto p-4 touch-pan-y">
-            <IngredientLevels pumpConfig={pumpConfig} />
-          </TabsContent>
+            {activeTab === "levels" && (
+              <div className="h-full overflow-auto p-4 touch-pan-y">
+                <IngredientLevels pumpConfig={pumpConfig} />
+              </div>
+            )}
 
-          <TabsContent value="calibration" className="flex-1 overflow-auto p-4 touch-pan-y">
-            <PumpCalibration pumpConfig={pumpConfig} />
-          </TabsContent>
+            {activeTab === "calibration" && !isCalibrationLocked && (
+              <div className="h-full overflow-auto p-4 touch-pan-y">
+                <PumpCalibration pumpConfig={pumpConfig} />
+              </div>
+            )}
 
-          <TabsContent value="cleaning" className="flex-1 overflow-auto p-4 touch-pan-y">
-            <PumpCleaning pumpConfig={pumpConfig} />
-          </TabsContent>
-        </Tabs>
+            {activeTab === "cleaning" && (
+              <div className="h-full overflow-auto p-4 touch-pan-y">
+                <PumpCleaning pumpConfig={pumpConfig} />
+              </div>
+            )}
+          </div>
+        </div>
       </main>
 
       {/* Passwort-Modal */}
