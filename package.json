@@ -59,8 +59,6 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "uuid": "latest",
-    "child_process": "latest",
-    "util": "latest",
     "fs": "latest",
     "path": "latest"
   },
