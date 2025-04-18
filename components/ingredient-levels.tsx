@@ -10,9 +10,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, RefreshCw, AlertTriangle, Droplet } from "lucide-react"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
-import { getIngredientLevels, refillIngredient, refillAllIngredients } from "@/lib/ingredient-level-service"
+import { getIngredientLevels, refillAllIngredients } from "@/lib/ingredient-level-service"
 import type { PumpConfig } from "@/types/pump-config"
 import VirtualKeyboard from "./virtual-keyboard"
+import { updateIngredientLevel } from "@/lib/ingredient-level-service"
 
 interface IngredientLevelsProps {
   pumpConfig: PumpConfig[]
@@ -90,16 +91,22 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
     setShowKeyboard(true)
   }
 
+  // Ändere die handleRefill Funktion, um die Gesamtmenge statt der hinzugefügten Menge zu verwenden
   const handleRefill = async (ingredientId: string) => {
     const amountStr = refillAmounts[ingredientId]
     if (!amountStr) return
 
-    const amount = Number.parseInt(amountStr, 10)
-    if (isNaN(amount) || amount <= 0) return
+    const newTotalAmount = Number.parseInt(amountStr, 10)
+    if (isNaN(newTotalAmount) || newTotalAmount <= 0) return
 
     setSaving(true)
     try {
-      const updatedLevel = await refillIngredient(ingredientId, amount)
+      // Finde den aktuellen Füllstand
+      const currentLevel = levels.find((level) => level.ingredientId === ingredientId)
+      if (!currentLevel) return
+
+      // Setze den neuen Gesamtfüllstand direkt
+      const updatedLevel = await updateIngredientLevel(ingredientId, newTotalAmount)
 
       // Aktualisiere den Füllstand in der lokalen State-Variable
       setLevels((prev) => prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level)))
@@ -119,6 +126,17 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
       setShowKeyboard(false)
       setActiveInput(null)
     }
+  }
+
+  // Füge eine neue Funktion für die Schnellauswahl von Flaschengrößen hinzu
+  const handleQuickFill = (ingredientId: string, amount: number) => {
+    setRefillAmounts((prev) => ({
+      ...prev,
+      [ingredientId]: amount.toString(),
+    }))
+
+    // Optional: Direkt nachfüllen, wenn gewünscht
+    handleRefill(ingredientId)
   }
 
   const handleRefillAll = async () => {
@@ -236,24 +254,53 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                           </Alert>
                         )}
 
-                        <div className="flex gap-2 mt-1">
-                          <Input
-                            type="text"
-                            placeholder="Menge in ml"
-                            value={refillAmounts[level.ingredientId] || ""}
-                            onChange={(e) => handleRefillAmountChange(level.ingredientId, e.target.value)}
-                            className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-center text-lg"
-                            onFocus={() => handleInputFocus(level.ingredientId)}
-                            readOnly
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRefill(level.ingredientId)}
-                            disabled={!refillAmounts[level.ingredientId] || saving}
-                          >
-                            Nachfüllen
-                          </Button>
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Input
+                              type="text"
+                              placeholder="Neue Gesamtmenge in ml"
+                              value={refillAmounts[level.ingredientId] || ""}
+                              onChange={(e) => handleRefillAmountChange(level.ingredientId, e.target.value)}
+                              className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-center text-lg"
+                              onFocus={() => handleInputFocus(level.ingredientId)}
+                              readOnly
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRefill(level.ingredientId)}
+                              disabled={!refillAmounts[level.ingredientId] || saving}
+                            >
+                              Setzen
+                            </Button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuickFill(level.ingredientId, 700)}
+                              className="flex-1"
+                            >
+                              700ml
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuickFill(level.ingredientId, 1000)}
+                              className="flex-1"
+                            >
+                              1000ml
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuickFill(level.ingredientId, level.capacity)}
+                              className="flex-1"
+                            >
+                              Voll ({level.capacity}ml)
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )

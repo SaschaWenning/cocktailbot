@@ -10,6 +10,8 @@ import type { PumpConfig } from "@/types/pump"
 import { ingredients } from "@/data/ingredients"
 import { makeSingleShot } from "@/lib/cocktail-machine"
 import type { IngredientLevel } from "@/types/ingredient-level"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 
 interface ShotSelectorProps {
   pumpConfig: PumpConfig[]
@@ -24,6 +26,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
   const [statusMessage, setStatusMessage] = useState("")
   const [showSuccess, setShowSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [shotSize, setShotSize] = useState<number>(40) // Standard: 40ml
 
   // Filtere nur die Zutaten, die an Pumpen angeschlossen sind
   const availableIngredients = pumpConfig.map((pump) => {
@@ -50,7 +53,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
   const checkIngredientAvailable = (ingredientId: string) => {
     const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
-    return level && level.currentAmount >= 40
+    return level && level.currentAmount >= shotSize
   }
 
   const handleMakeShot = async () => {
@@ -82,13 +85,13 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
       }
 
       // Bereite den Shot zu
-      await makeSingleShot(selectedIngredient, 40)
+      await makeSingleShot(selectedIngredient, shotSize)
 
       clearInterval(intervalId)
       setProgress(100)
 
       const ingredientName = ingredients.find((i) => i.id === selectedIngredient)?.name || selectedIngredient
-      setStatusMessage(`${ingredientName} Shot (40ml) fertig!`)
+      setStatusMessage(`${ingredientName} Shot (${shotSize}ml) fertig!`)
       setShowSuccess(true)
 
       // Aktualisiere die Füllstände nach erfolgreicher Zubereitung
@@ -147,7 +150,24 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
                 <GlassWater className="h-10 w-10 text-[hsl(var(--cocktail-primary))]" />
               </div>
               <h2 className="text-xl font-semibold">{ingredient?.name || selectedIngredient} Shot</h2>
-              <p className="text-[hsl(var(--cocktail-text-muted))]">40ml</p>
+
+              {/* Shot-Größe Auswahl */}
+              <div className="w-full max-w-xs">
+                <RadioGroup
+                  value={shotSize.toString()}
+                  onValueChange={(value) => setShotSize(Number.parseInt(value))}
+                  className="flex justify-center gap-8"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="20" id="size-20" />
+                    <Label htmlFor="size-20">20ml</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="40" id="size-40" />
+                    <Label htmlFor="size-40">40ml</Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
               {!isAvailable && (
                 <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
@@ -188,7 +208,6 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
             >
               <div className="flex flex-col items-center">
                 <span className="font-medium text-sm">{ingredient.name}</span>
-                <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">40ml</span>
               </div>
             </Button>
           ))}
@@ -209,7 +228,6 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
               >
                 <div className="flex flex-col items-center">
                   <span className="font-medium text-sm">{ingredient.name}</span>
-                  <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">40ml</span>
                 </div>
               </Button>
             ))}

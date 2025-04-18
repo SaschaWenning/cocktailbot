@@ -700,18 +700,6 @@ export default function Home() {
 
             {activeTab === "shots" && (
               <div className="h-full overflow-auto p-4 space-y-4 touch-pan-y">
-                <Card className="border-[hsl(var(--cocktail-card-border))] bg-white mb-4">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <GlassWater className="h-6 w-6 text-[hsl(var(--cocktail-primary))]" />
-                      <h2 className="text-xl font-semibold">Shots (40ml)</h2>
-                    </div>
-                    <p className="text-[hsl(var(--cocktail-text-muted))]">
-                      Wähle eine Zutat aus, um einen 40ml Shot zuzubereiten.
-                    </p>
-                  </CardContent>
-                </Card>
-
                 <ShotSelector
                   pumpConfig={pumpConfig}
                   ingredientLevels={ingredientLevels}

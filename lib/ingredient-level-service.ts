@@ -20,9 +20,12 @@ export async function updateIngredientLevel(ingredientId: string, newAmount: num
     throw new Error(`Zutat mit ID ${ingredientId} nicht gefunden`)
   }
 
+  // Stelle sicher, dass die neue Menge nicht größer als die Kapazität ist
+  const cappedAmount = Math.min(newAmount, ingredientLevels[index].capacity)
+
   const updatedLevel = {
     ...ingredientLevels[index],
-    currentAmount: newAmount,
+    currentAmount: cappedAmount,
     lastRefill: new Date(),
   }
 
