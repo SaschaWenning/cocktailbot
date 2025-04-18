@@ -20,6 +20,8 @@ import {
   Wine,
   ChevronLeft,
   ChevronRight,
+  Trash2,
+  Lock,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
@@ -61,6 +63,8 @@ export default function Home() {
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
+  const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
+  const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
 
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
@@ -141,12 +145,31 @@ export default function Home() {
 
   const handleEditClick = (cocktailId: string) => {
     setCocktailToEdit(cocktailId)
+    setPasswordAction("edit")
+    setShowPasswordModal(true)
+  }
+
+  const handleDeleteClick = (cocktailId: string) => {
+    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
+    if (cocktail) {
+      setCocktailToDelete(cocktail)
+      setShowDeleteConfirmation(true)
+    }
+  }
+
+  const handleCalibrationClick = () => {
+    setPasswordAction("calibration")
     setShowPasswordModal(true)
   }
 
   const handlePasswordSuccess = () => {
     setShowPasswordModal(false)
-    setShowRecipeEditor(true)
+    if (passwordAction === "edit") {
+      setShowRecipeEditor(true)
+    } else if (passwordAction === "calibration") {
+      setIsCalibrationLocked(false)
+      setActiveTab("calibration")
+    }
   }
 
   const handleRecipeSave = async (updatedCocktail: Cocktail) => {
@@ -316,6 +339,9 @@ export default function Home() {
     // Verfügbare Größen
     const availableSizes = [200, 300, 400]
 
+    // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
+    const isCustomRecipe = cocktail.id.startsWith("custom-")
+
     return (
       <Card className="overflow-hidden transition-all bg-white border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
         <div className="flex flex-col md:flex-row">
@@ -408,20 +434,36 @@ export default function Home() {
                   </Button>
                 </div>
 
-                {/* Bearbeitungsbutton */}
-                <div className="flex justify-end mt-4">
+                {/* Bearbeitungs- und Löschbuttons */}
+                <div className="flex justify-between mt-4">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="text-xs"
+                    className="flex items-center gap-1"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleEditClick(cocktail.id)
                     }}
                   >
-                    <Edit className="h-3 w-3 mr-1" />
-                    Rezept bearbeiten
+                    <Edit className="h-4 w-4 mr-1" />
+                    Bearbeiten
                   </Button>
+
+                  {/* Löschbutton - nur für benutzerdefinierte Rezepte */}
+                  {isCustomRecipe && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex items-center gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteClick(cocktail.id)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Löschen
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -547,6 +589,7 @@ export default function Home() {
                     key={cocktail.id}
                     cocktail={cocktail}
                     onClick={() => setSelectedCocktail(cocktail.id)}
+                    onDelete={handleDeleteClick}
                   />
                 ))}
               </div>
@@ -612,9 +655,16 @@ export default function Home() {
               Füllstände
             </button>
             <button
-              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "calibration" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
-              onClick={() => setActiveTab("calibration")}
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "calibration" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              onClick={() => {
+                if (isCalibrationLocked) {
+                  handleCalibrationClick()
+                } else {
+                  setActiveTab("calibration")
+                }
+              }}
             >
+              {isCalibrationLocked && <Lock className="h-4 w-4 mr-1" />}
               Pumpenkalibrierung
             </button>
             <button
@@ -676,7 +726,7 @@ export default function Home() {
               </div>
             )}
 
-            {activeTab === "calibration" && (
+            {activeTab === "calibration" && !isCalibrationLocked && (
               <div className="h-full overflow-auto p-4 touch-pan-y">
                 <PumpCalibration pumpConfig={pumpConfig} />
               </div>

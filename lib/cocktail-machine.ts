@@ -123,17 +123,17 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
 // Diese Funktion würde die GPIO-Pins des Raspberry Pi steuern
 async function activatePump(pin: number, durationMs: number) {
   try {
-    // In einer echten Implementierung würden wir hier die GPIO-Pins steuern
-    // Für diese Demo simulieren wir nur die Verzögerung
+    // Importiere die GPIO-Controller-Funktionen
+    const { activatePinForDuration } = await import("@/lib/gpio-controller")
 
-    // Simuliere das Einschalten der Pumpe
-    console.log(`GPIO Pin ${pin} eingeschaltet`)
+    console.log(`Pumpe an Pin ${pin} wird für ${durationMs}ms aktiviert`)
 
-    // Warte für die angegebene Dauer
-    await new Promise((resolve) => setTimeout(resolve, durationMs))
+    // Aktiviere die Pumpe über das Python-Skript
+    const result = await activatePinForDuration(pin, durationMs)
 
-    // Simuliere das Ausschalten der Pumpe
-    console.log(`GPIO Pin ${pin} ausgeschaltet`)
+    if (!result.success) {
+      throw new Error(result.error || "Unbekannter Fehler beim Aktivieren der Pumpe")
+    }
 
     return true
   } catch (error) {
@@ -519,7 +519,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "citrus-cooler",
         name: "Citrus Cooler",
         description: "Erfrischender alkoholfreier Cocktail mit Limette und Sodawasser",
-        image: "/placeholder.svg?height=400&width=400&query=Citrus%20Cooler",
+        image: "/refreshing-citrus-cooler.png",
         alcoholic: false,
         ingredients: ["40ml Limettensaft", "20ml Vanillesirup", "200ml Sodawasser", "10ml Grenadine"],
         recipe: [

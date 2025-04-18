@@ -1,37 +1,53 @@
-// Diese Datei würde in einer echten Implementierung die GPIO-Pins des Raspberry Pi steuern
-// Für diese Demo ist sie nur ein Platzhalter
+import { exec } from "child_process"
+import { promisify } from "util"
 
-// In einer echten Implementierung würden wir hier die rpio oder onoff Bibliothek importieren
-// import * as rpio from 'rpio';
+const execAsync = promisify(exec)
+
+// Pfad zum Python-Skript
+const PYTHON_SCRIPT = "scripts/gpio_controller.py"
 
 export function setupGPIO() {
   // Initialisiere die GPIO-Pins
   console.log("GPIO-Pins werden initialisiert")
-
-  // In einer echten Implementierung würden wir hier die GPIO-Pins konfigurieren
-  // rpio.init({mapping: 'gpio'});
+  // Keine spezielle Initialisierung erforderlich, da das Python-Skript die Pins bei Bedarf konfiguriert
 }
 
-export function setPinHigh(pin: number) {
-  // Setze den Pin auf HIGH (3.3V)
-  console.log(`Setze Pin ${pin} auf HIGH`)
-
-  // In einer echten Implementierung:
-  // rpio.open(pin, rpio.OUTPUT, rpio.HIGH);
+export async function setPinHigh(pin: number) {
+  // Setze den Pin auf HIGH (3.3V) für eine sehr kurze Zeit (100ms)
+  // Dies ist nur ein Test, um zu prüfen, ob der Pin funktioniert
+  try {
+    console.log(`Setze Pin ${pin} auf HIGH`)
+    await execAsync(`python3 ${PYTHON_SCRIPT} activate ${pin} 100`)
+  } catch (error) {
+    console.error(`Fehler beim Setzen von Pin ${pin} auf HIGH:`, error)
+    throw error
+  }
 }
 
-export function setPinLow(pin: number) {
+export async function setPinLow(pin: number) {
   // Setze den Pin auf LOW (0V)
-  console.log(`Setze Pin ${pin} auf LOW`)
+  // In unserem Fall wird der Pin automatisch auf LOW gesetzt, nachdem die Zeit abgelaufen ist
+  console.log(`Pin ${pin} wurde bereits auf LOW gesetzt`)
+}
 
-  // In einer echten Implementierung:
-  // rpio.open(pin, rpio.OUTPUT, rpio.LOW);
+export async function activatePinForDuration(pin: number, durationMs: number) {
+  // Aktiviere den Pin für die angegebene Dauer
+  try {
+    console.log(`Aktiviere Pin ${pin} für ${durationMs}ms`)
+    const { stdout } = await execAsync(`python3 ${PYTHON_SCRIPT} activate ${pin} ${durationMs}`)
+    return JSON.parse(stdout)
+  } catch (error) {
+    console.error(`Fehler beim Aktivieren von Pin ${pin}:`, error)
+    throw error
+  }
 }
 
 export function cleanupGPIO() {
   // Bereinige die GPIO-Pins
   console.log("GPIO-Pins werden bereinigt")
-
-  // In einer echten Implementierung:
-  // rpio.exit();
+  try {
+    exec(`python3 ${PYTHON_SCRIPT} cleanup`)
+  } catch (error) {
+    console.error("Fehler beim Bereinigen der GPIO-Pins:", error)
+  }
 }

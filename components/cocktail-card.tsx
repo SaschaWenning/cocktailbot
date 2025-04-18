@@ -5,14 +5,17 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Cocktail } from "@/types/cocktail"
 import { useState, useEffect } from "react"
+import { Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface CocktailCardProps {
   cocktail: Cocktail
   selected?: boolean
   onClick: () => void
+  onDelete?: (id: string) => void
 }
 
-export default function CocktailCard({ cocktail, selected = false, onClick }: CocktailCardProps) {
+export default function CocktailCard({ cocktail, selected = false, onClick, onDelete }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
   const [imageSrc, setImageSrc] = useState<string>("")
 
@@ -120,9 +123,24 @@ export default function CocktailCard({ cocktail, selected = false, onClick }: Co
       <CardContent className="p-3">
         <div className="flex justify-between items-start">
           <h3 className="font-bold text-base text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
-          <Badge variant={cocktail.alcoholic ? "default" : "outline"} className="text-xs">
-            {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant={cocktail.alcoholic ? "default" : "outline"} className="text-xs">
+              {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
+            </Badge>
+            {cocktail.id.startsWith("custom-") && onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-[hsl(var(--cocktail-error))]"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(cocktail.id)
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
