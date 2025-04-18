@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Loader2, RefreshCw, AlertTriangle, Droplet } from "lucide-react"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
@@ -27,7 +28,8 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
   const [refillAmounts, setRefillAmounts] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
   const [activeInput, setActiveInput] = useState<string | null>(null)
-  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [showInputDialog, setShowInputDialog] = useState(false)
+  const [currentIngredientName, setCurrentIngredientName] = useState("")
 
   // Lade Füllstände beim ersten Rendern
   useEffect(() => {
@@ -87,8 +89,10 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
   }
 
   const handleInputFocus = (ingredientId: string) => {
+    const ingredient = ingredients.find((i) => i.id === ingredientId)
+    setCurrentIngredientName(ingredient ? ingredient.name : ingredientId)
     setActiveInput(ingredientId)
-    setShowKeyboard(true)
+    setShowInputDialog(true)
   }
 
   // Ändere die handleRefill Funktion, um die Gesamtmenge statt der hinzugefügten Menge zu verwenden
@@ -123,7 +127,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
       console.error("Fehler beim Nachfüllen:", error)
     } finally {
       setSaving(false)
-      setShowKeyboard(false)
+      setShowInputDialog(false)
       setActiveInput(null)
     }
   }
@@ -156,6 +160,17 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
   const getIngredientName = (id: string) => {
     const ingredient = ingredients.find((i) => i.id === id)
     return ingredient ? ingredient.name : id
+  }
+
+  const cancelInput = () => {
+    setShowInputDialog(false)
+    setActiveInput(null)
+  }
+
+  const confirmInput = () => {
+    if (activeInput) {
+      handleRefill(activeInput)
+    }
   }
 
   // Ändere die Filterlogik, um nur angeschlossene Zutaten anzuzeigen
@@ -257,20 +272,15 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                         <div className="space-y-2">
                           <div className="flex gap-2">
                             <Input
+                              id={`input-${level.ingredientId}`}
                               type="text"
                               placeholder="Neue Gesamtmenge in ml"
                               value={refillAmounts[level.ingredientId] || ""}
-                              onChange={(e) => handleRefillAmountChange(level.ingredientId, e.target.value)}
                               className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-center text-lg"
-                              onFocus={() => handleInputFocus(level.ingredientId)}
                               readOnly
+                              onClick={() => handleInputFocus(level.ingredientId)}
                             />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRefill(level.ingredientId)}
-                              disabled={!refillAmounts[level.ingredientId] || saving}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleInputFocus(level.ingredientId)}>
                               Setzen
                             </Button>
                           </div>
@@ -300,6 +310,14 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                             >
                               Voll ({level.capacity}ml)
                             </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleInputFocus(level.ingredientId)}
+                              className="flex-1"
+                            >
+                              Manuell
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -307,30 +325,6 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                   })
                 )}
               </div>
-
-              {showKeyboard && activeInput && (
-                <div className="mt-6 border-t border-[hsl(var(--cocktail-card-border))] pt-4">
-                  <VirtualKeyboard
-                    onKeyPress={handleKeyPress}
-                    onBackspace={handleBackspace}
-                    onClear={handleClear}
-                    onConfirm={() => handleRefill(activeInput)}
-                    allowDecimal={false}
-                  />
-
-                  <div className="mt-4 flex justify-end">
-                    <Button
-                      onClick={() => {
-                        setShowKeyboard(false)
-                        setActiveInput(null)
-                      }}
-                      variant="ghost"
-                    >
-                      Abbrechen
-                    </Button>
-                  </div>
-                </div>
-              )}
 
               <div className="mt-6 pt-4 border-t border-[hsl(var(--cocktail-card-border))]">
                 <Button onClick={handleRefillAll} className="w-full" disabled={saving}>
@@ -359,6 +353,51 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog für die manuelle Mengeneingabe */}
+      <Dialog open={showInputDialog} onOpenChange={(open) => !open && cancelInput()}>
+        <DialogContent className="bg-white border-[hsl(var(--cocktail-card-border))] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Füllstand aktualisieren</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-[hsl(var(--cocktail-text))]">
+              Bitte gib die neue Gesamtmenge für <strong>{currentIngredientName}</strong> ein:
+            </p>
+
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={activeInput ? refillAmounts[activeInput] || "" : ""}
+                onChange={(e) => activeInput && handleRefillAmountChange(activeInput, e.target.value)}
+                placeholder="Menge in ml"
+                className="text-xl h-12 text-center"
+                autoFocus
+                readOnly
+              />
+              <span className="text-sm">ml</span>
+            </div>
+
+            <VirtualKeyboard
+              onKeyPress={handleKeyPress}
+              onBackspace={handleBackspace}
+              onClear={handleClear}
+              onConfirm={confirmInput}
+              allowDecimal={false}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelInput}>
+              Abbrechen
+            </Button>
+            <Button onClick={confirmInput} disabled={!activeInput || !refillAmounts[activeInput || ""]}>
+              Speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

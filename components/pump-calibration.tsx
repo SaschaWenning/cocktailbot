@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import type { PumpConfig } from "@/types/pump"
 import { savePumpConfig, calibratePump, getPumpConfig } from "@/lib/cocktail-machine"
 import { ingredients } from "@/data/ingredients"
@@ -25,7 +26,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
   const [currentPumpId, setCurrentPumpId] = useState<number | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [showInputDialog, setShowInputDialog] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Lade die gespeicherte Konfiguration beim ersten Rendern
@@ -72,10 +73,8 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
       await calibratePump(pumpId, 2000)
       setCalibrationStep("input")
       setMeasuredAmount("")
-      setShowKeyboard(true)
-      if (inputRef.current) {
-        inputRef.current.focus()
-      }
+      // Öffne das Dialog-Fenster für die Eingabe
+      setShowInputDialog(true)
     } catch (error) {
       console.error("Fehler bei der Kalibrierung:", error)
       setCalibrationStep("idle")
@@ -108,10 +107,18 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
   }
 
   const saveCalibration = async () => {
-    if (currentPumpId === null || measuredAmount === "") return
+    if (currentPumpId === null || measuredAmount === "") {
+      setShowInputDialog(false)
+      setCalibrationStep("idle")
+      return
+    }
 
     const amount = Number.parseFloat(measuredAmount)
-    if (isNaN(amount) || amount <= 0) return
+    if (isNaN(amount) || amount <= 0) {
+      setShowInputDialog(false)
+      setCalibrationStep("idle")
+      return
+    }
 
     // Berechne die Durchflussrate (ml/s) basierend auf der gemessenen Menge und 2 Sekunden Laufzeit
     const flowRate = amount / 2
@@ -145,14 +152,14 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
     setMeasuredAmount("")
     setCalibrationStep("idle")
     setCurrentPumpId(null)
-    setShowKeyboard(false)
+    setShowInputDialog(false)
   }
 
   const cancelCalibration = () => {
     setMeasuredAmount("")
     setCalibrationStep("idle")
     setCurrentPumpId(null)
-    setShowKeyboard(false)
+    setShowInputDialog(false)
   }
 
   if (loading) {
@@ -195,46 +202,6 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
                 Menge in ml.
               </AlertDescription>
             </Alert>
-          )}
-
-          {calibrationStep === "input" && (
-            <div className="mb-4 p-4 border border-[hsl(var(--cocktail-accent))]/30 rounded-lg bg-[hsl(var(--cocktail-accent))]/10">
-              <h3 className="text-sm font-medium mb-2 text-[hsl(var(--cocktail-text))]">
-                Gemessene Menge für Pumpe {currentPumpId} eintragen:
-              </h3>
-              <div className="flex gap-2 mb-4">
-                <div className="flex-1">
-                  <Input
-                    ref={inputRef}
-                    type="text"
-                    value={measuredAmount}
-                    onChange={(e) => handleMeasuredAmountChange(e.target.value)}
-                    placeholder="Menge in ml"
-                    className="w-full text-xl h-12 text-center"
-                    onFocus={() => setShowKeyboard(true)}
-                    readOnly
-                  />
-                </div>
-              </div>
-
-              {showKeyboard && (
-                <div className="mt-4">
-                  <VirtualKeyboard
-                    onKeyPress={handleKeyPress}
-                    onBackspace={handleBackspace}
-                    onClear={handleClear}
-                    onConfirm={saveCalibration}
-                    allowDecimal={true}
-                  />
-
-                  <div className="mt-4 flex justify-end">
-                    <Button onClick={cancelCalibration} variant="ghost">
-                      Abbrechen
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
           )}
 
           <div className="space-y-4">
@@ -313,6 +280,52 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog für die Eingabe der gemessenen Menge */}
+      <Dialog open={showInputDialog} onOpenChange={(open) => !open && cancelCalibration()}>
+        <DialogContent className="bg-white border-[hsl(var(--cocktail-card-border))] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Gemessene Menge eingeben</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-[hsl(var(--cocktail-text))]">
+              Bitte gib die gemessene Menge für Pumpe {currentPumpId} ein:
+            </p>
+
+            <div className="flex items-center gap-2">
+              <Input
+                ref={inputRef}
+                type="text"
+                value={measuredAmount}
+                onChange={(e) => handleMeasuredAmountChange(e.target.value)}
+                placeholder="Menge in ml"
+                className="text-xl h-12 text-center"
+                autoFocus
+                readOnly
+              />
+              <span className="text-sm">ml</span>
+            </div>
+
+            <VirtualKeyboard
+              onKeyPress={handleKeyPress}
+              onBackspace={handleBackspace}
+              onClear={handleClear}
+              onConfirm={saveCalibration}
+              allowDecimal={true}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelCalibration}>
+              Abbrechen
+            </Button>
+            <Button onClick={saveCalibration} disabled={!measuredAmount}>
+              Speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
