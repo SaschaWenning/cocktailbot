@@ -1,53 +1,90 @@
-import { exec } from "child_process"
-import { promisify } from "util"
+// Hilfsfunktionen für die GPIO-Steuerung über die API
 
-const execAsync = promisify(exec)
-
-// Pfad zum Python-Skript
-const PYTHON_SCRIPT = "scripts/gpio_controller.py"
-
-export function setupGPIO() {
-  // Initialisiere die GPIO-Pins
-  console.log("GPIO-Pins werden initialisiert")
-  // Keine spezielle Initialisierung erforderlich, da das Python-Skript die Pins bei Bedarf konfiguriert
-}
-
-export async function setPinHigh(pin: number) {
-  // Setze den Pin auf HIGH (3.3V) für eine sehr kurze Zeit (100ms)
-  // Dies ist nur ein Test, um zu prüfen, ob der Pin funktioniert
+// Initialisiere die GPIO-Pins
+export async function setupGPIO() {
   try {
-    console.log(`Setze Pin ${pin} auf HIGH`)
-    await execAsync(`python3 ${PYTHON_SCRIPT} activate ${pin} 100`)
+    console.log("GPIO-Pins werden initialisiert")
+    const response = await fetch("/api/gpio", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "setup" }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP-Fehler: ${response.status}`)
+    }
+
+    const result = await response.json()
+    if (!result.success) {
+      throw new Error(result.error || "Unbekannter Fehler bei der Initialisierung")
+    }
+
+    console.log("GPIO-Pins erfolgreich initialisiert")
+    return result
   } catch (error) {
-    console.error(`Fehler beim Setzen von Pin ${pin} auf HIGH:`, error)
+    console.error("Fehler bei der Initialisierung der GPIO-Pins:", error)
     throw error
   }
 }
 
-export async function setPinLow(pin: number) {
-  // Setze den Pin auf LOW (0V)
-  // In unserem Fall wird der Pin automatisch auf LOW gesetzt, nachdem die Zeit abgelaufen ist
-  console.log(`Pin ${pin} wurde bereits auf LOW gesetzt`)
-}
-
+// Aktiviere einen Pin für eine bestimmte Dauer
 export async function activatePinForDuration(pin: number, durationMs: number) {
-  // Aktiviere den Pin für die angegebene Dauer
   try {
     console.log(`Aktiviere Pin ${pin} für ${durationMs}ms`)
-    const { stdout } = await execAsync(`python3 ${PYTHON_SCRIPT} activate ${pin} ${durationMs}`)
-    return JSON.parse(stdout)
+
+    // Füge eine kurze Verzögerung hinzu, bevor der Pin aktiviert wird
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const response = await fetch("/api/gpio", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "activate", pin, duration: durationMs }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP-Fehler: ${response.status}`)
+    }
+
+    const result = await response.json()
+    if (!result.success) {
+      throw new Error(result.error || "Unbekannter Fehler beim Aktivieren des Pins")
+    }
+
+    return result
   } catch (error) {
     console.error(`Fehler beim Aktivieren von Pin ${pin}:`, error)
     throw error
   }
 }
 
-export function cleanupGPIO() {
-  // Bereinige die GPIO-Pins
-  console.log("GPIO-Pins werden bereinigt")
+// Bereinige die GPIO-Pins
+export async function cleanupGPIO() {
   try {
-    exec(`python3 ${PYTHON_SCRIPT} cleanup`)
+    console.log("GPIO-Pins werden bereinigt")
+    const response = await fetch("/api/gpio", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "cleanup" }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP-Fehler: ${response.status}`)
+    }
+
+    const result = await response.json()
+    if (!result.success) {
+      throw new Error(result.error || "Unbekannter Fehler bei der Bereinigung")
+    }
+
+    return result
   } catch (error) {
     console.error("Fehler beim Bereinigen der GPIO-Pins:", error)
+    throw error
   }
 }

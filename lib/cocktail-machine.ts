@@ -5,6 +5,20 @@ import type { PumpConfig } from "@/types/pump"
 import { updateLevelsAfterCocktail, updateLevelAfterShot } from "@/lib/ingredient-level-service"
 import fs from "fs"
 import path from "path"
+import { setupGPIO, activatePinForDuration } from "@/lib/gpio-controller"
+
+// Initialisiere die GPIO-Pins beim ersten Import
+let gpioInitialized = false
+async function initializeGPIO() {
+  if (!gpioInitialized) {
+    try {
+      await setupGPIO()
+      gpioInitialized = true
+    } catch (error) {
+      console.error("Fehler bei der Initialisierung der GPIO-Pins:", error)
+    }
+  }
+}
 
 // Skaliert die Zutatenmengen proportional zur gewünschten Gesamtmenge
 function scaleRecipe(cocktail: Cocktail, targetSize: number) {
@@ -23,6 +37,9 @@ function scaleRecipe(cocktail: Cocktail, targetSize: number) {
 
 // Diese Funktion würde auf dem Server laufen und die GPIO-Pins des Raspberry Pi steuern
 export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
+  // Initialisiere GPIO, falls noch nicht geschehen
+  await initializeGPIO()
+
   console.log(`Bereite Cocktail zu: ${cocktail.name} (${size}ml)`)
 
   // Prüfe zuerst, ob genügend von allen Zutaten vorhanden ist
@@ -92,6 +109,9 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
 
 // Funktion zum Zubereiten eines einzelnen Shots
 export async function makeSingleShot(ingredientId: string, amount = 40) {
+  // Initialisiere GPIO, falls noch nicht geschehen
+  await initializeGPIO()
+
   console.log(`Bereite Shot zu: ${ingredientId} (${amount}ml)`)
 
   // Prüfe zuerst, ob genügend von der Zutat vorhanden ist
@@ -120,18 +140,16 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
   return { success: true }
 }
 
-// Diese Funktion würde die GPIO-Pins des Raspberry Pi steuern
+// Ändere die activatePump-Funktion, um Fehler besser zu behandeln
 async function activatePump(pin: number, durationMs: number) {
   try {
-    // Importiere die GPIO-Controller-Funktionen
-    const { activatePinForDuration } = await import("@/lib/gpio-controller")
-
     console.log(`Pumpe an Pin ${pin} wird für ${durationMs}ms aktiviert`)
 
-    // Aktiviere die Pumpe über das Python-Skript
+    // Aktiviere die Pumpe über die API
     const result = await activatePinForDuration(pin, durationMs)
 
     if (!result.success) {
+      console.error(`Fehler beim Aktivieren der Pumpe: ${result.error || "Unbekannter Fehler"}`)
       throw new Error(result.error || "Unbekannter Fehler beim Aktivieren der Pumpe")
     }
 
@@ -145,6 +163,9 @@ async function activatePump(pin: number, durationMs: number) {
 // Funktion zum Testen einer einzelnen Pumpe
 export async function testPump(pumpId: number) {
   try {
+    // Initialisiere GPIO, falls noch nicht geschehen
+    await initializeGPIO()
+
     // In einer echten Implementierung würden wir hier die entsprechende Pumpe für eine kurze Zeit aktivieren
     console.log(`Teste Pumpe ${pumpId}`)
 
@@ -161,20 +182,21 @@ export async function testPump(pumpId: number) {
 // Funktion zur Kalibrierung einer Pumpe (läuft für exakt 2 Sekunden)
 export async function calibratePump(pumpId: number, durationMs: number) {
   try {
+    // Initialisiere GPIO, falls noch nicht geschehen
+    await initializeGPIO()
+
     // Finde die Pumpe in der Konfiguration
+    const pumpConfig = await getPumpConfig()
+    const pump = pumpConfig.find((p) => p.id === pumpId)
+
+    if (!pump) {
+      throw new Error(`Keine Pumpe mit ID ${pumpId} gefunden!`)
+    }
+
     console.log(`Kalibriere Pumpe ${pumpId} für ${durationMs}ms`)
 
-    // In einer echten Implementierung würden wir hier die entsprechende Pumpe aktivieren
-    // und nach der angegebenen Zeit wieder deaktivieren
-
-    // Simuliere die Aktivierung der Pumpe
-    console.log(`Pumpe ${pumpId} eingeschaltet`)
-
-    // Warte für die angegebene Dauer
-    await new Promise((resolve) => setTimeout(resolve, durationMs))
-
-    // Simuliere das Ausschalten der Pumpe
-    console.log(`Pumpe ${pumpId} ausgeschaltet`)
+    // Aktiviere die Pumpe über die API
+    await activatePinForDuration(pump.pin, durationMs)
 
     return { success: true }
   } catch (error) {
@@ -186,19 +208,21 @@ export async function calibratePump(pumpId: number, durationMs: number) {
 // Funktion zum Reinigen einer Pumpe
 export async function cleanPump(pumpId: number, durationMs: number) {
   try {
+    // Initialisiere GPIO, falls noch nicht geschehen
+    await initializeGPIO()
+
+    // Finde die Pumpe in der Konfiguration
+    const pumpConfig = await getPumpConfig()
+    const pump = pumpConfig.find((p) => p.id === pumpId)
+
+    if (!pump) {
+      throw new Error(`Keine Pumpe mit ID ${pumpId} gefunden!`)
+    }
+
     console.log(`Reinige Pumpe ${pumpId} für ${durationMs}ms`)
 
-    // In einer echten Implementierung würden wir hier die entsprechende Pumpe aktivieren
-    // und nach der angegebenen Zeit wieder deaktivieren
-
-    // Simuliere die Aktivierung der Pumpe
-    console.log(`Pumpe ${pumpId} eingeschaltet für Reinigung`)
-
-    // Warte für die angegebene Dauer
-    await new Promise((resolve) => setTimeout(resolve, durationMs))
-
-    // Simuliere das Ausschalten der Pumpe
-    console.log(`Pumpe ${pumpId} ausgeschaltet nach Reinigung`)
+    // Aktiviere die Pumpe über die API
+    await activatePinForDuration(pump.pin, durationMs)
 
     return { success: true }
   } catch (error) {
