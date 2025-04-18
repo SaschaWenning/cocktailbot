@@ -177,18 +177,18 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold mb-4">Alkoholische Shots</h2>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {alcoholicIngredients.map((ingredient) => (
             <Button
               key={ingredient.id}
               variant="outline"
-              className={`h-auto py-2 px-2 justify-center text-center ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
+              className={`h-auto py-3 justify-start ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
               onClick={() => handleSelectShot(ingredient.id)}
               disabled={!checkIngredientAvailable(ingredient.id)}
             >
-              <div className="flex flex-col items-center">
-                <span className="font-medium text-sm">{ingredient.name}</span>
-                <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">40ml</span>
+              <div className="flex flex-col items-start">
+                <span className="font-medium">{ingredient.name}</span>
+                <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">40ml Shot</span>
               </div>
             </Button>
           ))}
@@ -198,18 +198,18 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
       {nonAlcoholicIngredients.length > 0 && (
         <div>
           <h2 className="text-xl font-semibold mb-4">Alkoholfreie Shots</h2>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {nonAlcoholicIngredients.map((ingredient) => (
               <Button
                 key={ingredient.id}
                 variant="outline"
-                className={`h-auto py-2 px-2 justify-center text-center ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
+                className={`h-auto py-3 justify-start ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
                 onClick={() => handleSelectShot(ingredient.id)}
                 disabled={!checkIngredientAvailable(ingredient.id)}
               >
-                <div className="flex flex-col items-center">
-                  <span className="font-medium text-sm">{ingredient.name}</span>
-                  <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">40ml</span>
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">{ingredient.name}</span>
+                  <span className="text-xs text-[hsl(var(--cocktail-text-muted))]">40ml Shot</span>
                 </div>
               </Button>
             ))}
