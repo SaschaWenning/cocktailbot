@@ -5,17 +5,24 @@ import type { PumpConfig } from "@/types/pump"
 import { updateLevelsAfterCocktail, updateLevelAfterShot } from "@/lib/ingredient-level-service"
 import fs from "fs"
 import path from "path"
-import { setupGPIO, activatePinForDuration } from "@/lib/gpio-controller"
+import { setupGPIO, activatePinForDuration, testGPIOAPI } from "@/lib/gpio-controller"
 
 // Initialisiere die GPIO-Pins beim ersten Import
 let gpioInitialized = false
 async function initializeGPIO() {
   if (!gpioInitialized) {
     try {
+      // Teste zuerst die API
+      await testGPIOAPI()
+
+      // Dann initialisiere die GPIO-Pins
       await setupGPIO()
       gpioInitialized = true
+      console.log("GPIO-Pins erfolgreich initialisiert")
     } catch (error) {
       console.error("Fehler bei der Initialisierung der GPIO-Pins:", error)
+      // Setze trotzdem auf true, um nicht ständig zu versuchen, die Pins zu initialisieren
+      gpioInitialized = true
     }
   }
 }
@@ -58,14 +65,15 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
   const grenadineItems = scaledRecipe.filter((item) => item.ingredientId === "grenadine")
   const otherItems = scaledRecipe.filter((item) => item.ingredientId !== "grenadine")
 
-  // Aktiviere zuerst alle Zutaten außer Grenadine gleichzeitig
-  const otherPumpPromises = otherItems.map((item) => {
+  // Aktiviere zuerst alle Zutaten außer Grenadine nacheinander
+  // Änderung: Aktiviere die Pumpen nacheinander statt gleichzeitig, um Probleme zu vermeiden
+  for (const item of otherItems) {
     // Finde die Pumpe, die diese Zutat enthält
     const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId)
 
     if (!pump) {
       console.error(`Keine Pumpe für Zutat ${item.ingredientId} konfiguriert!`)
-      return Promise.resolve()
+      continue
     }
 
     // Berechne, wie lange die Pumpe laufen muss
@@ -74,11 +82,14 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
     console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
 
     // Aktiviere die Pumpe
-    return activatePump(pump.pin, pumpTimeMs)
-  })
-
-  // Warte, bis alle Pumpen außer Grenadine aktiviert wurden
-  await Promise.all(otherPumpPromises)
+    try {
+      await activatePump(pump.pin, pumpTimeMs)
+      // Kurze Pause zwischen den Pumpen
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    } catch (error) {
+      console.error(`Fehler beim Aktivieren der Pumpe ${pump.id}:`, error)
+    }
+  }
 
   // Wenn Grenadine im Rezept ist, warte 2 Sekunden und füge es dann hinzu
   if (grenadineItems.length > 0) {
@@ -100,7 +111,11 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
       console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
 
       // Aktiviere die Pumpe
-      await activatePump(pump.pin, pumpTimeMs)
+      try {
+        await activatePump(pump.pin, pumpTimeMs)
+      } catch (error) {
+        console.error(`Fehler beim Aktivieren der Pumpe ${pump.id}:`, error)
+      }
     }
   }
 
@@ -135,7 +150,12 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
   console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${amount}ml für ${pumpTimeMs}ms aktivieren`)
 
   // Aktiviere die Pumpe
-  await activatePump(pump.pin, pumpTimeMs)
+  try {
+    await activatePump(pump.pin, pumpTimeMs)
+  } catch (error) {
+    console.error(`Fehler beim Aktivieren der Pumpe für ${ingredientId}:`, error)
+    throw error
+  }
 
   return { success: true }
 }
@@ -166,11 +186,23 @@ export async function testPump(pumpId: number) {
     // Initialisiere GPIO, falls noch nicht geschehen
     await initializeGPIO()
 
-    // In einer echten Implementierung würden wir hier die entsprechende Pumpe für eine kurze Zeit aktivieren
-    console.log(`Teste Pumpe ${pumpId}`)
+    // Finde die Pumpe in der Konfiguration
+    const pumpConfig = await getPumpConfig()
+    const pump = pumpConfig.find((p) => p.id === pumpId)
 
-    // Simuliere eine kurze Verzögerung
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    if (!pump) {
+      throw new Error(`Keine Pumpe mit ID ${pumpId} gefunden!`)
+    }
+
+    console.log(`Teste Pumpe ${pumpId} an Pin ${pump.pin}`)
+
+    // Aktiviere die Pumpe für eine kurze Zeit
+    try {
+      await activatePinForDuration(pump.pin, 1000) // 1 Sekunde
+    } catch (error) {
+      console.error(`Fehler beim Testen der Pumpe ${pumpId}:`, error)
+      throw error
+    }
 
     return { success: true }
   } catch (error) {
@@ -196,7 +228,12 @@ export async function calibratePump(pumpId: number, durationMs: number) {
     console.log(`Kalibriere Pumpe ${pumpId} für ${durationMs}ms`)
 
     // Aktiviere die Pumpe über die API
-    await activatePinForDuration(pump.pin, durationMs)
+    try {
+      await activatePinForDuration(pump.pin, durationMs)
+    } catch (error) {
+      console.error(`Fehler bei der Kalibrierung der Pumpe ${pumpId}:`, error)
+      throw error
+    }
 
     return { success: true }
   } catch (error) {
@@ -222,7 +259,12 @@ export async function cleanPump(pumpId: number, durationMs: number) {
     console.log(`Reinige Pumpe ${pumpId} für ${durationMs}ms`)
 
     // Aktiviere die Pumpe über die API
-    await activatePinForDuration(pump.pin, durationMs)
+    try {
+      await activatePinForDuration(pump.pin, durationMs)
+    } catch (error) {
+      console.error(`Fehler bei der Reinigung der Pumpe ${pumpId}:`, error)
+      throw error
+    }
 
     return { success: true }
   } catch (error) {

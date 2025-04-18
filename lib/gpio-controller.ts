@@ -10,13 +10,17 @@ export async function setupGPIO() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ action: "setup" }),
+      cache: "no-store", // Verhindert Caching
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP-Fehler: ${response.status}`)
+      const errorText = await response.text()
+      throw new Error(`HTTP-Fehler: ${response.status} - ${errorText}`)
     }
 
     const result = await response.json()
+    console.log("Setup-Ergebnis:", result)
+
     if (!result.success) {
       throw new Error(result.error || "Unbekannter Fehler bei der Initialisierung")
     }
@@ -43,13 +47,17 @@ export async function activatePinForDuration(pin: number, durationMs: number) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ action: "activate", pin, duration: durationMs }),
+      cache: "no-store", // Verhindert Caching
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP-Fehler: ${response.status}`)
+      const errorText = await response.text()
+      throw new Error(`HTTP-Fehler: ${response.status} - ${errorText}`)
     }
 
     const result = await response.json()
+    console.log("Aktivierungs-Ergebnis:", result)
+
     if (!result.success) {
       throw new Error(result.error || "Unbekannter Fehler beim Aktivieren des Pins")
     }
@@ -71,13 +79,17 @@ export async function cleanupGPIO() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ action: "cleanup" }),
+      cache: "no-store", // Verhindert Caching
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP-Fehler: ${response.status}`)
+      const errorText = await response.text()
+      throw new Error(`HTTP-Fehler: ${response.status} - ${errorText}`)
     }
 
     const result = await response.json()
+    console.log("Cleanup-Ergebnis:", result)
+
     if (!result.success) {
       throw new Error(result.error || "Unbekannter Fehler bei der Bereinigung")
     }
@@ -85,6 +97,34 @@ export async function cleanupGPIO() {
     return result
   } catch (error) {
     console.error("Fehler beim Bereinigen der GPIO-Pins:", error)
+    throw error
+  }
+}
+
+// Einfacher Test der API
+export async function testGPIOAPI() {
+  try {
+    console.log("Teste GPIO API")
+    const response = await fetch("/api/gpio", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action: "test" }),
+      cache: "no-store", // Verhindert Caching
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`HTTP-Fehler: ${response.status} - ${errorText}`)
+    }
+
+    const result = await response.json()
+    console.log("Test-Ergebnis:", result)
+
+    return result
+  } catch (error) {
+    console.error("Fehler beim Testen der GPIO API:", error)
     throw error
   }
 }

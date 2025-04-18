@@ -1,54 +1,139 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { exec } from "child_process"
 import { promisify } from "util"
+import fs from "fs"
+import path from "path"
 
 const execAsync = promisify(exec)
 
 // Pfad zum Python-Skript
-const PYTHON_SCRIPT = "scripts/gpio_controller.py"
+const PYTHON_SCRIPT = path.join(process.cwd(), "scripts/gpio_controller.py")
 
-// Hilfsfunktion zum Ausführen des Python-Skripts
-async function runPythonScript(command: string, args: string[] = []): Promise<any> {
+export async function GET(request: Request) {
   try {
-    const cmdArgs = [command, ...args].join(" ")
-    console.log(`Führe Python-Skript aus: python3 ${PYTHON_SCRIPT} ${cmdArgs}`)
-
-    const { stdout } = await execAsync(`python3 ${PYTHON_SCRIPT} ${cmdArgs}`)
-    return JSON.parse(stdout)
+    // Einfacher Test, um zu prüfen, ob die API-Route funktioniert
+    return NextResponse.json({ success: true, message: "GPIO API ist aktiv" })
   } catch (error) {
-    console.error(`Fehler beim Ausführen des Python-Skripts:`, error)
-    throw error
+    console.error("Fehler in der GPIO API-Route (GET):", error)
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : "Unbekannter Fehler" },
+      { status: 500 },
+    )
   }
 }
 
-// API-Route für die GPIO-Steuerung
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const data = await request.json()
-    const { action, pin, duration } = data
-
-    let result
-
-    switch (action) {
-      case "setup":
-        result = await runPythonScript("setup")
-        break
-      case "activate":
-        if (!pin || !duration) {
-          return NextResponse.json({ success: false, error: "Pin und Dauer sind erforderlich" }, { status: 400 })
-        }
-        result = await runPythonScript("activate", [pin.toString(), duration.toString()])
-        break
-      case "cleanup":
-        result = await runPythonScript("cleanup")
-        break
-      default:
-        return NextResponse.json({ success: false, error: "Ungültige Aktion" }, { status: 400 })
+    // Prüfe, ob das Python-Skript existiert
+    if (!fs.existsSync(PYTHON_SCRIPT)) {
+      console.error(`Python-Skript nicht gefunden: ${PYTHON_SCRIPT}`)
+      return NextResponse.json(
+        { success: false, error: `Python-Skript nicht gefunden: ${PYTHON_SCRIPT}` },
+        { status: 500 },
+      )
     }
 
-    return NextResponse.json(result)
+    // Prüfe, ob das Python-Skript ausführbar ist
+    try {
+      fs.accessSync(PYTHON_SCRIPT, fs.constants.X_OK)
+    } catch (error) {
+      console.error(`Python-Skript ist nicht ausführbar: ${PYTHON_SCRIPT}`)
+      return NextResponse.json(
+        { success: false, error: `Python-Skript ist nicht ausführbar: ${PYTHON_SCRIPT}` },
+        { status: 500 },
+      )
+    }
+
+    // Parse den Request-Body
+    let data
+    try {
+      data = await request.json()
+    } catch (error) {
+      console.error("Fehler beim Parsen des Request-Body:", error)
+      return NextResponse.json({ success: false, error: "Ungültiger Request-Body" }, { status: 400 })
+    }
+
+    const { action, pin, duration } = data
+
+    // Validiere die Parameter
+    if (!action) {
+      return NextResponse.json({ success: false, error: "Aktion ist erforderlich" }, { status: 400 })
+    }
+
+    let result
+    let cmdOutput = ""
+
+    try {
+      switch (action) {
+        case "setup":
+          console.log("Führe Setup-Aktion aus...")
+          const setupCmd = `python3 ${PYTHON_SCRIPT} setup`
+          console.log(`Befehl: ${setupCmd}`)
+          const setupResult = await execAsync(setupCmd)
+          cmdOutput = setupResult.stdout.trim()
+          console.log(`Setup-Ausgabe: ${cmdOutput}`)
+          break
+
+        case "activate":
+          if (!pin || !duration) {
+            return NextResponse.json({ success: false, error: "Pin und Dauer sind erforderlich" }, { status: 400 })
+          }
+          console.log(`Aktiviere Pin ${pin} für ${duration}ms...`)
+          const activateCmd = `python3 ${PYTHON_SCRIPT} activate ${pin} ${duration}`
+          console.log(`Befehl: ${activateCmd}`)
+          const activateResult = await execAsync(activateCmd)
+          cmdOutput = activateResult.stdout.trim()
+          console.log(`Aktivierungs-Ausgabe: ${cmdOutput}`)
+          break
+
+        case "cleanup":
+          console.log("Führe Cleanup-Aktion aus...")
+          const cleanupCmd = `python3 ${PYTHON_SCRIPT} cleanup`
+          console.log(`Befehl: ${cleanupCmd}`)
+          const cleanupResult = await execAsync(cleanupCmd)
+          cmdOutput = cleanupResult.stdout.trim()
+          console.log(`Cleanup-Ausgabe: ${cmdOutput}`)
+          break
+
+        case "test":
+          // Einfacher Test, der kein Python-Skript benötigt
+          console.log("Führe Test-Aktion aus...")
+          return NextResponse.json({ success: true, message: "Test erfolgreich" })
+
+        default:
+          return NextResponse.json({ success: false, error: `Ungültige Aktion: ${action}` }, { status: 400 })
+      }
+
+      // Parse die Ausgabe des Python-Skripts
+      try {
+        result = JSON.parse(cmdOutput)
+      } catch (error) {
+        console.error(`Fehler beim Parsen der Python-Ausgabe: ${cmdOutput}`, error)
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Ungültige Ausgabe vom Python-Skript",
+            output: cmdOutput,
+          },
+          { status: 500 },
+        )
+      }
+
+      return NextResponse.json(result)
+    } catch (error) {
+      console.error(`Fehler bei der Ausführung der Aktion ${action}:`, error)
+      return NextResponse.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Unbekannter Fehler",
+          command: action,
+          output: cmdOutput,
+        },
+        { status: 500 },
+      )
+    }
   } catch (error) {
-    console.error("Fehler in der GPIO API-Route:", error)
+    console.error("Allgemeiner Fehler in der GPIO API-Route:", error)
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Unbekannter Fehler" },
       { status: 500 },
