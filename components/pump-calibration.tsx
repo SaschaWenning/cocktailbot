@@ -126,6 +126,12 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
     try {
       await savePumpConfig(updatedConfig)
 
+      // Protokolliere die aktualisierte Durchflussrate für Debugging-Zwecke
+      const pump = updatedConfig.find((p) => p.id === currentPumpId)
+      if (pump) {
+        console.log(`Kalibrierung für Pumpe ${pump.id} (${pump.ingredient}) aktualisiert: ${flowRate} ml/s`)
+      }
+
       // Zeige Erfolgsmeldung
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)

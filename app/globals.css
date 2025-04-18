@@ -114,51 +114,63 @@
 /* Größere Schrift für die gesamte App */
 html,
 body {
-  font-size: 24px; /* Doppelt so groß wie der Standardwert von 16px */
+  font-size: 36px; /* 50% größer als der vorherige Wert von 24px */
+  font-weight: bold; /* Alles in Fettschrift */
 }
 
 /* Anpassungen für bestimmte Elemente, damit die Proportionen stimmen */
 h1 {
   font-size: 2rem;
+  font-weight: bold;
 }
 
 h2 {
   font-size: 1.5rem;
+  font-weight: bold;
 }
 
 h3 {
   font-size: 1.25rem;
+  font-weight: bold;
 }
 
 .text-xs {
   font-size: 0.75rem;
+  font-weight: bold;
 }
 
 .text-sm {
   font-size: 0.875rem;
+  font-weight: bold;
 }
 
 .text-base {
   font-size: 1rem;
+  font-weight: bold;
 }
 
 .text-lg {
   font-size: 1.125rem;
+  font-weight: bold;
 }
 
 .text-xl {
   font-size: 1.25rem;
+  font-weight: bold;
 }
 
 .text-2xl {
   font-size: 1.5rem;
+  font-weight: bold;
 }
 
 /* Größere Buttons für bessere Touch-Bedienung */
 button,
 .button {
-  min-height: 3rem;
+  min-height: 3.5rem;
   font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: bold;
 }
 
 /* Größere Eingabefelder */
@@ -168,4 +180,18 @@ textarea {
   font-size: 1rem;
   height: auto;
   padding: 0.75rem;
+  font-weight: bold;
+}
+
+/* Größere Tabs */
+.tabs-list button {
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+/* Anpassungen für die Cocktail-Karten */
+.grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* Zurück zu 3 Spalten */
 }
