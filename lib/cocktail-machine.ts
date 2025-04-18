@@ -5,27 +5,6 @@ import type { PumpConfig } from "@/types/pump"
 import { updateLevelsAfterCocktail, updateLevelAfterShot } from "@/lib/ingredient-level-service"
 import fs from "fs"
 import path from "path"
-import { setupGPIO, activatePinForDuration, testGPIOAPI } from "@/lib/gpio-controller"
-
-// Initialisiere die GPIO-Pins beim ersten Import
-let gpioInitialized = false
-async function initializeGPIO() {
-  if (!gpioInitialized) {
-    try {
-      // Teste zuerst die API
-      await testGPIOAPI()
-
-      // Dann initialisiere die GPIO-Pins
-      await setupGPIO()
-      gpioInitialized = true
-      console.log("GPIO-Pins erfolgreich initialisiert")
-    } catch (error) {
-      console.error("Fehler bei der Initialisierung der GPIO-Pins:", error)
-      // Setze trotzdem auf true, um nicht ständig zu versuchen, die Pins zu initialisieren
-      gpioInitialized = true
-    }
-  }
-}
 
 // Skaliert die Zutatenmengen proportional zur gewünschten Gesamtmenge
 function scaleRecipe(cocktail: Cocktail, targetSize: number) {
@@ -44,9 +23,6 @@ function scaleRecipe(cocktail: Cocktail, targetSize: number) {
 
 // Diese Funktion würde auf dem Server laufen und die GPIO-Pins des Raspberry Pi steuern
 export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
-  // Initialisiere GPIO, falls noch nicht geschehen
-  await initializeGPIO()
-
   console.log(`Bereite Cocktail zu: ${cocktail.name} (${size}ml)`)
 
   // Prüfe zuerst, ob genügend von allen Zutaten vorhanden ist
@@ -65,15 +41,14 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
   const grenadineItems = scaledRecipe.filter((item) => item.ingredientId === "grenadine")
   const otherItems = scaledRecipe.filter((item) => item.ingredientId !== "grenadine")
 
-  // Aktiviere zuerst alle Zutaten außer Grenadine nacheinander
-  // Änderung: Aktiviere die Pumpen nacheinander statt gleichzeitig, um Probleme zu vermeiden
-  for (const item of otherItems) {
+  // Aktiviere zuerst alle Zutaten außer Grenadine gleichzeitig
+  const otherPumpPromises = otherItems.map((item) => {
     // Finde die Pumpe, die diese Zutat enthält
     const pump = pumpConfig.find((p) => p.ingredient === item.ingredientId)
 
     if (!pump) {
       console.error(`Keine Pumpe für Zutat ${item.ingredientId} konfiguriert!`)
-      continue
+      return Promise.resolve()
     }
 
     // Berechne, wie lange die Pumpe laufen muss
@@ -82,14 +57,11 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
     console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
 
     // Aktiviere die Pumpe
-    try {
-      await activatePump(pump.pin, pumpTimeMs)
-      // Kurze Pause zwischen den Pumpen
-      await new Promise((resolve) => setTimeout(resolve, 500))
-    } catch (error) {
-      console.error(`Fehler beim Aktivieren der Pumpe ${pump.id}:`, error)
-    }
-  }
+    return activatePump(pump.pin, pumpTimeMs)
+  })
+
+  // Warte, bis alle Pumpen außer Grenadine aktiviert wurden
+  await Promise.all(otherPumpPromises)
 
   // Wenn Grenadine im Rezept ist, warte 2 Sekunden und füge es dann hinzu
   if (grenadineItems.length > 0) {
@@ -111,11 +83,7 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
       console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
 
       // Aktiviere die Pumpe
-      try {
-        await activatePump(pump.pin, pumpTimeMs)
-      } catch (error) {
-        console.error(`Fehler beim Aktivieren der Pumpe ${pump.id}:`, error)
-      }
+      await activatePump(pump.pin, pumpTimeMs)
     }
   }
 
@@ -124,9 +92,6 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
 
 // Funktion zum Zubereiten eines einzelnen Shots
 export async function makeSingleShot(ingredientId: string, amount = 40) {
-  // Initialisiere GPIO, falls noch nicht geschehen
-  await initializeGPIO()
-
   console.log(`Bereite Shot zu: ${ingredientId} (${amount}ml)`)
 
   // Prüfe zuerst, ob genügend von der Zutat vorhanden ist
@@ -150,28 +115,25 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
   console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${amount}ml für ${pumpTimeMs}ms aktivieren`)
 
   // Aktiviere die Pumpe
-  try {
-    await activatePump(pump.pin, pumpTimeMs)
-  } catch (error) {
-    console.error(`Fehler beim Aktivieren der Pumpe für ${ingredientId}:`, error)
-    throw error
-  }
+  await activatePump(pump.pin, pumpTimeMs)
 
   return { success: true }
 }
 
-// Ändere die activatePump-Funktion, um Fehler besser zu behandeln
+// Diese Funktion würde die GPIO-Pins des Raspberry Pi steuern
 async function activatePump(pin: number, durationMs: number) {
   try {
-    console.log(`Pumpe an Pin ${pin} wird für ${durationMs}ms aktiviert`)
+    // In einer echten Implementierung würden wir hier die GPIO-Pins steuern
+    // Für diese Demo simulieren wir nur die Verzögerung
 
-    // Aktiviere die Pumpe über die API
-    const result = await activatePinForDuration(pin, durationMs)
+    // Simuliere das Einschalten der Pumpe
+    console.log(`GPIO Pin ${pin} eingeschaltet`)
 
-    if (!result.success) {
-      console.error(`Fehler beim Aktivieren der Pumpe: ${result.error || "Unbekannter Fehler"}`)
-      throw new Error(result.error || "Unbekannter Fehler beim Aktivieren der Pumpe")
-    }
+    // Warte für die angegebene Dauer
+    await new Promise((resolve) => setTimeout(resolve, durationMs))
+
+    // Simuliere das Ausschalten der Pumpe
+    console.log(`GPIO Pin ${pin} ausgeschaltet`)
 
     return true
   } catch (error) {
@@ -183,26 +145,11 @@ async function activatePump(pin: number, durationMs: number) {
 // Funktion zum Testen einer einzelnen Pumpe
 export async function testPump(pumpId: number) {
   try {
-    // Initialisiere GPIO, falls noch nicht geschehen
-    await initializeGPIO()
+    // In einer echten Implementierung würden wir hier die entsprechende Pumpe für eine kurze Zeit aktivieren
+    console.log(`Teste Pumpe ${pumpId}`)
 
-    // Finde die Pumpe in der Konfiguration
-    const pumpConfig = await getPumpConfig()
-    const pump = pumpConfig.find((p) => p.id === pumpId)
-
-    if (!pump) {
-      throw new Error(`Keine Pumpe mit ID ${pumpId} gefunden!`)
-    }
-
-    console.log(`Teste Pumpe ${pumpId} an Pin ${pump.pin}`)
-
-    // Aktiviere die Pumpe für eine kurze Zeit
-    try {
-      await activatePinForDuration(pump.pin, 1000) // 1 Sekunde
-    } catch (error) {
-      console.error(`Fehler beim Testen der Pumpe ${pumpId}:`, error)
-      throw error
-    }
+    // Simuliere eine kurze Verzögerung
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     return { success: true }
   } catch (error) {
@@ -214,26 +161,20 @@ export async function testPump(pumpId: number) {
 // Funktion zur Kalibrierung einer Pumpe (läuft für exakt 2 Sekunden)
 export async function calibratePump(pumpId: number, durationMs: number) {
   try {
-    // Initialisiere GPIO, falls noch nicht geschehen
-    await initializeGPIO()
-
     // Finde die Pumpe in der Konfiguration
-    const pumpConfig = await getPumpConfig()
-    const pump = pumpConfig.find((p) => p.id === pumpId)
-
-    if (!pump) {
-      throw new Error(`Keine Pumpe mit ID ${pumpId} gefunden!`)
-    }
-
     console.log(`Kalibriere Pumpe ${pumpId} für ${durationMs}ms`)
 
-    // Aktiviere die Pumpe über die API
-    try {
-      await activatePinForDuration(pump.pin, durationMs)
-    } catch (error) {
-      console.error(`Fehler bei der Kalibrierung der Pumpe ${pumpId}:`, error)
-      throw error
-    }
+    // In einer echten Implementierung würden wir hier die entsprechende Pumpe aktivieren
+    // und nach der angegebenen Zeit wieder deaktivieren
+
+    // Simuliere die Aktivierung der Pumpe
+    console.log(`Pumpe ${pumpId} eingeschaltet`)
+
+    // Warte für die angegebene Dauer
+    await new Promise((resolve) => setTimeout(resolve, durationMs))
+
+    // Simuliere das Ausschalten der Pumpe
+    console.log(`Pumpe ${pumpId} ausgeschaltet`)
 
     return { success: true }
   } catch (error) {
@@ -245,26 +186,19 @@ export async function calibratePump(pumpId: number, durationMs: number) {
 // Funktion zum Reinigen einer Pumpe
 export async function cleanPump(pumpId: number, durationMs: number) {
   try {
-    // Initialisiere GPIO, falls noch nicht geschehen
-    await initializeGPIO()
-
-    // Finde die Pumpe in der Konfiguration
-    const pumpConfig = await getPumpConfig()
-    const pump = pumpConfig.find((p) => p.id === pumpId)
-
-    if (!pump) {
-      throw new Error(`Keine Pumpe mit ID ${pumpId} gefunden!`)
-    }
-
     console.log(`Reinige Pumpe ${pumpId} für ${durationMs}ms`)
 
-    // Aktiviere die Pumpe über die API
-    try {
-      await activatePinForDuration(pump.pin, durationMs)
-    } catch (error) {
-      console.error(`Fehler bei der Reinigung der Pumpe ${pumpId}:`, error)
-      throw error
-    }
+    // In einer echten Implementierung würden wir hier die entsprechende Pumpe aktivieren
+    // und nach der angegebenen Zeit wieder deaktivieren
+
+    // Simuliere die Aktivierung der Pumpe
+    console.log(`Pumpe ${pumpId} eingeschaltet für Reinigung`)
+
+    // Warte für die angegebene Dauer
+    await new Promise((resolve) => setTimeout(resolve, durationMs))
+
+    // Simuliere das Ausschalten der Pumpe
+    console.log(`Pumpe ${pumpId} ausgeschaltet nach Reinigung`)
 
     return { success: true }
   } catch (error) {
@@ -331,15 +265,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     // Lade die Standard-Cocktails
     const { cocktails: defaultCocktails } = await import("@/data/cocktails")
 
-    // Korrigiere die Bildpfade für alle Cocktails
-    const correctedDefaultCocktails = defaultCocktails.map((cocktail) => {
-      // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
-      let image = cocktail.image
-      if (image && !image.startsWith("/") && !image.startsWith("http")) {
-        image = `/${image}`
-      }
-      return { ...cocktail, image }
-    })
+    // Suche nach dem Abschnitt mit den zusätzlichen Cocktails und aktualisiere die Bildpfade
 
     // Definiere die zusätzlichen Cocktails
     const additionalCocktails: Cocktail[] = [
@@ -499,7 +425,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "tropical-sunrise",
         name: "Tropical Sunrise",
         description: "Erfrischender alkoholfreier Cocktail mit Ananas, Orange und Grenadine",
-        image: "/palm-glow.png",
+        image: "/placeholder.svg?height=200&width=400",
         alcoholic: false,
         ingredients: ["120ml Ananassaft", "120ml Orangensaft", "20ml Grenadine", "10ml Limettensaft"],
         recipe: [
@@ -515,7 +441,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "passion-fizz",
         name: "Passion Fizz",
         description: "Sprudelnder alkoholfreier Cocktail mit Maracuja und Sodawasser",
-        image: "/vibrant-passion-fizz.png",
+        image: "/placeholder.svg?height=200&width=400",
         alcoholic: false,
         ingredients: ["150ml Maracujasaft", "100ml Sodawasser", "20ml Vanillesirup", "10ml Limettensaft"],
         recipe: [
@@ -531,7 +457,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "orange-vanilla-dream",
         name: "Orange Vanilla Dream",
         description: "Cremiger alkoholfreier Cocktail mit Orange und Vanille",
-        image: "/citrus-swirl-sunset.png",
+        image: "/placeholder.svg?height=200&width=400",
         alcoholic: false,
         ingredients: ["200ml Orangensaft", "30ml Vanillesirup", "70ml Sodawasser"],
         recipe: [
@@ -546,7 +472,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "berry-splash",
         name: "Berry Splash",
         description: "Fruchtiger alkoholfreier Cocktail mit Grenadine und Zitrusfrüchten",
-        image: "/bursting-berries.png",
+        image: "/placeholder.svg?height=200&width=400",
         alcoholic: false,
         ingredients: [
           "30ml Grenadine",
@@ -569,7 +495,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "pineapple-passion",
         name: "Pineapple Passion",
         description: "Exotischer alkoholfreier Cocktail mit Ananas und Maracuja",
-        image: "/tropical-blend.png",
+        image: "/placeholder.svg?height=200&width=400",
         alcoholic: false,
         ingredients: ["150ml Ananassaft", "100ml Maracujasaft", "15ml Limettensaft", "15ml Vanillesirup"],
         recipe: [
@@ -585,7 +511,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "citrus-cooler",
         name: "Citrus Cooler",
         description: "Erfrischender alkoholfreier Cocktail mit Limette und Sodawasser",
-        image: "/refreshing-citrus-cooler.png",
+        image: "/placeholder.svg?height=200&width=400",
         alcoholic: false,
         ingredients: ["40ml Limettensaft", "20ml Vanillesirup", "200ml Sodawasser", "10ml Grenadine"],
         recipe: [
@@ -597,21 +523,11 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       },
     ]
 
-    // Korrigiere die Bildpfade für die zusätzlichen Cocktails
-    const correctedAdditionalCocktails = additionalCocktails.map((cocktail) => {
-      // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
-      let image = cocktail.image
-      if (image && !image.startsWith("/") && !image.startsWith("http")) {
-        image = `/${image}`
-      }
-      return { ...cocktail, image }
-    })
-
     // Erstelle eine Map für die Cocktails, um Duplikate zu vermeiden
     const cocktailMap = new Map<string, Cocktail>()
 
     // Füge zuerst die Standard-Cocktails hinzu und ersetze "rum" durch "brauner rum"
-    for (const cocktail of correctedDefaultCocktails) {
+    for (const cocktail of defaultCocktails) {
       // Überspringe den ursprünglichen Malibu Ananas, da wir eine aktualisierte Version haben
       // Überspringe auch Gin Tonic und Cuba Libre
       if (cocktail.id === "malibu-ananas" || cocktail.id === "gin-tonic" || cocktail.id === "cuba-libre") continue
@@ -634,7 +550,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     }
 
     // Füge die zusätzlichen Cocktails hinzu
-    for (const cocktail of correctedAdditionalCocktails) {
+    for (const cocktail of additionalCocktails) {
       cocktailMap.set(cocktail.id, cocktail)
     }
 
@@ -655,13 +571,6 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
             ? ingredient.replace("Rum", "Brauner Rum")
             : ingredient,
         )
-
-        // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
-        let image = updatedCocktail.image
-        if (image && !image.startsWith("/") && !image.startsWith("http")) {
-          image = `/${image}`
-        }
-        updatedCocktail.image = image
 
         // Füge den aktualisierten Cocktail zur Map hinzu
         cocktailMap.set(cocktail.id, updatedCocktail)

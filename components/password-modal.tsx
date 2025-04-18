@@ -2,13 +2,12 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Lock } from "lucide-react"
-import AlphaKeyboard from "./alpha-keyboard"
 
 interface PasswordModalProps {
   isOpen: boolean
@@ -19,16 +18,6 @@ interface PasswordModalProps {
 export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordModalProps) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
-  const [showKeyboard, setShowKeyboard] = useState(true)
-
-  // Reset password when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      setPassword("")
-      setError(false)
-      setShowKeyboard(true)
-    }
-  }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,21 +29,6 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
     } else {
       setError(true)
     }
-  }
-
-  const handleKeyPress = (key: string) => {
-    setPassword((prev) => prev + key)
-    setError(false)
-  }
-
-  const handleBackspace = () => {
-    setPassword((prev) => prev.slice(0, -1))
-    setError(false)
-  }
-
-  const handleClear = () => {
-    setPassword("")
-    setError(false)
   }
 
   return (
@@ -78,24 +52,11 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${error ? "border-[hsl(var(--cocktail-error))]" : ""}`}
               placeholder="Passwort eingeben"
               autoComplete="off"
-              readOnly
-              onFocus={() => setShowKeyboard(true)}
             />
             {error && (
               <p className="text-[hsl(var(--cocktail-error))] text-sm">Falsches Passwort. Bitte versuche es erneut.</p>
             )}
           </div>
-
-          {showKeyboard && (
-            <div className="mt-4">
-              <AlphaKeyboard
-                onKeyPress={handleKeyPress}
-                onBackspace={handleBackspace}
-                onClear={handleClear}
-                onConfirm={handleSubmit}
-              />
-            </div>
-          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
