@@ -209,16 +209,18 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
     <div className="space-y-4">
       <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Droplet className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Droplet className="h-5 w-5 text-[#00ff00]" />
             CocktailBot Füllstände
           </CardTitle>
-          <CardDescription>Verwalte die Füllstände deiner Zutaten und fülle sie bei Bedarf nach.</CardDescription>
+          <CardDescription className="text-white">
+            Verwalte die Füllstände deiner Zutaten und fülle sie bei Bedarf nach.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--cocktail-primary))]" />
+              <Loader2 className="h-8 w-8 animate-spin text-[#00ff00]" />
             </div>
           ) : (
             <>
@@ -230,14 +232,14 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                       className={
                         activeTab === "all"
                           ? "bg-[#00ff00] text-black"
-                          : "text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                          : "text-white hover:bg-[hsl(var(--cocktail-card-border))]"
                       }
                     >
                       Alle
                     </TabsTrigger>
                     <TabsTrigger
                       value="low"
-                      className={`relative ${activeTab === "low" ? "bg-[#00ff00] text-black" : "text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"}`}
+                      className={`relative ${activeTab === "low" ? "bg-[#00ff00] text-black" : "text-white hover:bg-[hsl(var(--cocktail-card-border))]"}`}
                     >
                       Niedrig
                       {lowLevelsCount > 0 && (
@@ -251,7 +253,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                       className={
                         activeTab === "alcoholic"
                           ? "bg-[#00ff00] text-black"
-                          : "text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                          : "text-white hover:bg-[hsl(var(--cocktail-card-border))]"
                       }
                     >
                       Alkoholisch
@@ -261,7 +263,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                       className={
                         activeTab === "non-alcoholic"
                           ? "bg-[#00ff00] text-black"
-                          : "text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                          : "text-white hover:bg-[hsl(var(--cocktail-card-border))]"
                       }
                     >
                       Alkoholfrei
@@ -272,9 +274,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
 
               <div className="space-y-6">
                 {filteredLevels.length === 0 ? (
-                  <p className="text-center py-4 text-[hsl(var(--cocktail-text-muted))]">
-                    Keine Zutaten in dieser Kategorie gefunden.
-                  </p>
+                  <p className="text-center py-4 text-white">Keine Zutaten in dieser Kategorie gefunden.</p>
                 ) : (
                   filteredLevels.map((level) => {
                     const percentage = Math.round((level.currentAmount / level.capacity) * 100)
@@ -283,8 +283,8 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                     return (
                       <div key={level.ingredientId} className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <div className="font-medium">{getIngredientName(level.ingredientId)}</div>
-                          <div className="text-sm">
+                          <div className="font-medium text-white">{getIngredientName(level.ingredientId)}</div>
+                          <div className="text-sm text-white">
                             {level.currentAmount} / {level.capacity} ml
                           </div>
                         </div>
@@ -311,7 +311,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               type="text"
                               placeholder="Neue Gesamtmenge in ml"
                               value={refillAmounts[level.ingredientId] || ""}
-                              className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-center text-lg"
+                              className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-center text-lg text-white"
                               readOnly
                               onClick={() => handleInputFocus(level.ingredientId)}
                             />
@@ -319,7 +319,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleInputFocus(level.ingredientId)}
-                              className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black active:bg-[#00ff00] active:text-black"
+                              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black active:bg-[#00ff00] active:text-black"
                             >
                               Setzen
                             </Button>
@@ -330,7 +330,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleQuickFill(level.ingredientId, 700)}
-                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black active:bg-[#00ff00] active:text-black ${activeButton === `${level.ingredientId}-700` ? "bg-[#00ff00] text-black" : ""}`}
+                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black active:bg-[#00ff00] active:text-black ${activeButton === `${level.ingredientId}-700` ? "bg-[#00ff00] text-black" : ""}`}
                             >
                               700ml
                             </Button>
@@ -338,7 +338,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleQuickFill(level.ingredientId, 1000)}
-                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black active:bg-[#00ff00] active:text-black ${activeButton === `${level.ingredientId}-1000` ? "bg-[#00ff00] text-black" : ""}`}
+                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black active:bg-[#00ff00] active:text-black ${activeButton === `${level.ingredientId}-1000` ? "bg-[#00ff00] text-black" : ""}`}
                             >
                               1000ml
                             </Button>
@@ -346,7 +346,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleInputFocus(level.ingredientId)}
-                              className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black active:bg-[#00ff00] active:text-black"
+                              className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black active:bg-[#00ff00] active:text-black"
                             >
                               Manuell
                             </Button>
@@ -398,7 +398,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <p className="text-sm text-[hsl(var(--cocktail-text))]">
+            <p className="text-sm text-white">
               Bitte gib die neue Gesamtmenge für <strong>{currentIngredientName}</strong> ein:
             </p>
 
@@ -408,11 +408,11 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                 value={activeInput ? refillAmounts[activeInput] || "" : ""}
                 onChange={(e) => activeInput && handleRefillAmountChange(activeInput, e.target.value)}
                 placeholder="Menge in ml"
-                className="text-xl h-12 text-center"
+                className="text-xl h-12 text-center text-white"
                 autoFocus
                 readOnly
               />
-              <span className="text-sm">ml</span>
+              <span className="text-sm text-white">ml</span>
             </div>
 
             <VirtualKeyboard

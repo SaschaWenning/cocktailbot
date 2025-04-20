@@ -114,7 +114,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Rezept bearbeiten: {cocktail.name}</DialogTitle>
         </DialogHeader>
@@ -126,7 +126,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))]"
+              className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white"
               placeholder="Beschreibe deinen Cocktail..."
               rows={2}
             />
@@ -141,11 +141,11 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
               id="imageUrl"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
+              className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
               placeholder="https://beispiel.com/mein-cocktail.jpg"
             />
             {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
-            <p className="text-xs text-[hsl(var(--cocktail-text-muted))]">
+            <p className="text-xs text-white">
               Gib die URL zu einem Bild deines Cocktails ein. Leer lassen für ein Platzhalterbild.
             </p>
           </div>
@@ -157,7 +157,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           {recipe.map((item, index) => (
             <div key={index} className="grid grid-cols-12 gap-2 items-center">
               <div className="col-span-7">
-                <Label>{getIngredientName(item.ingredientId)}</Label>
+                <Label className="text-white">{getIngredientName(item.ingredientId)}</Label>
               </div>
               <div className="col-span-3">
                 <Input
@@ -166,26 +166,29 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   onChange={(e) => handleAmountChange(index, e.target.value)}
                   min="0"
                   step="1"
-                  className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))]"
+                  className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white"
                 />
               </div>
-              <div className="col-span-2 text-sm text-[hsl(var(--cocktail-text-muted))]">ml</div>
+              <div className="col-span-2 text-sm text-white">ml</div>
             </div>
           ))}
         </div>
 
         <DialogFooter className="flex justify-between items-center">
-          {isCustomRecipe && (
-            <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Löschen
-            </Button>
-          )}
+          <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
+            <Trash2 className="mr-2 h-4 w-4" />
+            Löschen
+          </Button>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+            >
               Abbrechen
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving} className="bg-[#00ff00] text-black hover:bg-[#00cc00]">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

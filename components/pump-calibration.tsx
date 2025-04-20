@@ -175,7 +175,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
       <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
         <CardHeader>
           <CardTitle className="text-white">CocktailBot Pumpenkalibrierung</CardTitle>
-          <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
+          <CardDescription className="text-white">
             Kalibriere jede Pumpe, indem du sie für 2 Sekunden laufen lässt, die geförderte Menge in ml misst und den
             Wert einträgst.
           </CardDescription>
@@ -208,7 +208,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
             {pumpConfig.map((pump) => (
               <div key={pump.id} className="grid grid-cols-12 gap-2 items-center">
                 <div className="col-span-1">
-                  <span className="font-medium">{pump.id}</span>
+                  <span className="font-medium text-white">{pump.id}</span>
                 </div>
 
                 <div className="col-span-5">
@@ -238,7 +238,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
                       readOnly
                       className="w-full bg-[hsl(var(--cocktail-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
                     />
-                    <span className="text-xs whitespace-nowrap">ml/s</span>
+                    <span className="text-xs whitespace-nowrap text-white">ml/s</span>
                   </div>
                 </div>
 
