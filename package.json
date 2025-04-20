@@ -58,11 +58,11 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
-    "uuid": "latest",
     "child_process": "latest",
     "util": "latest",
     "fs": "latest",
-    "path": "latest"
+    "path": "latest",
+    "uuid": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
