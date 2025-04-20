@@ -21,7 +21,7 @@ export default function VirtualKeyboard({
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
 
   return (
-    <div className="bg-white border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg">
+    <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg">
       <div className="grid grid-cols-3 gap-2">
         {keys.map((key) => (
           <Button key={key} variant="outline" className="h-14 text-xl font-medium" onClick={() => onKeyPress(key)}>
@@ -48,7 +48,7 @@ export default function VirtualKeyboard({
         </Button>
 
         <Button
-          className="h-14 text-xl font-medium col-span-3 bg-[hsl(var(--cocktail-primary))] text-white hover:bg-[hsl(var(--cocktail-primary-hover))]"
+          className="h-14 text-xl font-medium col-span-3 bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
           onClick={onConfirm}
         >
           <Check className="h-6 w-6 mr-2" />

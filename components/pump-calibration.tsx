@@ -172,10 +172,10 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
 
   return (
     <div className="space-y-4">
-      <Card className="bg-white border-[hsl(var(--cocktail-card-border))]">
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
         <CardHeader>
-          <CardTitle>CocktailBot Pumpenkalibrierung</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">CocktailBot Pumpenkalibrierung</CardTitle>
+          <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
             Kalibriere jede Pumpe, indem du sie für 2 Sekunden laufen lässt, die geförderte Menge in ml misst und den
             Wert einträgst.
           </CardDescription>
@@ -283,7 +283,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
 
       {/* Dialog für die Eingabe der gemessenen Menge */}
       <Dialog open={showInputDialog} onOpenChange={(open) => !open && cancelCalibration()}>
-        <DialogContent className="bg-white border-[hsl(var(--cocktail-card-border))] sm:max-w-md">
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] sm:max-w-md text-white">
           <DialogHeader>
             <DialogTitle>Gemessene Menge eingeben</DialogTitle>
           </DialogHeader>

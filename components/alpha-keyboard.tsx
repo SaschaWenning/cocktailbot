@@ -19,7 +19,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
   const row3 = ["z", "x", "c", "v", "b", "n", "m"]
 
   return (
-    <div className="bg-white border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg">
+    <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg">
       {/* Erste Reihe */}
       <div className="grid grid-cols-10 gap-1 mb-1">
         {row1.map((key) => (
@@ -66,7 +66,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
         </Button>
 
         <Button
-          className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-primary))] text-white hover:bg-[hsl(var(--cocktail-primary-hover))]"
+          className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
           onClick={onConfirm}
         >
           <Check className="h-6 w-6" />

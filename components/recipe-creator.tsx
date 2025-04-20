@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, Trash2, Image } from "lucide-react"
+import { Loader2, Plus, Trash2, ImageIcon } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
@@ -126,7 +126,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Neues Cocktail-Rezept erstellen</DialogTitle>
         </DialogHeader>
@@ -158,7 +158,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
 
           <div className="space-y-2">
             <Label htmlFor="imageUrl" className="flex items-center gap-2">
-              <Image className="h-4 w-4" />
+              <ImageIcon className="h-4 w-4" />
               Bild-URL (optional)
             </Label>
             <Input

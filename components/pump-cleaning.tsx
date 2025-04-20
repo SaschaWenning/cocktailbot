@@ -59,13 +59,13 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-white border-[hsl(var(--cocktail-card-border))]">
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Droplets className="h-5 w-5 text-[hsl(var(--cocktail-accent))]" />
             CocktailBot Pumpenreinigung
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
             Reinige alle Pumpen mit warmem Wasser und Spülmittel, um Rückstände zu entfernen und die Hygiene zu
             gewährleisten.
           </CardDescription>

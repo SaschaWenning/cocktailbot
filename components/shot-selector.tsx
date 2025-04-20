@@ -143,7 +143,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
     return (
       <div className="space-y-4">
-        <Card className="border-[hsl(var(--cocktail-card-border))] bg-white">
+        <Card className="border-[hsl(var(--cocktail-card-border))] bg-black">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4">
               <div className="w-20 h-20 rounded-full bg-[hsl(var(--cocktail-primary))]/10 flex items-center justify-center">
@@ -182,7 +182,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
                 <Button className="flex-1" variant="outline" onClick={handleCancelSelection}>
                   Abbrechen
                 </Button>
-                <Button className="flex-1" onClick={handleMakeShot} disabled={!isAvailable}>
+                <Button className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black" onClick={handleMakeShot} disabled={!isAvailable}>
                   Shot zubereiten
                 </Button>
               </div>
@@ -223,17 +223,16 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
                 key={ingredient.id}
                 variant="outline"
                 className={`h-auto py-2 px-2 justify-center text-center ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
-                onClick={() => handleSelectShot(ingredient.id)}
-                disabled={!checkIngredientAvailable(ingredient.id)}
-              >
-                <div className="flex flex-col items-center">
-                  <span className="font-medium text-sm">{ingredient.name}</span>
-                </div>
-              </Button>
-            ))}
-          </div>
+              onClick={() => handleSelectShot(ingredient.id)}
+              disabled={!checkIngredientAvailable(ingredient.id)}
+            >
+              <div className="flex flex-col items-center">
+                <span className="font-medium text-sm">{ingredient.name}</span>
+              </div>
+            </Button>
+          ))}
         </div>
       )}
     </div>
-  )
+  );
 }

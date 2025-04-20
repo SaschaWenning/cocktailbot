@@ -426,7 +426,11 @@ export default function Home() {
 
                 {/* Aktionsbuttons */}
                 <div className="flex flex-col gap-2 mt-auto">
-                  <Button onClick={handleMakeCocktail} disabled={!checkIngredientsAvailable()} className="w-full">
+                  <Button
+                    onClick={handleMakeCocktail}
+                    disabled={!checkIngredientsAvailable()}
+                    className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
+                  >
                     Cocktail zubereiten
                   </Button>
                   <Button variant="outline" onClick={() => setSelectedCocktail(null)} className="w-full">
@@ -607,15 +611,15 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))]">
-      <header className="p-4 border-b border-[hsl(var(--cocktail-card-border))] flex justify-center items-center bg-white shadow-sm">
+      <header className="p-4 border-b border-[hsl(var(--cocktail-card-border))] flex justify-center items-center bg-black shadow-sm">
         <h1 className="text-2xl font-bold text-[hsl(var(--cocktail-primary))]">CocktailBot</h1>
       </header>
 
       <main className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
-          <div className="mx-4 mt-2 flex justify-start bg-white border border-[hsl(var(--cocktail-card-border))] rounded-md tabs-list">
+          <div className="mx-4 mt-2 flex justify-start bg-black border border-[hsl(var(--cocktail-card-border))] rounded-md tabs-list">
             <button
-              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "cocktails" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "cocktails" ? "bg-[hsl(var(--cocktail-primary))] text-black" : "hover:bg-gray-900 text-white"}`}
               onClick={() => {
                 if (activeTab === "cocktails" && selectedCocktail) {
                   setSelectedCocktail(null)
@@ -629,7 +633,7 @@ export default function Home() {
               Cocktails
             </button>
             <button
-              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "virgin-cocktails" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "virgin-cocktails" ? "bg-[hsl(var(--cocktail-primary))] text-black" : "hover:bg-gray-900 text-white"}`}
               onClick={() => {
                 if (activeTab === "virgin-cocktails" && selectedCocktail) {
                   setSelectedCocktail(null)
@@ -643,19 +647,19 @@ export default function Home() {
               Virgin Cocktails
             </button>
             <button
-              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "shots" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "shots" ? "bg-[hsl(var(--cocktail-primary))] text-black" : "hover:bg-gray-900 text-white"}`}
               onClick={() => setActiveTab("shots")}
             >
               Shots
             </button>
             <button
-              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "levels" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "levels" ? "bg-[hsl(var(--cocktail-primary))] text-black" : "hover:bg-gray-900 text-white"}`}
               onClick={() => setActiveTab("levels")}
             >
               Füllstände
             </button>
             <button
-              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "calibration" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              className={`flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all ${activeTab === "calibration" ? "bg-[hsl(var(--cocktail-primary))] text-black" : "hover:bg-gray-900 text-white"}`}
               onClick={() => {
                 if (isCalibrationLocked) {
                   handleCalibrationClick()
@@ -668,7 +672,7 @@ export default function Home() {
               Pumpenkalibrierung
             </button>
             <button
-              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "cleaning" ? "bg-[hsl(var(--cocktail-primary))] text-white" : "hover:bg-gray-100"}`}
+              className={`px-4 py-2 text-sm font-medium transition-all ${activeTab === "cleaning" ? "bg-[hsl(var(--cocktail-primary))] text-black" : "hover:bg-gray-900 text-white"}`}
               onClick={() => setActiveTab("cleaning")}
             >
               Reinigung

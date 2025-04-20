@@ -202,7 +202,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
 
   return (
     <div className="space-y-4">
-      <Card className="bg-white border-[hsl(var(--cocktail-card-border))]">
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Droplet className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
@@ -356,7 +356,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
 
       {/* Dialog für die manuelle Mengeneingabe */}
       <Dialog open={showInputDialog} onOpenChange={(open) => !open && cancelInput()}>
-        <DialogContent className="bg-white border-[hsl(var(--cocktail-card-border))] sm:max-w-md">
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] sm:max-w-md text-white">
           <DialogHeader>
             <DialogTitle>Füllstand aktualisieren</DialogTitle>
           </DialogHeader>
