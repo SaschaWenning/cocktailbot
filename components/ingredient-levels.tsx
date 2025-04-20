@@ -321,7 +321,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleInputFocus(level.ingredientId)}
-                              className={`bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))]/20 active:text-[hsl(var(--cocktail-primary))]`}
+                              className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black active:bg-[hsl(var(--cocktail-primary))] active:text-black"
                             >
                               Setzen
                             </Button>
@@ -332,7 +332,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleQuickFill(level.ingredientId, 700)}
-                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))]/20 ${activeButton === `${level.ingredientId}-700` ? "bg-[hsl(var(--cocktail-primary))]/20 text-[hsl(var(--cocktail-primary))]" : ""}`}
+                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black active:bg-[hsl(var(--cocktail-primary))] active:text-black ${activeButton === `${level.ingredientId}-700` ? "bg-[hsl(var(--cocktail-primary))] text-black" : ""}`}
                             >
                               700ml
                             </Button>
@@ -340,7 +340,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleQuickFill(level.ingredientId, 1000)}
-                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))]/20 ${activeButton === `${level.ingredientId}-1000` ? "bg-[hsl(var(--cocktail-primary))]/20 text-[hsl(var(--cocktail-primary))]" : ""}`}
+                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black active:bg-[hsl(var(--cocktail-primary))] active:text-black ${activeButton === `${level.ingredientId}-1000` ? "bg-[hsl(var(--cocktail-primary))] text-black" : ""}`}
                             >
                               1000ml
                             </Button>
@@ -348,7 +348,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleQuickFill(level.ingredientId, level.capacity)}
-                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))]/20 ${activeButton === `${level.ingredientId}-${level.capacity}` ? "bg-[hsl(var(--cocktail-primary))]/20 text-[hsl(var(--cocktail-primary))]" : ""}`}
+                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black active:bg-[hsl(var(--cocktail-primary))] active:text-black ${activeButton === `${level.ingredientId}-${level.capacity}` ? "bg-[hsl(var(--cocktail-primary))] text-black" : ""}`}
                             >
                               Voll ({level.capacity}ml)
                             </Button>
@@ -356,7 +356,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleInputFocus(level.ingredientId)}
-                              className={`flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] active:bg-[hsl(var(--cocktail-primary))]/20`}
+                              className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black active:bg-[hsl(var(--cocktail-primary))] active:text-black"
                             >
                               Manuell
                             </Button>
