@@ -147,21 +147,23 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
               <div className="w-20 h-20 rounded-full bg-[hsl(var(--cocktail-primary))]/10 flex items-center justify-center">
                 <GlassWater className="h-10 w-10 text-[hsl(var(--cocktail-primary))]" />
               </div>
-              <h2 className="text-xl font-semibold">{ingredient?.name || selectedIngredient} Shot</h2>
+              <h2 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">
+                {ingredient?.name || selectedIngredient} Shot
+              </h2>
 
               {/* Shot-Größe Auswahl */}
               <div className="w-full max-w-xs">
-                <h4 className="text-base mb-2 text-center">Shot-Größe wählen:</h4>
+                <h4 className="text-base mb-2 text-center text-[hsl(var(--cocktail-text))]">Shot-Größe wählen:</h4>
                 <div className="flex gap-4 justify-center">
                   {[20, 40].map((size) => (
                     <button
                       key={size}
                       type="button"
                       onClick={() => setShotSize(size)}
-                      className={`text-sm py-1 px-2 rounded ${
+                      className={`text-sm py-1 px-2 rounded bg-[hsl(var(--cocktail-card-bg))] ${
                         shotSize === size
                           ? "font-semibold border-b-2 border-[hsl(var(--cocktail-primary))] text-[hsl(var(--cocktail-primary))]"
-                          : "text-[hsl(var(--cocktail-text-muted))] hover:text-[hsl(var(--cocktail-text))]"
+                          : "text-[hsl(var(--cocktail-text))] hover:text-[hsl(var(--cocktail-primary))]"
                       }`}
                     >
                       {size}ml
@@ -206,13 +208,13 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-4">Alkoholische Shots</h2>
+        <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alkoholische Shots</h2>
         <div className="grid grid-cols-4 gap-3">
           {alcoholicIngredients.map((ingredient) => (
             <Button
               key={ingredient.id}
               variant="outline"
-              className={`h-auto py-2 px-2 justify-center text-center bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
+              className={`h-auto py-2 px-2 justify-center text-center bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
               onClick={() => handleSelectShot(ingredient.id)}
               disabled={!checkIngredientAvailable(ingredient.id)}
             >
@@ -226,13 +228,13 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
       {nonAlcoholicIngredients.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-4">Alkoholfreie Shots</h2>
+          <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alkoholfreie Shots</h2>
           <div className="grid grid-cols-4 gap-3">
             {nonAlcoholicIngredients.map((ingredient) => (
               <Button
                 key={ingredient.id}
                 variant="outline"
-                className={`h-auto py-2 px-2 justify-center text-center bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
+                className={`h-auto py-2 px-2 justify-center text-center bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
                 onClick={() => handleSelectShot(ingredient.id)}
                 disabled={!checkIngredientAvailable(ingredient.id)}
               >

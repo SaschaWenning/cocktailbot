@@ -37,7 +37,6 @@ import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -388,7 +387,7 @@ export default function Home() {
               {/* Rechte Spalte: Größenauswahl und Buttons */}
               <div className="md:w-1/2 flex flex-col">
                 <div className="space-y-2 mb-4">
-                  <h4 className="text-base mb-2">Cocktailgröße wählen:</h4>
+                  <h4 className="text-base mb-2 text-[hsl(var(--cocktail-text))]">Cocktailgröße wählen:</h4>
 
                   {/* Neue Größenauswahl ohne Punkte */}
                   <div className="flex gap-4">
@@ -397,12 +396,11 @@ export default function Home() {
                         key={size}
                         type="button"
                         onClick={() => setSelectedSize(size)}
-                        className={cn(
-                          "text-sm py-1 px-2 rounded",
+                        className={`text-sm py-1 px-2 rounded bg-[hsl(var(--cocktail-card-bg))] ${
                           selectedSize === size
-                            ? "font-semibold border-b-2 border-black"
-                            : "text-gray-500 hover:text-black",
-                        )}
+                            ? "font-semibold border-b-2 border-[hsl(var(--cocktail-primary))] text-[hsl(var(--cocktail-primary))]"
+                            : "text-[hsl(var(--cocktail-text))] hover:text-[hsl(var(--cocktail-primary))]"
+                        }`}
                       >
                         {size}ml
                       </button>
@@ -433,7 +431,11 @@ export default function Home() {
                   >
                     Cocktail zubereiten
                   </Button>
-                  <Button variant="outline" onClick={() => setSelectedCocktail(null)} className="w-full">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedCocktail(null)}
+                    className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                  >
                     Abbrechen
                   </Button>
                 </div>
@@ -443,7 +445,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleEditClick(cocktail.id)
@@ -494,7 +496,7 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-10 w-10 p-0"
+          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -506,7 +508,7 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="h-10 w-10 p-0"
+          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
@@ -563,7 +565,7 @@ export default function Home() {
                   onClick={() => setShowRecipeCreator(true)}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
                 >
                   <Plus className="h-4 w-4" />
                   Neues Rezept
