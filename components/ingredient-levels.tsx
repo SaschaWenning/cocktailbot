@@ -219,9 +219,21 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
             <>
               <div className="flex justify-between items-center mb-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-4 mb-4">
-                    <TabsTrigger value="all">Alle</TabsTrigger>
-                    <TabsTrigger value="low" className="relative">
+                  <TabsList className="grid grid-cols-4 mb-4 bg-[hsl(var(--cocktail-card-bg))]">
+                    <TabsTrigger
+                      value="all"
+                      className={
+                        activeTab === "all"
+                          ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                          : "text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                      }
+                    >
+                      Alle
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="low"
+                      className={`relative ${activeTab === "low" ? "bg-[hsl(var(--cocktail-primary))] text-black" : "text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"}`}
+                    >
                       Niedrig
                       {lowLevelsCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-[hsl(var(--cocktail-error))] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -229,8 +241,26 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                         </span>
                       )}
                     </TabsTrigger>
-                    <TabsTrigger value="alcoholic">Alkoholisch</TabsTrigger>
-                    <TabsTrigger value="non-alcoholic">Alkoholfrei</TabsTrigger>
+                    <TabsTrigger
+                      value="alcoholic"
+                      className={
+                        activeTab === "alcoholic"
+                          ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                          : "text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                      }
+                    >
+                      Alkoholisch
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="non-alcoholic"
+                      className={
+                        activeTab === "non-alcoholic"
+                          ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                          : "text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                      }
+                    >
+                      Alkoholfrei
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -280,7 +310,12 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               readOnly
                               onClick={() => handleInputFocus(level.ingredientId)}
                             />
-                            <Button variant="outline" size="sm" onClick={() => handleInputFocus(level.ingredientId)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleInputFocus(level.ingredientId)}
+                              className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                            >
                               Setzen
                             </Button>
                           </div>
@@ -290,7 +325,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleQuickFill(level.ingredientId, 700)}
-                              className="flex-1"
+                              className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
                             >
                               700ml
                             </Button>
@@ -298,7 +333,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleQuickFill(level.ingredientId, 1000)}
-                              className="flex-1"
+                              className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
                             >
                               1000ml
                             </Button>
@@ -306,7 +341,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleQuickFill(level.ingredientId, level.capacity)}
-                              className="flex-1"
+                              className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
                             >
                               Voll ({level.capacity}ml)
                             </Button>
@@ -314,7 +349,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                               variant="outline"
                               size="sm"
                               onClick={() => handleInputFocus(level.ingredientId)}
-                              className="flex-1"
+                              className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
                             >
                               Manuell
                             </Button>

@@ -246,7 +246,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full"
+                    className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
                     onClick={() => startCalibration(pump.id)}
                     disabled={calibrationStep !== "idle" || calibrating !== null}
                   >

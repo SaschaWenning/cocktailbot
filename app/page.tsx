@@ -343,7 +343,7 @@ export default function Home() {
     const isCustomRecipe = cocktail.id.startsWith("custom-")
 
     return (
-      <Card className="overflow-hidden transition-all bg-white border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
+      <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
         <div className="flex flex-col md:flex-row">
           {/* Bild-Container (links) */}
           <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
@@ -528,7 +528,7 @@ export default function Home() {
   }) => (
     <>
       {isMaking ? (
-        <Card className="border-[hsl(var(--cocktail-card-border))] bg-white">
+        <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
           <CardContent className="pt-6 space-y-4">
             <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
             <Progress value={progress} className="h-2" />

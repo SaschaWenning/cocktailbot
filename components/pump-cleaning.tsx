@@ -161,7 +161,10 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
                 </AlertDescription>
               </Alert>
 
-              <Button onClick={resetCleaning} className="w-full">
+              <Button
+                onClick={resetCleaning}
+                className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+              >
                 Zurücksetzen
               </Button>
             </div>

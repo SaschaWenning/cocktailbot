@@ -10,8 +10,6 @@ import type { PumpConfig } from "@/types/pump"
 import { ingredients } from "@/data/ingredients"
 import { makeSingleShot } from "@/lib/cocktail-machine"
 import type { IngredientLevel } from "@/types/ingredient-level"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
 
 interface ShotSelectorProps {
   pumpConfig: PumpConfig[]
@@ -113,7 +111,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
   if (isMaking) {
     return (
-      <Card className="border-[hsl(var(--cocktail-card-border))] bg-white">
+      <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
         <CardContent className="pt-6 space-y-4">
           <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
           <Progress value={progress} className="h-2" />
@@ -153,20 +151,23 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
               {/* Shot-Größe Auswahl */}
               <div className="w-full max-w-xs">
-                <RadioGroup
-                  value={shotSize.toString()}
-                  onValueChange={(value) => setShotSize(Number.parseInt(value))}
-                  className="flex justify-center gap-8"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="20" id="size-20" />
-                    <Label htmlFor="size-20">20ml</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="40" id="size-40" />
-                    <Label htmlFor="size-40">40ml</Label>
-                  </div>
-                </RadioGroup>
+                <h4 className="text-base mb-2 text-center">Shot-Größe wählen:</h4>
+                <div className="flex gap-4 justify-center">
+                  {[20, 40].map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setShotSize(size)}
+                      className={`text-sm py-1 px-2 rounded ${
+                        shotSize === size
+                          ? "font-semibold border-b-2 border-[hsl(var(--cocktail-primary))] text-[hsl(var(--cocktail-primary))]"
+                          : "text-[hsl(var(--cocktail-text-muted))] hover:text-[hsl(var(--cocktail-text))]"
+                      }`}
+                    >
+                      {size}ml
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {!isAvailable && (
@@ -179,7 +180,12 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
               )}
 
               <div className="flex gap-2 w-full mt-4">
-                <Button className="flex-1" variant="outline" onClick={handleCancelSelection}>
+                <Button
+                  className="flex-1"
+                  variant="outline"
+                  onClick={handleCancelSelection}
+                  className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                >
                   Abbrechen
                 </Button>
                 <Button
@@ -206,7 +212,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
             <Button
               key={ingredient.id}
               variant="outline"
-              className={`h-auto py-2 px-2 justify-center text-center ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
+              className={`h-auto py-2 px-2 justify-center text-center bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
               onClick={() => handleSelectShot(ingredient.id)}
               disabled={!checkIngredientAvailable(ingredient.id)}
             >
@@ -226,7 +232,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
               <Button
                 key={ingredient.id}
                 variant="outline"
-                className={`h-auto py-2 px-2 justify-center text-center ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
+                className={`h-auto py-2 px-2 justify-center text-center bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
                 onClick={() => handleSelectShot(ingredient.id)}
                 disabled={!checkIngredientAvailable(ingredient.id)}
               >

@@ -59,7 +59,7 @@
 
 /* Benutzerdefinierte Farbpalette für die Cocktail-App */
 :root {
-  --cocktail-bg: 0 0% 0%; /* Changed to black */
+  --cocktail-bg: 0 0% 0%; /* Black background */
   --cocktail-card-bg: 0 0% 10%; /* Darker gray for cards */
   --cocktail-card-border: 0 0% 20%; /* Darker border */
   --cocktail-text: 0 0% 100%; /* White text */
@@ -70,6 +70,8 @@
   --cocktail-success: 142 76% 36%; /* Keep success color */
   --cocktail-warning: 38 92% 50%; /* Keep warning color */
   --cocktail-error: 0 84% 60%; /* Keep error color */
+  --cocktail-button-bg: 0 0% 15%; /* Gray background for buttons */
+  --cocktail-button-hover: 0 0% 25%; /* Darker gray for button hover */
 }
 
 /* Verbesserte Touch-Scrolling-Funktionalität */
