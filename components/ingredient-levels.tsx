@@ -219,7 +219,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
             <>
               <div className="flex justify-between items-center mb-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-4 mb-4 bg-[hsl(var(--cocktail-card-bg))]">
+                  <TabsList className="grid grid-cols-4 mb-4 bg-[hsl(var(--cocktail-card-bg))] h-14">
                     <TabsTrigger
                       value="all"
                       className={
@@ -286,8 +286,10 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
 
                         <Progress
                           value={percentage}
-                          className={`h-2 ${isLow ? "bg-[hsl(var(--cocktail-error))]/20" : ""}`}
-                          indicatorClassName={isLow ? "bg-[hsl(var(--cocktail-error))]" : undefined}
+                          className={`h-2 ${isLow ? "bg-[hsl(var(--cocktail-error))]/20" : "bg-[hsl(var(--cocktail-card-bg))]"}`}
+                          indicatorClassName={
+                            isLow ? "bg-[hsl(var(--cocktail-error))]" : "bg-[hsl(var(--cocktail-primary))]"
+                          }
                         />
 
                         {isLow && (

@@ -533,7 +533,7 @@ export default function Home() {
         <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
           <CardContent className="pt-6 space-y-4">
             <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-2" indicatorClassName="bg-[hsl(var(--cocktail-primary))]" />
 
             {errorMessage && (
               <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
