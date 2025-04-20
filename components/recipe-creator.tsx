@@ -6,9 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, Trash2, ImageIcon } from "lucide-react"
+import { Loader2, Plus, Trash2, ImageIcon, Wine, GlassWater } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
@@ -141,6 +140,36 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
           </div>
 
           <div className="space-y-2">
+            <Label>Cocktail-Typ</Label>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => setAlcoholic(true)}
+                className={`flex items-center gap-2 text-sm py-2 px-3 rounded bg-[hsl(var(--cocktail-card-bg))] ${
+                  alcoholic
+                    ? "font-semibold border-b-2 border-[hsl(var(--cocktail-primary))] text-[hsl(var(--cocktail-primary))]"
+                    : "text-[hsl(var(--cocktail-text))] hover:text-[hsl(var(--cocktail-primary))]"
+                }`}
+              >
+                <Wine className="h-4 w-4" />
+                Mit Alkohol
+              </button>
+              <button
+                type="button"
+                onClick={() => setAlcoholic(false)}
+                className={`flex items-center gap-2 text-sm py-2 px-3 rounded bg-[hsl(var(--cocktail-card-bg))] ${
+                  !alcoholic
+                    ? "font-semibold border-b-2 border-[hsl(var(--cocktail-primary))] text-[hsl(var(--cocktail-primary))]"
+                    : "text-[hsl(var(--cocktail-text))] hover:text-[hsl(var(--cocktail-primary))]"
+                }`}
+              >
+                <GlassWater className="h-4 w-4" />
+                Ohne Alkohol
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />
               Bild-Information
@@ -160,11 +189,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 Das Bild wird automatisch geladen, wenn der Dateiname dem Cocktail-Namen entspricht.
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch id="alcoholic" checked={alcoholic} onCheckedChange={setAlcoholic} />
-            <Label htmlFor="alcoholic">Enthält Alkohol</Label>
           </div>
 
           <div className="space-y-4">
