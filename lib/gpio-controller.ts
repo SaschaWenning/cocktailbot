@@ -1,34 +1,34 @@
-// Check if we're in a browser environment
-const isBrowser = typeof window !== "undefined"
+// Diese Datei würde in einer echten Implementierung die GPIO-Pins des Raspberry Pi steuern
+// Für diese Demo ist sie nur ein Platzhalter
 
-// Mock implementation for browser environment
+import { exec } from "child_process"
+import { promisify } from "util"
+
+const execPromise = promisify(exec)
+
 export function setupGPIO() {
-  if (isBrowser) {
-    console.log("[BROWSER] GPIO-Pins würden initialisiert werden")
-    return
-  }
-  // Server-side implementation would go here
+  // Initialisiere die GPIO-Pins
   console.log("GPIO-Pins werden initialisiert")
 }
 
 export async function setPinHigh(pin: number, durationMs: number) {
-  if (isBrowser) {
-    console.log(`[BROWSER] Setze Pin ${pin} auf HIGH für ${durationMs}ms`)
-    // Return a promise that resolves after the duration
-    return new Promise<boolean>((resolve) => {
-      setTimeout(() => resolve(true), 100)
-    })
-  }
-
-  // Server-side implementation
+  // Setze den Pin auf HIGH (3.3V) für die angegebene Dauer
   console.log(`Setze Pin ${pin} auf HIGH für ${durationMs}ms`)
 
   try {
-    // In a real implementation, this would execute the Python script
-    console.log(`Würde Befehl ausführen: python3 /home/pi/cocktailbot/pump_control.py activate ${pin} ${durationMs}`)
+    // Führe das Python-Skript direkt aus
+    const command = `python3 /home/pi/cocktailbot/pump_control.py activate ${pin} ${durationMs}`
+    console.log(`Führe Befehl aus: ${command}`)
 
-    // Simulate a delay
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    const { stdout, stderr } = await execPromise(command)
+
+    if (stderr) {
+      console.error(`Fehler bei der Ausführung des Python-Skripts: ${stderr}`)
+    }
+
+    if (stdout) {
+      console.log(`Ausgabe des Python-Skripts: ${stdout}`)
+    }
 
     return true
   } catch (error) {
@@ -38,19 +38,11 @@ export async function setPinHigh(pin: number, durationMs: number) {
 }
 
 export function setPinLow(pin: number) {
-  if (isBrowser) {
-    console.log(`[BROWSER] Setze Pin ${pin} auf LOW`)
-    return
-  }
-  // Server-side implementation
+  // Setze den Pin auf LOW (0V)
   console.log(`Setze Pin ${pin} auf LOW`)
 }
 
 export function cleanupGPIO() {
-  if (isBrowser) {
-    console.log("[BROWSER] GPIO-Pins würden bereinigt werden")
-    return
-  }
-  // Server-side implementation
+  // Bereinige die GPIO-Pins
   console.log("GPIO-Pins werden bereinigt")
 }
