@@ -23,7 +23,11 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
       {/* Erste Reihe */}
       <div className="grid grid-cols-10 gap-1 mb-1">
         {row1.map((key) => (
-          <Button key={key} variant="outline" className="h-12 text-lg font-medium" onClick={() => onKeyPress(key)}>
+          <Button
+            key={key}
+            className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
+            onClick={() => onKeyPress(key)}
+          >
             {key}
           </Button>
         ))}
@@ -33,7 +37,11 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
       <div className="flex justify-center mb-1">
         <div className="grid grid-cols-9 gap-1">
           {row2.map((key) => (
-            <Button key={key} variant="outline" className="h-12 text-lg font-medium" onClick={() => onKeyPress(key)}>
+            <Button
+              key={key}
+              className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
+              onClick={() => onKeyPress(key)}
+            >
               {key}
             </Button>
           ))}
@@ -44,7 +52,11 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
       <div className="flex justify-center mb-2">
         <div className="grid grid-cols-7 gap-1">
           {row3.map((key) => (
-            <Button key={key} variant="outline" className="h-12 text-lg font-medium" onClick={() => onKeyPress(key)}>
+            <Button
+              key={key}
+              className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
+              onClick={() => onKeyPress(key)}
+            >
               {key}
             </Button>
           ))}
@@ -54,14 +66,16 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
       {/* Aktionstasten */}
       <div className="grid grid-cols-3 gap-2">
         <Button
-          variant="outline"
-          className="h-12 text-lg font-medium text-[hsl(var(--cocktail-error))]"
+          className="h-12 text-lg font-medium text-[hsl(var(--cocktail-error))] bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20"
           onClick={onClear}
         >
           <X className="h-6 w-6" />
         </Button>
 
-        <Button variant="outline" className="h-12 text-lg font-medium" onClick={onBackspace}>
+        <Button
+          className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+          onClick={onBackspace}
+        >
           <Backspace className="h-6 w-6" />
         </Button>
 

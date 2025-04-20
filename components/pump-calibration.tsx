@@ -187,7 +187,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
               size="sm"
               onClick={loadPumpConfig}
               disabled={loading || saving}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
             >
               <RefreshCw className="h-4 w-4" />
               Konfiguration neu laden
@@ -217,10 +217,10 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
                     onValueChange={(value) => handleIngredientChange(pump.id, value)}
                     disabled={calibrationStep !== "idle"}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]">
                       <SelectValue placeholder="Zutat wählen" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-black text-white border-[hsl(var(--cocktail-card-border))]">
                       {ingredients.map((ingredient) => (
                         <SelectItem key={ingredient.id} value={ingredient.id}>
                           {ingredient.name}
@@ -236,7 +236,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
                       type="text"
                       value={pump.flowRate.toFixed(1)}
                       readOnly
-                      className="w-full bg-[hsl(var(--cocktail-bg))]"
+                      className="w-full bg-[hsl(var(--cocktail-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
                     />
                     <span className="text-xs whitespace-nowrap">ml/s</span>
                   </div>
@@ -246,7 +246,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                    className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
                     onClick={() => startCalibration(pump.id)}
                     disabled={calibrationStep !== "idle" || calibrating !== null}
                   >
@@ -257,7 +257,11 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
             ))}
           </div>
 
-          <Button className="w-full mt-6" onClick={handleSave} disabled={saving || calibrationStep !== "idle"}>
+          <Button
+            className="w-full mt-6 bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+            onClick={handleSave}
+            disabled={saving || calibrationStep !== "idle"}
+          >
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -300,7 +304,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
                 value={measuredAmount}
                 onChange={(e) => handleMeasuredAmountChange(e.target.value)}
                 placeholder="Menge in ml"
-                className="text-xl h-12 text-center"
+                className="text-xl h-12 text-center bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))]"
                 autoFocus
                 readOnly
               />
@@ -317,10 +321,18 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={cancelCalibration}>
+            <Button
+              variant="outline"
+              onClick={cancelCalibration}
+              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+            >
               Abbrechen
             </Button>
-            <Button onClick={saveCalibration} disabled={!measuredAmount}>
+            <Button
+              onClick={saveCalibration}
+              disabled={!measuredAmount}
+              className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+            >
               Speichern
             </Button>
           </DialogFooter>

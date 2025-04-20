@@ -117,7 +117,11 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
           )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              onClick={onClose}
+            >
               Abbrechen
             </Button>
             <Button type="submit" variant="destructive" disabled={isDeleting}>

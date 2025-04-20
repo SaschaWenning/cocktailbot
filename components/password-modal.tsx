@@ -98,10 +98,19 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
           )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              onClick={onClose}
+            >
               Abbrechen
             </Button>
-            <Button type="submit">Bestätigen</Button>
+            <Button
+              type="submit"
+              className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+            >
+              Bestätigen
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

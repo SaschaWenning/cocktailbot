@@ -24,26 +24,35 @@ export default function VirtualKeyboard({
     <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg">
       <div className="grid grid-cols-3 gap-2">
         {keys.map((key) => (
-          <Button key={key} variant="outline" className="h-14 text-xl font-medium" onClick={() => onKeyPress(key)}>
+          <Button
+            key={key}
+            className="h-14 text-xl font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
+            onClick={() => onKeyPress(key)}
+          >
             {key}
           </Button>
         ))}
 
         {allowDecimal && (
-          <Button variant="outline" className="h-14 text-xl font-medium" onClick={() => onKeyPress(".")}>
+          <Button
+            className="h-14 text-xl font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
+            onClick={() => onKeyPress(".")}
+          >
             .
           </Button>
         )}
 
         <Button
-          variant="outline"
-          className="h-14 text-xl font-medium text-[hsl(var(--cocktail-error))]"
+          className="h-14 text-xl font-medium text-[hsl(var(--cocktail-error))] bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20"
           onClick={onClear}
         >
           <X className="h-6 w-6" />
         </Button>
 
-        <Button variant="outline" className="h-14 text-xl font-medium" onClick={onBackspace}>
+        <Button
+          className="h-14 text-xl font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+          onClick={onBackspace}
+        >
           <Backspace className="h-6 w-6" />
         </Button>
 
