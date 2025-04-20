@@ -7,6 +7,9 @@ import fs from "fs"
 import path from "path"
 import { setPinHigh } from "@/lib/gpio-controller"
 
+// Prüfen, ob wir in einer Browser-Umgebung sind
+const isBrowser = typeof window !== "undefined"
+
 // Skaliert die Zutatenmengen proportional zur gewünschten Gesamtmenge
 function scaleRecipe(cocktail: Cocktail, targetSize: number) {
   const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
@@ -169,6 +172,11 @@ export async function calibratePump(pumpId: number, durationMs: number) {
 
     console.log(`Kalibriere Pumpe ${pumpId} an Pin ${pump.pin} für ${durationMs}ms`)
 
+    // Im Browser-Modus nur simulieren
+    if (isBrowser) {
+      return new Promise((resolve) => setTimeout(() => resolve({ success: true }), 100))
+    }
+
     // Aktiviere die Pumpe für die angegebene Zeit
     await activatePump(pump.pin, durationMs)
 
@@ -192,6 +200,11 @@ export async function cleanPump(pumpId: number, durationMs: number) {
 
     console.log(`Reinige Pumpe ${pumpId} an Pin ${pump.pin} für ${durationMs}ms`)
 
+    // Im Browser-Modus nur simulieren
+    if (isBrowser) {
+      return new Promise((resolve) => setTimeout(() => resolve({ success: true }), 100))
+    }
+
     // Aktiviere die Pumpe für die angegebene Zeit
     await activatePump(pump.pin, durationMs)
 
@@ -210,6 +223,12 @@ const COCKTAILS_PATH = path.join(process.cwd(), "data", "custom-cocktails.json")
 
 // Funktion zum Laden der Pumpenkonfiguration
 export async function getPumpConfig(): Promise<PumpConfig[]> {
+  // Im Browser-Modus die Standard-Konfiguration zurückgeben
+  if (isBrowser) {
+    const { pumpConfig } = await import("@/data/pump-config")
+    return pumpConfig
+  }
+
   try {
     // Prüfe, ob die Datei existiert
     if (fs.existsSync(PUMP_CONFIG_PATH)) {
@@ -251,6 +270,12 @@ export async function getPumpConfig(): Promise<PumpConfig[]> {
 
 // Funktion zum Speichern der Pumpen-Konfiguration
 export async function savePumpConfig(pumpConfig: PumpConfig[]) {
+  // Im Browser-Modus nur simulieren
+  if (isBrowser) {
+    console.log("[BROWSER] Speichere Pumpen-Konfiguration:", pumpConfig)
+    return { success: true }
+  }
+
   try {
     console.log("Speichere Pumpen-Konfiguration:", pumpConfig)
 
@@ -288,6 +313,11 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       }
       return { ...cocktail, image }
     })
+
+    // Im Browser-Modus nur die Standard-Cocktails zurückgeben
+    if (isBrowser) {
+      return correctedDefaultCocktails
+    }
 
     // Definiere die zusätzlichen Cocktails
     const additionalCocktails: Cocktail[] = [
@@ -629,6 +659,12 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
 
 // Funktion zum Speichern eines Cocktail-Rezepts
 export async function saveRecipe(cocktail: Cocktail) {
+  // Im Browser-Modus nur simulieren
+  if (isBrowser) {
+    console.log("[BROWSER] Speichere Rezept:", cocktail)
+    return { success: true }
+  }
+
   try {
     console.log("Speichere Rezept:", cocktail)
 
@@ -666,6 +702,12 @@ export async function saveRecipe(cocktail: Cocktail) {
 
 // Funktion zum Löschen eines Cocktail-Rezepts
 export async function deleteRecipe(cocktailId: string) {
+  // Im Browser-Modus nur simulieren
+  if (isBrowser) {
+    console.log(`[BROWSER] Lösche Rezept mit ID: ${cocktailId}`)
+    return { success: true }
+  }
+
   try {
     console.log(`Lösche Rezept mit ID: ${cocktailId}`)
 

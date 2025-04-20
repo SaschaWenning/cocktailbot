@@ -4,15 +4,24 @@ import type { IngredientLevel } from "@/types/ingredient-level"
 import type { Cocktail } from "@/types/cocktail"
 import { initialIngredientLevels } from "@/data/ingredient-levels"
 
+// Add this at the top of the file, after the imports
+// Check if we're in a browser environment
+const isBrowser = typeof window !== "undefined"
+
 // In einer echten Anwendung würden wir diese Daten in einer Datenbank speichern
 let ingredientLevels = [...initialIngredientLevels]
 
 // Füllstände abrufen
+// Modify the getIngredientLevels function to work in browser
 export async function getIngredientLevels(): Promise<IngredientLevel[]> {
+  if (isBrowser) {
+    return [...initialIngredientLevels]
+  }
   return ingredientLevels
 }
 
 // Füllstand für eine bestimmte Zutat aktualisieren
+// Modify the updateIngredientLevel function to work in browser
 export async function updateIngredientLevel(ingredientId: string, newAmount: number): Promise<IngredientLevel> {
   const index = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
@@ -29,7 +38,10 @@ export async function updateIngredientLevel(ingredientId: string, newAmount: num
     lastRefill: new Date(),
   }
 
-  ingredientLevels[index] = updatedLevel
+  if (!isBrowser) {
+    ingredientLevels[index] = updatedLevel
+  }
+
   return updatedLevel
 }
 

@@ -60,7 +60,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
 
   if (selected) {
     return (
-      <Card className="overflow-hidden transition-all bg-white border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
+      <Card className="overflow-hidden transition-all bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
         <div className="flex flex-col md:flex-row">
           {/* Bild-Container (links auf größeren Bildschirmen) */}
           <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
@@ -106,7 +106,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
   // Standard-Ansicht für nicht ausgewählte Cocktails (unverändert)
   return (
     <Card
-      className="overflow-hidden transition-all cursor-pointer hover:shadow-md bg-white border-[hsl(var(--cocktail-card-border))]"
+      className="overflow-hidden transition-all cursor-pointer hover:shadow-md bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]"
       onClick={onClick}
     >
       <div className="relative aspect-square w-full">

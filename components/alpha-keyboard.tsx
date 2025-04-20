@@ -19,7 +19,7 @@ export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConf
   const row3 = ["z", "x", "c", "v", "b", "n", "m"]
 
   return (
-    <div className="bg-white border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg">
+    <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg">
       {/* Erste Reihe */}
       <div className="grid grid-cols-10 gap-1 mb-1">
         {row1.map((key) => (
