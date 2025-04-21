@@ -26,6 +26,12 @@ function scaleRecipe(cocktail: Cocktail, targetSize: number) {
 export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
   console.log(`Bereite Cocktail zu: ${cocktail.name} (${size}ml)`)
 
+  // Log der übergebenen Pumpenkonfiguration für Debugging
+  console.log(
+    "Verwendete Pumpenkonfiguration:",
+    pumpConfig.map((p) => `Pumpe ${p.id}: ${p.ingredient}, Flussrate: ${p.flowRate} ml/s`),
+  )
+
   // Prüfe zuerst, ob genügend von allen Zutaten vorhanden ist
   const levelCheck = await updateLevelsAfterCocktail(cocktail, size)
 
@@ -55,7 +61,9 @@ export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[],
     // Berechne, wie lange die Pumpe laufen muss
     const pumpTimeMs = Math.round((item.amount / pump.flowRate) * 1000)
 
-    console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren`)
+    console.log(
+      `Pumpe ${pump.id} (${pump.ingredient}): ${item.amount}ml für ${pumpTimeMs}ms aktivieren (Flussrate: ${pump.flowRate} ml/s)`,
+    )
 
     // Aktiviere die Pumpe
     return activatePump(pump.pin, pumpTimeMs)
@@ -102,7 +110,7 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
     throw new Error(`Nicht genügend ${ingredientId} vorhanden!`)
   }
 
-  // Finde die Pumpe für diese Zutat
+  // Finde die Pumpe für diese Zutat - Lade die aktuellste Konfiguration
   const pumpConfig = await getPumpConfig()
   const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
 
@@ -113,7 +121,9 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
   // Berechne, wie lange die Pumpe laufen muss
   const pumpTimeMs = Math.round((amount / pump.flowRate) * 1000)
 
-  console.log(`Pumpe ${pump.id} (${pump.ingredient}): ${amount}ml für ${pumpTimeMs}ms aktivieren`)
+  console.log(
+    `Pumpe ${pump.id} (${pump.ingredient}): ${amount}ml für ${pumpTimeMs}ms aktivieren (Flussrate: ${pump.flowRate} ml/s)`,
+  )
 
   // Aktiviere die Pumpe
   await activatePump(pump.pin, pumpTimeMs)
