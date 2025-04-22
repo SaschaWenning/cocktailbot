@@ -1,7 +1,5 @@
 "use client"
 
-import { Pagination } from "@/components/ui/pagination"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -321,8 +319,8 @@ export default function Home() {
   // Neue Komponente für die Cocktail-Detailansicht
   const CocktailDetail = ({ cocktail }: { cocktail: Cocktail }) => {
     // Add a local imageError state at the beginning of the CocktailDetail component:
-    const [localImageError, setLocalImageError] = useState(false);
-  
+    const [localImageError, setLocalImageError] = useState(false)
+
     // Generiere ein Platzhalterbild mit dem Namen des Cocktails
     const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
 
@@ -371,7 +369,10 @@ export default function Home() {
           <div className="flex-1 p-4 flex flex-col">
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
-              <Badge variant={cocktail.alcoholic ? "default" : "default"} className={`text-xs ${cocktail.alcoholic ? "bg-[hsl(var(--cocktail-primary))] text-black" : "bg-white text-black"}`}>
+              <Badge
+                variant={cocktail.alcoholic ? "default" : "default"}
+                className={`text-xs ${cocktail.alcoholic ? "bg-[hsl(var(--cocktail-primary))] text-black" : "bg-white text-black"}`}
+              >
                 {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
               </Badge>
             </div>
@@ -483,7 +484,9 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
+        </div>
+      </Card>
     )
   }
 
@@ -493,9 +496,9 @@ export default function Home() {
     totalPages,
     onPageChange,
   }: {
-    currentPage: number;
-    totalPages: number;
-    onPageChange: (page: number) => void;
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void
   }) => {
     return (
       <div className="flex justify-center items-center gap-2 mt-4">
@@ -559,10 +562,10 @@ export default function Home() {
             )}
 
             {/* Add cancel button */}
-            <Button 
+            <Button
               onClick={() => {
-                setIsMaking(false);
-                setSelectedCocktail(null);
+                setIsMaking(false)
+                setSelectedCocktail(null)
               }}
               className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20 hover:text-[hsl(var(--cocktail-error))]"
             >
