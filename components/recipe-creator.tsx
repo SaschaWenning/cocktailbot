@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid"
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
+import AlphaKeyboard from "./alpha-keyboard"
 
 interface RecipeCreatorProps {
   isOpen: boolean
@@ -29,6 +30,53 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     name?: string
     recipe?: string
   }>({})
+
+  // Fügen Sie die folgenden Zustände zur RecipeCreator-Komponente hinzu
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [activeInput, setActiveInput] = useState<"name" | "description" | null>(null)
+  const [keyboardType, setKeyboardType] = useState<"numeric" | "alpha">("alpha")
+
+  // Fügen Sie diese Funktionen zur RecipeCreator-Komponente hinzu
+  const handleInputFocus = (inputType: "name" | "description") => {
+    setActiveInput(inputType)
+    setKeyboardType("alpha")
+    setShowKeyboard(true)
+  }
+
+  const handleKeyPress = (key: string) => {
+    if (!activeInput) return
+
+    if (activeInput === "name") {
+      setName((prev) => prev + key)
+    } else if (activeInput === "description") {
+      setDescription((prev) => prev + key)
+    }
+  }
+
+  const handleBackspace = () => {
+    if (!activeInput) return
+
+    if (activeInput === "name") {
+      setName((prev) => prev.slice(0, -1))
+    } else if (activeInput === "description") {
+      setDescription((prev) => prev.slice(0, -1))
+    }
+  }
+
+  const handleClear = () => {
+    if (!activeInput) return
+
+    if (activeInput === "name") {
+      setName("")
+    } else if (activeInput === "description") {
+      setDescription("")
+    }
+  }
+
+  const handleConfirm = () => {
+    setShowKeyboard(false)
+    setActiveInput(null)
+  }
 
   const handleAddIngredient = () => {
     setRecipe([...recipe, { ingredientId: "", amount: 0 }])
@@ -117,18 +165,22 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
+            {/* Ändern Sie das Input-Feld für den Namen, um die Tastatur zu aktivieren */}
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white ${errors.name ? "border-[hsl(var(--cocktail-error))]" : ""}`}
               placeholder="z.B. Mein Cocktail"
+              onFocus={() => handleInputFocus("name")}
+              readOnly
             />
             {errors.name && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.name}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Beschreibung</Label>
+            {/* Ändern Sie die Textarea für die Beschreibung, um die Tastatur zu aktivieren */}
             <Textarea
               id="description"
               value={description}
@@ -136,6 +188,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white"
               placeholder="Beschreibe deinen Cocktail..."
               rows={2}
+              onFocus={() => handleInputFocus("description")}
+              readOnly
             />
           </div>
 
@@ -251,6 +305,18 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
             ))}
           </div>
         </div>
+
+        {/* Fügen Sie die Tastatur am Ende des Formulars hinzu, vor dem DialogFooter */}
+        {showKeyboard && (
+          <div className="mt-4">
+            <AlphaKeyboard
+              onKeyPress={handleKeyPress}
+              onBackspace={handleBackspace}
+              onClear={handleClear}
+              onConfirm={handleConfirm}
+            />
+          </div>
+        )}
 
         <DialogFooter>
           <Button
