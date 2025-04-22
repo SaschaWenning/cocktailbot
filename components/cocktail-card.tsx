@@ -29,21 +29,22 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
     // Versuche, den Bildpfad zu korrigieren
     let src = cocktail.image || ""
 
-    // Für Cocktails mit Alkohol, verwende immer den Pfad im Cocktails-Ordner
-    if (cocktail.alcoholic) {
-      // Extrahiere den Dateinamen aus dem Pfad (egal ob URL oder lokaler Pfad)
-      const fileName = src.split("/").pop() || ""
-      // Erstelle einen neuen Pfad im Cocktails-Ordner
-      src = `/images/cocktails/${fileName}`
-    } else {
-      // Für nicht-alkoholische Cocktails, stelle sicher, dass der Pfad mit / beginnt
-      if (src && !src.startsWith("/")) {
+    // Wenn das Bild ein Platzhalterbild ist, behalte es bei
+    if (src.includes("placeholder")) {
+      setImageSrc(src)
+      return
+    }
+
+    // Für lokale Bilder, stelle sicher, dass der Pfad korrekt ist
+    if (!src.startsWith("http")) {
+      // Entferne eventuelle URL-Parameter
+      src = src.split("?")[0]
+
+      // Stelle sicher, dass der Pfad mit / beginnt
+      if (!src.startsWith("/")) {
         src = `/${src}`
       }
     }
-
-    // Entferne eventuelle URL-Parameter
-    src = src.split("?")[0]
 
     console.log(`Bildpfad für ${cocktail.name}: ${src}`)
     setImageSrc(src)
@@ -51,7 +52,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
 
   // Funktion zum Umschalten auf das Platzhalterbild bei Fehlern
   const handleImageError = () => {
-    console.log(`Bild konnte nicht geladen werden: ${imageSrc}`)
+    console.log(`Bild konnte nicht geladen werden: ${imageSrc}, verwende Platzhalter`)
     setImageError(true)
   }
 
@@ -81,7 +82,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
               <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
               <Badge
                 variant={cocktail.alcoholic ? "default" : "default"}
-                className={`text-xs ${cocktail.alcoholic ? "bg-[hsl(var(--cocktail-primary))] text-black" : "bg-white text-black"}`}
+                className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
               >
                 {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
               </Badge>
@@ -129,7 +130,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
           <div className="flex items-center gap-1">
             <Badge
               variant={cocktail.alcoholic ? "default" : "default"}
-              className={`text-xs ${cocktail.alcoholic ? "bg-[hsl(var(--cocktail-primary))] text-black" : "bg-white text-black"}`}
+              className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
             >
               {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
             </Badge>
