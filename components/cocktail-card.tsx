@@ -81,7 +81,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
               <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
               <Badge
                 variant={cocktail.alcoholic ? "default" : "default"}
-                className={`text-xs ${cocktail.alcoholic ? "bg-[hsl(var(--cocktail-primary))] text-black" : "bg-white text-black"}`}
+                className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
               >
                 {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
               </Badge>
@@ -129,7 +129,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
           <div className="flex items-center gap-1">
             <Badge
               variant={cocktail.alcoholic ? "default" : "default"}
-              className={`text-xs ${cocktail.alcoholic ? "bg-[hsl(var(--cocktail-primary))] text-black" : "bg-white text-black"}`}
+              className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
             >
               {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
             </Badge>
