@@ -17,46 +17,46 @@ interface CocktailCardProps {
 
 export default function CocktailCard({ cocktail, selected = false, onClick, onDelete }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
-  const [imageSrc, setImageSrc] = useState<string>("")
 
   // Generiere ein Platzhalterbild mit dem Namen des Cocktails
   const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
 
+  // Wichtig: Setze den Fehlerstatus zurück, wenn sich der Cocktail ändert
   useEffect(() => {
-    // Setze imageError zurück, wenn sich der Cocktail ändert
     setImageError(false)
+  }, [cocktail.id]) // Nur zurücksetzen, wenn sich die Cocktail-ID ändert
 
-    // Versuche, den Bildpfad zu korrigieren
-    let src = cocktail.image || ""
+  // Bestimme den Bildpfad basierend auf dem Cocktail-Typ
+  const getImagePath = () => {
+    let imagePath = cocktail.image || ""
 
     // Für Cocktails mit Alkohol, verwende immer den Pfad im Cocktails-Ordner
     if (cocktail.alcoholic) {
       // Extrahiere den Dateinamen aus dem Pfad (egal ob URL oder lokaler Pfad)
-      const fileName = src.split("/").pop() || ""
+      const fileName = imagePath.split("/").pop() || ""
       // Erstelle einen neuen Pfad im Cocktails-Ordner
-      src = `/images/cocktails/${fileName}`
+      imagePath = `/images/cocktails/${fileName}`
     } else {
       // Für nicht-alkoholische Cocktails, stelle sicher, dass der Pfad mit / beginnt
-      if (src && !src.startsWith("/")) {
-        src = `/${src}`
+      if (imagePath && !imagePath.startsWith("/")) {
+        imagePath = `/${imagePath}`
       }
     }
 
     // Entferne eventuelle URL-Parameter
-    src = src.split("?")[0]
+    imagePath = imagePath.split("?")[0]
 
-    console.log(`Bildpfad für ${cocktail.name}: ${src}`)
-    setImageSrc(src)
-  }, [cocktail])
+    return imagePath
+  }
 
   // Funktion zum Umschalten auf das Platzhalterbild bei Fehlern
   const handleImageError = () => {
-    console.log(`Bild konnte nicht geladen werden: ${imageSrc}`)
+    console.log(`Bild konnte nicht geladen werden für ${cocktail.name}: ${getImagePath()}`)
     setImageError(true)
   }
 
   // Verwende Platzhalterbild wenn ein Fehler auftritt oder kein Bild vorhanden ist
-  const finalImageSrc = imageError || !imageSrc ? placeholderImage : imageSrc
+  const finalImageSrc = imageError ? placeholderImage : getImagePath()
 
   if (selected) {
     return (
@@ -72,6 +72,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
               onError={handleImageError}
               sizes="(max-width: 768px) 100vw, 33vw"
               priority
+              key={cocktail.id} // Wichtig: Key hinzufügen, um sicherzustellen, dass das Bild neu geladen wird
             />
           </div>
 
@@ -106,7 +107,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
     )
   }
 
-  // Standard-Ansicht für nicht ausgewählte Cocktails (unverändert)
+  // Standard-Ansicht für nicht ausgewählte Cocktails
   return (
     <Card
       className="overflow-hidden transition-all cursor-pointer hover:shadow-md bg-black border-[hsl(var(--cocktail-card-border))]"
@@ -121,6 +122,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
           onError={handleImageError}
           sizes="(max-width: 768px) 100vw, 50vw"
           priority={false}
+          key={cocktail.id} // Wichtig: Key hinzufügen, um sicherzustellen, dass das Bild neu geladen wird
         />
       </div>
       <CardContent className="p-3">

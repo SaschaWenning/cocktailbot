@@ -318,30 +318,48 @@ export default function Home() {
 
   // Neue Komponente für die Cocktail-Detailansicht
   const CocktailDetail = ({ cocktail }: { cocktail: Cocktail }) => {
-    // Add a local imageError state at the beginning of the CocktailDetail component:
+    // Lokaler Zustand für Bildfehler
     const [localImageError, setLocalImageError] = useState(false)
 
     // Generiere ein Platzhalterbild mit dem Namen des Cocktails
     const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
 
-    // Bildpfad-Logik
-    let imageSrc = cocktail.image || ""
-    if (cocktail.alcoholic) {
-      const fileName = imageSrc.split("/").pop() || ""
-      imageSrc = `/images/cocktails/${fileName}`
-    } else if (imageSrc && !imageSrc.startsWith("/")) {
-      imageSrc = `/${imageSrc}`
-    }
-    imageSrc = imageSrc.split("?")[0]
+    // Bestimme den Bildpfad basierend auf dem Cocktail-Typ
+    const getImagePath = () => {
+      let imagePath = cocktail.image || ""
 
-    // Replace the handleImageError function with:
+      // Für Cocktails mit Alkohol, verwende immer den Pfad im Cocktails-Ordner
+      if (cocktail.alcoholic) {
+        // Extrahiere den Dateinamen aus dem Pfad (egal ob URL oder lokaler Pfad)
+        const fileName = imagePath.split("/").pop() || ""
+        // Erstelle einen neuen Pfad im Cocktails-Ordner
+        imagePath = `/images/cocktails/${fileName}`
+      } else {
+        // Für nicht-alkoholische Cocktails, stelle sicher, dass der Pfad mit / beginnt
+        if (imagePath && !imagePath.startsWith("/")) {
+          imagePath = `/${imagePath}`
+        }
+      }
+
+      // Entferne eventuelle URL-Parameter
+      imagePath = imagePath.split("?")[0]
+
+      return imagePath
+    }
+
+    // Setze den Fehlerstatus zurück, wenn sich der Cocktail ändert
+    useEffect(() => {
+      setLocalImageError(false)
+    }, [cocktail.id])
+
+    // Funktion zum Umschalten auf das Platzhalterbild bei Fehlern
     const handleImageError = () => {
-      console.log(`Bild konnte nicht geladen werden: ${imageSrc}`)
+      console.log(`Bild konnte nicht geladen werden für ${cocktail.name}: ${getImagePath()}`)
       setLocalImageError(true)
     }
 
-    // Replace the finalImageSrc line with:
-    const finalImageSrc = localImageError ? placeholderImage : imageSrc
+    // Verwende Platzhalterbild wenn ein Fehler auftritt oder kein Bild vorhanden ist
+    const finalImageSrc = localImageError ? placeholderImage : getImagePath()
 
     // Verfügbare Größen
     const availableSizes = [200, 300, 400]
@@ -362,6 +380,7 @@ export default function Home() {
               onError={handleImageError}
               sizes="(max-width: 768px) 100vw, 33vw"
               priority
+              key={cocktail.id} // Wichtig: Key hinzufügen, um sicherzustellen, dass das Bild neu geladen wird
             />
           </div>
 
