@@ -291,11 +291,14 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
 
     // Korrigiere die Bildpfade für alle Cocktails
     const correctedDefaultCocktails = defaultCocktails.map((cocktail) => {
-      // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
-      let image = cocktail.image
-      if (image && !image.startsWith("/") && !image.startsWith("http")) {
-        image = `/${image}`
+      // Ensure consistent image path format
+      let image = cocktail.image || ""
+      if (image && !image.startsWith("http")) {
+        if (!image.startsWith("/")) {
+          image = `/${image}`
+        }
       }
+      console.log(`Normalized default cocktail image: ${cocktail.name} -> ${image}`)
       return { ...cocktail, image }
     })
 
@@ -557,11 +560,14 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
 
     // Korrigiere die Bildpfade für die zusätzlichen Cocktails
     const correctedAdditionalCocktails = additionalCocktails.map((cocktail) => {
-      // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
-      let image = cocktail.image
-      if (image && !image.startsWith("/") && !image.startsWith("http")) {
-        image = `/${image}`
+      // Ensure consistent image path format
+      let image = cocktail.image || ""
+      if (image && !image.startsWith("http")) {
+        if (!image.startsWith("/")) {
+          image = `/${image}`
+        }
       }
+      console.log(`Normalized additional cocktail image: ${cocktail.name} -> ${image}`)
       return { ...cocktail, image }
     })
 
@@ -604,24 +610,27 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
 
       // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
       for (const cocktail of customCocktails) {
-        // Erstelle eine Kopie des Cocktails
+        // Create a copy of the cocktail
         const updatedCocktail = { ...cocktail }
 
-        // Aktualisiere die Zutaten-Textliste
+        // Update the ingredients text list
         updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
           ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
             ? ingredient.replace("Rum", "Brauner Rum")
             : ingredient,
         )
 
-        // Stelle sicher, dass der Bildpfad mit einem / beginnt, wenn er nicht mit http beginnt
-        let image = updatedCocktail.image
-        if (image && !image.startsWith("/") && !image.startsWith("http")) {
-          image = `/${image}`
+        // Ensure consistent image path format
+        let image = updatedCocktail.image || ""
+        if (image && !image.startsWith("http")) {
+          if (!image.startsWith("/")) {
+            image = `/${image}`
+          }
         }
+        console.log(`Normalized custom cocktail image: ${cocktail.name} -> ${image}`)
         updatedCocktail.image = image
 
-        // Füge den aktualisierten Cocktail zur Map hinzu
+        // Add the updated cocktail to the map
         cocktailMap.set(cocktail.id, updatedCocktail)
       }
     }

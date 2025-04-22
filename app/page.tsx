@@ -73,30 +73,19 @@ export default function Home() {
   const virginCocktails = cocktailsData.filter((cocktail) => !cocktail.alcoholic)
 
   // Berechne die Gesamtanzahl der Seiten
-  const totalPages = Math.max(1, Math.ceil(alcoholicCocktails.length / COCKTAILS_PER_PAGE))
-  const virginTotalPages = Math.max(1, Math.ceil(virginCocktails.length / COCKTAILS_PER_PAGE))
+  const totalPages = Math.ceil(alcoholicCocktails.length / COCKTAILS_PER_PAGE)
+  const virginTotalPages = Math.ceil(virginCocktails.length / COCKTAILS_PER_PAGE)
 
   // Hole die Cocktails für die aktuelle Seite
   const getCurrentPageCocktails = (cocktails: Cocktail[], page: number) => {
     const startIndex = (page - 1) * COCKTAILS_PER_PAGE
-    const endIndex = Math.min(startIndex + COCKTAILS_PER_PAGE, cocktails.length)
+    const endIndex = startIndex + COCKTAILS_PER_PAGE
     return cocktails.slice(startIndex, endIndex)
   }
 
   // Aktuelle Seite von Cocktails
   const currentPageCocktails = getCurrentPageCocktails(alcoholicCocktails, currentPage)
   const currentPageVirginCocktails = getCurrentPageCocktails(virginCocktails, virginCurrentPage)
-
-  // Füge diese Funktion hinzu, um sicherzustellen, dass die Seitenzahl gültig ist
-  useEffect(() => {
-    // Stelle sicher, dass die aktuelle Seite nicht größer als die Gesamtseitenzahl ist
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages)
-    }
-    if (virginCurrentPage > virginTotalPages && virginTotalPages > 0) {
-      setVirginCurrentPage(virginTotalPages)
-    }
-  }, [totalPages, virginTotalPages, currentPage, virginCurrentPage])
 
   // Lade Füllstände, Pumpenkonfiguration und Cocktails beim ersten Rendern
   useEffect(() => {
@@ -125,26 +114,10 @@ export default function Home() {
       )
 
       setCocktailsData(cocktails)
-      logImagePaths()
     } catch (error) {
       console.error("Fehler beim Laden der Cocktails:", error)
     }
   }
-
-  // Füge diese Funktion nach loadCocktails hinzu:
-  const logImagePaths = () => {
-    console.log("Bildpfade der Cocktails:")
-    cocktailsData.forEach((cocktail) => {
-      console.log(`${cocktail.name}: ${cocktail.image}`)
-    })
-  }
-
-  // Rufe die Funktion nach dem Laden der Cocktails auf
-  useEffect(() => {
-    if (cocktailsData.length > 0) {
-      logImagePaths()
-    }
-  }, [cocktailsData])
 
   const loadPumpConfig = async () => {
     try {
@@ -169,12 +142,6 @@ export default function Home() {
   }
 
   const handleEditClick = (cocktailId: string) => {
-    // Finde den Cocktail direkt aus dem vollständigen cocktailsData-Array
-    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
-    if (cocktail) {
-      console.log("Cocktail zum Bearbeiten ausgewählt:", cocktail.name, "Bild:", cocktail.image)
-    }
-
     setCocktailToEdit(cocktailId)
     setPasswordAction("edit")
     setShowPasswordModal(true)
@@ -209,9 +176,6 @@ export default function Home() {
 
       // Aktualisiere die lokale Liste
       setCocktailsData((prev) => prev.map((c) => (c.id === updatedCocktail.id ? updatedCocktail : c)))
-
-      // Logge die aktualisierten Bildpfade
-      console.log("Cocktail aktualisiert:", updatedCocktail.name, "Neues Bild:", updatedCocktail.image)
     } catch (error) {
       console.error("Fehler beim Speichern des Rezepts:", error)
     }
@@ -355,28 +319,34 @@ export default function Home() {
   // Neue Komponente für die Cocktail-Detailansicht
   function CocktailDetail({ cocktail }: { cocktail: Cocktail }) {
     const [localImageError, setLocalImageError] = useState(false)
+
+    // Reset image error when cocktail changes
+    useEffect(() => {
+      setLocalImageError(false)
+    }, [cocktail.id])
+
     const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
 
-    // Bildpfad-Logik
+    // Normalize image path
     let imageSrc = cocktail.image || ""
 
-    // Wenn das Bild ein Platzhalterbild ist, behalte es bei
-    if (imageSrc.includes("placeholder")) {
-      // Behalte den Platzhalterpfad bei
-    }
-    // Für lokale Bilder, stelle sicher, dass der Pfad korrekt ist
-    else if (!imageSrc.startsWith("http")) {
-      // Entferne eventuelle URL-Parameter
-      imageSrc = imageSrc.split("?")[0]
+    // For debugging
+    console.log(`Original image path for ${cocktail.name}: ${imageSrc}`)
 
-      // Stelle sicher, dass der Pfad mit / beginnt
+    // Ensure proper path formatting
+    if (imageSrc && !imageSrc.startsWith("http")) {
       if (!imageSrc.startsWith("/")) {
         imageSrc = `/${imageSrc}`
       }
+
+      // Remove any URL parameters
+      imageSrc = imageSrc.split("?")[0]
     }
 
+    console.log(`Normalized image path for ${cocktail.name}: ${imageSrc}`)
+
     const handleImageError = () => {
-      console.log(`Bild konnte nicht geladen werden: ${imageSrc}, verwende Platzhalter`)
+      console.log(`Image load error for ${cocktail.name}: ${imageSrc}`)
       setLocalImageError(true)
     }
 
@@ -516,19 +486,13 @@ export default function Home() {
     totalPages: number
     onPageChange: (page: number) => void
   }) {
-    // Stelle sicher, dass die Seite nicht kleiner als 1 oder größer als totalPages ist
-    const goToPage = (page: number) => {
-      const validPage = Math.max(1, Math.min(page, totalPages))
-      onPageChange(validPage)
-    }
-
     return (
       <div className="flex justify-center items-center gap-2 mt-4">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => goToPage(currentPage - 1)}
-          disabled={currentPage <= 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
           className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -539,8 +503,8 @@ export default function Home() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => goToPage(currentPage + 1)}
-          disabled={currentPage >= totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
           className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
         >
           <ChevronRight className="h-5 w-5" />

@@ -23,36 +23,32 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
   const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
 
   useEffect(() => {
-    // Setze imageError zurück, wenn sich der Cocktail ändert
+    // Reset imageError when cocktail changes
     setImageError(false)
 
-    // Versuche, den Bildpfad zu korrigieren
+    // Normalize image path
     let src = cocktail.image || ""
 
-    // Wenn das Bild ein Platzhalterbild ist, behalte es bei
-    if (src.includes("placeholder")) {
-      setImageSrc(src)
-      return
-    }
+    // For debugging
+    console.log(`Original image path for card ${cocktail.name}: ${src}`)
 
-    // Für lokale Bilder, stelle sicher, dass der Pfad korrekt ist
-    if (!src.startsWith("http")) {
-      // Entferne eventuelle URL-Parameter
-      src = src.split("?")[0]
-
-      // Stelle sicher, dass der Pfad mit / beginnt
+    // Ensure proper path formatting
+    if (src && !src.startsWith("http")) {
       if (!src.startsWith("/")) {
         src = `/${src}`
       }
+
+      // Remove any URL parameters
+      src = src.split("?")[0]
     }
 
-    console.log(`Bildpfad für ${cocktail.name}: ${src}`)
+    console.log(`Normalized image path for card ${cocktail.name}: ${src}`)
     setImageSrc(src)
   }, [cocktail])
 
   // Funktion zum Umschalten auf das Platzhalterbild bei Fehlern
   const handleImageError = () => {
-    console.log(`Bild konnte nicht geladen werden: ${imageSrc}, verwende Platzhalter`)
+    console.log(`Bild konnte nicht geladen werden: ${imageSrc}`)
     setImageError(true)
   }
 
