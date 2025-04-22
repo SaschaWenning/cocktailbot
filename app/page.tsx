@@ -1,7 +1,5 @@
 "use client"
 
-import { Pagination } from "@/components/ui/pagination"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -486,13 +484,13 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </Card>
-      )
+          </div>
+        </Card>
     )
   }
 
   // Paginierungskomponente
-  const Pagination = ({
+  const PaginationComponent = ({
     currentPage,
     totalPages,
     onPageChange,
@@ -625,7 +623,7 @@ export default function Home() {
 
               {/* Paginierung */}
               {totalPages > 1 && (
-                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
+                <PaginationComponent currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
               )}
             </>
           )}
