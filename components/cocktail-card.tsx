@@ -17,46 +17,46 @@ interface CocktailCardProps {
 
 export default function CocktailCard({ cocktail, selected = false, onClick, onDelete }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
+  const [imageSrc, setImageSrc] = useState<string>("")
 
   // Generiere ein Platzhalterbild mit dem Namen des Cocktails
   const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
 
-  // Wichtig: Setze den Fehlerstatus zurück, wenn sich der Cocktail ändert
   useEffect(() => {
+    // Setze imageError zurück, wenn sich der Cocktail ändert
     setImageError(false)
-  }, [cocktail.id]) // Nur zurücksetzen, wenn sich die Cocktail-ID ändert
 
-  // Bestimme den Bildpfad basierend auf dem Cocktail-Typ
-  const getImagePath = () => {
-    let imagePath = cocktail.image || ""
+    // Versuche, den Bildpfad zu korrigieren
+    let src = cocktail.image || ""
 
     // Für Cocktails mit Alkohol, verwende immer den Pfad im Cocktails-Ordner
     if (cocktail.alcoholic) {
       // Extrahiere den Dateinamen aus dem Pfad (egal ob URL oder lokaler Pfad)
-      const fileName = imagePath.split("/").pop() || ""
+      const fileName = src.split("/").pop() || ""
       // Erstelle einen neuen Pfad im Cocktails-Ordner
-      imagePath = `/images/cocktails/${fileName}`
+      src = `/images/cocktails/${fileName}`
     } else {
       // Für nicht-alkoholische Cocktails, stelle sicher, dass der Pfad mit / beginnt
-      if (imagePath && !imagePath.startsWith("/")) {
-        imagePath = `/${imagePath}`
+      if (src && !src.startsWith("/")) {
+        src = `/${src}`
       }
     }
 
     // Entferne eventuelle URL-Parameter
-    imagePath = imagePath.split("?")[0]
+    src = src.split("?")[0]
 
-    return imagePath
-  }
+    console.log(`Bildpfad für ${cocktail.name}: ${src}`)
+    setImageSrc(src)
+  }, [cocktail])
 
   // Funktion zum Umschalten auf das Platzhalterbild bei Fehlern
   const handleImageError = () => {
-    console.log(`Bild konnte nicht geladen werden für ${cocktail.name}: ${getImagePath()}`)
+    console.log(`Bild konnte nicht geladen werden: ${imageSrc}`)
     setImageError(true)
   }
 
   // Verwende Platzhalterbild wenn ein Fehler auftritt oder kein Bild vorhanden ist
-  const finalImageSrc = imageError ? placeholderImage : getImagePath()
+  const finalImageSrc = imageError || !imageSrc ? placeholderImage : imageSrc
 
   if (selected) {
     return (
@@ -72,7 +72,6 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
               onError={handleImageError}
               sizes="(max-width: 768px) 100vw, 33vw"
               priority
-              key={cocktail.id} // Wichtig: Key hinzufügen, um sicherzustellen, dass das Bild neu geladen wird
             />
           </div>
 
@@ -81,8 +80,8 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
               <Badge
-                variant={cocktail.alcoholic ? "default" : "default"}
-                className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
+                variant={cocktail.alcoholic ? "default" : "outline"}
+                className={`text-xs ${!cocktail.alcoholic ? "bg-white text-black border-white" : ""}`}
               >
                 {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
               </Badge>
@@ -107,7 +106,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
     )
   }
 
-  // Standard-Ansicht für nicht ausgewählte Cocktails
+  // Standard-Ansicht für nicht ausgewählte Cocktails (unverändert)
   return (
     <Card
       className="overflow-hidden transition-all cursor-pointer hover:shadow-md bg-black border-[hsl(var(--cocktail-card-border))]"
@@ -122,7 +121,6 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
           onError={handleImageError}
           sizes="(max-width: 768px) 100vw, 50vw"
           priority={false}
-          key={cocktail.id} // Wichtig: Key hinzufügen, um sicherzustellen, dass das Bild neu geladen wird
         />
       </div>
       <CardContent className="p-3">
@@ -130,8 +128,8 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
           <h3 className="font-bold text-base text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
           <div className="flex items-center gap-1">
             <Badge
-              variant={cocktail.alcoholic ? "default" : "default"}
-              className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
+              variant={cocktail.alcoholic ? "default" : "outline"}
+              className={`text-xs ${!cocktail.alcoholic ? "bg-white text-black border-white" : ""}`}
             >
               {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
             </Badge>

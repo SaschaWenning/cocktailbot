@@ -10,9 +10,6 @@ import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Trash2 } from "lucide-react"
-// Importieren Sie die VirtualKeyboard-Komponente am Anfang der Datei
-import VirtualKeyboard from "./virtual-keyboard"
-import AlphaKeyboard from "./alpha-keyboard"
 
 interface RecipeEditorProps {
   isOpen: boolean
@@ -30,10 +27,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const [errors, setErrors] = useState<{
     imageUrl?: string
   }>({})
-  // Fügen Sie die folgenden Zustände zur RecipeEditor-Komponente hinzu
-  const [showKeyboard, setShowKeyboard] = useState(false)
-  const [activeInput, setActiveInput] = useState<"description" | "imageUrl" | null>(null)
-  const [keyboardType, setKeyboardType] = useState<"numeric" | "alpha">("alpha")
 
   useEffect(() => {
     if (cocktail) {
@@ -119,48 +112,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
   const isCustomRecipe = cocktail.id.startsWith("custom-")
 
-  // Fügen Sie diese Funktionen zur RecipeEditor-Komponente hinzu
-  const handleInputFocus = (inputType: "description" | "imageUrl") => {
-    setActiveInput(inputType)
-    setKeyboardType(inputType === "imageUrl" ? "alpha" : "alpha")
-    setShowKeyboard(true)
-  }
-
-  const handleKeyPress = (key: string) => {
-    if (!activeInput) return
-
-    if (activeInput === "description") {
-      setDescription((prev) => prev + key)
-    } else if (activeInput === "imageUrl") {
-      setImageUrl((prev) => prev + key)
-    }
-  }
-
-  const handleBackspace = () => {
-    if (!activeInput) return
-
-    if (activeInput === "description") {
-      setDescription((prev) => prev.slice(0, -1))
-    } else if (activeInput === "imageUrl") {
-      setImageUrl((prev) => prev.slice(0, -1))
-    }
-  }
-
-  const handleClear = () => {
-    if (!activeInput) return
-
-    if (activeInput === "description") {
-      setDescription("")
-    } else if (activeInput === "imageUrl") {
-      setImageUrl("")
-    }
-  }
-
-  const handleConfirm = () => {
-    setShowKeyboard(false)
-    setActiveInput(null)
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
@@ -171,7 +122,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
           <div className="space-y-2">
             <Label htmlFor="description">Beschreibung</Label>
-            {/* Ändern Sie die Textarea für die Beschreibung, um die Tastatur zu aktivieren */}
             <Textarea
               id="description"
               value={description}
@@ -179,8 +129,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
               className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white"
               placeholder="Beschreibe deinen Cocktail..."
               rows={2}
-              onFocus={() => handleInputFocus("description")}
-              readOnly
             />
           </div>
 
@@ -189,15 +137,12 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
               <ImageIcon className="h-4 w-4" />
               Bild-URL (optional)
             </Label>
-            {/* Ändern Sie das Input-Feld für die Bild-URL, um die Tastatur zu aktivieren */}
             <Input
               id="imageUrl"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
               placeholder="https://beispiel.com/mein-cocktail.jpg"
-              onFocus={() => handleInputFocus("imageUrl")}
-              readOnly
             />
             {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
             <p className="text-xs text-white">
@@ -228,26 +173,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             </div>
           ))}
         </div>
-        {/* Fügen Sie die Tastatur am Ende des Formulars hinzu, vor dem DialogFooter */}
-        {showKeyboard && (
-          <div className="mt-4">
-            {keyboardType === "numeric" ? (
-              <VirtualKeyboard
-                onKeyPress={handleKeyPress}
-                onBackspace={handleBackspace}
-                onClear={handleClear}
-                onConfirm={handleConfirm}
-              />
-            ) : (
-              <AlphaKeyboard
-                onKeyPress={handleKeyPress}
-                onBackspace={handleBackspace}
-                onClear={handleClear}
-                onConfirm={handleConfirm}
-              />
-            )}
-          </div>
-        )}
 
         <DialogFooter className="flex justify-between items-center">
           <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">

@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Trash2,
   Lock,
+  XCircle,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
@@ -61,8 +62,10 @@ export default function Home() {
   const [lowIngredients, setLowIngredients] = useState<string[]>([])
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
+  const [imageError, setImageError] = useState(false)
   const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
   const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
 
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
@@ -102,6 +105,15 @@ export default function Home() {
 
     loadData()
   }, [])
+
+  // Cleanup für Intervalle
+  useEffect(() => {
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+    }
+  }, [intervalId])
 
   const loadCocktails = async () => {
     try {
@@ -222,6 +234,23 @@ export default function Home() {
     }
   }
 
+  const handleCancelMaking = () => {
+    if (intervalId) {
+      clearInterval(intervalId)
+      setIntervalId(null)
+    }
+    setIsMaking(false)
+    setProgress(0)
+    setStatusMessage("Zubereitung abgebrochen")
+    setErrorMessage(null)
+    setShowSuccess(false)
+
+    // Kurze Verzögerung, bevor wir zur Cocktailauswahl zurückkehren
+    setTimeout(() => {
+      setSelectedCocktail(null)
+    }, 1500)
+  }
+
   const handleMakeCocktail = async () => {
     if (!selectedCocktail) return
 
@@ -238,21 +267,23 @@ export default function Home() {
       const currentPumpConfig = await getPumpConfig()
 
       // Simuliere den Fortschritt
-      let intervalId: NodeJS.Timeout
-      intervalId = setInterval(() => {
+      const newIntervalId = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
-            clearInterval(intervalId)
+            clearInterval(newIntervalId)
             return 100
           }
           return prev + 5
         })
       }, 300)
 
+      setIntervalId(newIntervalId)
+
       // Starte den Cocktail-Herstellungsprozess mit der gewählten Größe und der aktuellen Pumpenkonfiguration
       await makeCocktail(cocktail, currentPumpConfig, selectedSize)
 
-      clearInterval(intervalId)
+      clearInterval(newIntervalId)
+      setIntervalId(null)
       setProgress(100)
       setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
       setShowSuccess(true)
@@ -266,8 +297,10 @@ export default function Home() {
         setSelectedCocktail(null)
       }, 3000)
     } catch (error) {
-      let intervalId: NodeJS.Timeout
-      clearInterval(intervalId)
+      if (intervalId) {
+        clearInterval(intervalId)
+        setIntervalId(null)
+      }
       setProgress(0)
       setStatusMessage("Fehler bei der Zubereitung!")
       setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
@@ -318,48 +351,24 @@ export default function Home() {
 
   // Neue Komponente für die Cocktail-Detailansicht
   const CocktailDetail = ({ cocktail }: { cocktail: Cocktail }) => {
-    // Lokaler Zustand für Bildfehler
-    const [localImageError, setLocalImageError] = useState(false)
-
     // Generiere ein Platzhalterbild mit dem Namen des Cocktails
     const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
 
-    // Bestimme den Bildpfad basierend auf dem Cocktail-Typ
-    const getImagePath = () => {
-      let imagePath = cocktail.image || ""
-
-      // Für Cocktails mit Alkohol, verwende immer den Pfad im Cocktails-Ordner
-      if (cocktail.alcoholic) {
-        // Extrahiere den Dateinamen aus dem Pfad (egal ob URL oder lokaler Pfad)
-        const fileName = imagePath.split("/").pop() || ""
-        // Erstelle einen neuen Pfad im Cocktails-Ordner
-        imagePath = `/images/cocktails/${fileName}`
-      } else {
-        // Für nicht-alkoholische Cocktails, stelle sicher, dass der Pfad mit / beginnt
-        if (imagePath && !imagePath.startsWith("/")) {
-          imagePath = `/${imagePath}`
-        }
-      }
-
-      // Entferne eventuelle URL-Parameter
-      imagePath = imagePath.split("?")[0]
-
-      return imagePath
+    // Bildpfad-Logik
+    let imageSrc = cocktail.image || ""
+    if (cocktail.alcoholic) {
+      const fileName = imageSrc.split("/").pop() || ""
+      imageSrc = `/images/cocktails/${fileName}`
+    } else if (imageSrc && !imageSrc.startsWith("/")) {
+      imageSrc = `/${imageSrc}`
     }
+    imageSrc = imageSrc.split("?")[0]
 
-    // Setze den Fehlerstatus zurück, wenn sich der Cocktail ändert
-    useEffect(() => {
-      setLocalImageError(false)
-    }, [cocktail.id])
-
-    // Funktion zum Umschalten auf das Platzhalterbild bei Fehlern
     const handleImageError = () => {
-      console.log(`Bild konnte nicht geladen werden für ${cocktail.name}: ${getImagePath()}`)
-      setLocalImageError(true)
+      setImageError(true)
     }
 
-    // Verwende Platzhalterbild wenn ein Fehler auftritt oder kein Bild vorhanden ist
-    const finalImageSrc = localImageError ? placeholderImage : getImagePath()
+    const finalImageSrc = imageError ? placeholderImage : imageSrc
 
     // Verfügbare Größen
     const availableSizes = [200, 300, 400]
@@ -380,7 +389,6 @@ export default function Home() {
               onError={handleImageError}
               sizes="(max-width: 768px) 100vw, 33vw"
               priority
-              key={cocktail.id} // Wichtig: Key hinzufügen, um sicherzustellen, dass das Bild neu geladen wird
             />
           </div>
 
@@ -389,8 +397,8 @@ export default function Home() {
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
               <Badge
-                variant={cocktail.alcoholic ? "default" : "default"}
-                className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
+                variant={cocktail.alcoholic ? "default" : "outline"}
+                className={`text-xs ${!cocktail.alcoholic ? "bg-white text-black border-white" : ""}`}
               >
                 {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
               </Badge>
@@ -510,7 +518,7 @@ export default function Home() {
   }
 
   // Paginierungskomponente
-  const PaginationComponent = ({
+  const Pagination = ({
     currentPage,
     totalPages,
     onPageChange,
@@ -526,7 +534,8 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"\
+          text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -580,15 +589,14 @@ export default function Home() {
               </div>
             )}
 
-            {/* Add cancel button */}
+            {/* Abbrechen-Button während der Zubereitung */}
             <Button
-              onClick={() => {
-                setIsMaking(false)
-                setSelectedCocktail(null)
-              }}
-              className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20 hover:text-[hsl(var(--cocktail-error))]"
+              variant="outline"
+              onClick={handleCancelMaking}
+              className="w-full mt-4 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-error))] border-[hsl(var(--cocktail-error))]"
             >
-              Abbrechen
+              <XCircle className="h-4 w-4 mr-2" />
+              Zubereitung abbrechen
             </Button>
           </CardContent>
         </Card>
@@ -643,7 +651,7 @@ export default function Home() {
 
               {/* Paginierung */}
               {totalPages > 1 && (
-                <PaginationComponent currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
               )}
             </>
           )}
