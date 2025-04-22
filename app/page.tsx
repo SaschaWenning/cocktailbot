@@ -1,5 +1,7 @@
 "use client"
 
+import { Pagination } from "@/components/ui/pagination"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -364,7 +366,7 @@ export default function Home() {
           <div className="flex-1 p-4 flex flex-col">
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
-              <Badge variant={cocktail.alcoholic ? "default" : "outline"} className="text-xs">
+              <Badge variant={cocktail.alcoholic ? "default" : "default"} className={`text-xs ${cocktail.alcoholic ? "bg-[hsl(var(--cocktail-primary))] text-black" : "bg-white text-black"}`}>
                 {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
               </Badge>
             </div>
@@ -476,10 +478,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </Card>
-    )
+          </Card>
+    );
   }
 
   // Paginierungskomponente
@@ -552,6 +552,17 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* Add cancel button */}
+            <Button 
+              onClick={() => {
+                setIsMaking(false);
+                setSelectedCocktail(null);
+              }}
+              className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20 hover:text-[hsl(var(--cocktail-error))]"
+            >
+              Abbrechen
+            </Button>
           </CardContent>
         </Card>
       ) : (
