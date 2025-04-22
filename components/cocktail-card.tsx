@@ -79,10 +79,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
           <div className="flex-1 p-4">
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
-              <Badge
-                variant={cocktail.alcoholic ? "default" : "outline"}
-                className={`text-xs ${!cocktail.alcoholic ? "bg-white text-black border-white" : ""}`}
-              >
+              <Badge variant={cocktail.alcoholic ? "default" : "outline"} className="text-xs">
                 {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
               </Badge>
             </div>
@@ -127,10 +124,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
         <div className="flex justify-between items-start">
           <h3 className="font-bold text-base text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
           <div className="flex items-center gap-1">
-            <Badge
-              variant={cocktail.alcoholic ? "default" : "outline"}
-              className={`text-xs ${!cocktail.alcoholic ? "bg-white text-black border-white" : ""}`}
-            >
+            <Badge variant={cocktail.alcoholic ? "default" : "outline"} className="text-xs">
               {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
             </Badge>
             {cocktail.id.startsWith("custom-") && onDelete && (

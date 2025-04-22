@@ -22,7 +22,6 @@ import {
   ChevronRight,
   Trash2,
   Lock,
-  XCircle,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
@@ -65,7 +64,6 @@ export default function Home() {
   const [imageError, setImageError] = useState(false)
   const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
   const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
-  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
 
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
@@ -105,15 +103,6 @@ export default function Home() {
 
     loadData()
   }, [])
-
-  // Cleanup für Intervalle
-  useEffect(() => {
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId)
-      }
-    }
-  }, [intervalId])
 
   const loadCocktails = async () => {
     try {
@@ -234,23 +223,6 @@ export default function Home() {
     }
   }
 
-  const handleCancelMaking = () => {
-    if (intervalId) {
-      clearInterval(intervalId)
-      setIntervalId(null)
-    }
-    setIsMaking(false)
-    setProgress(0)
-    setStatusMessage("Zubereitung abgebrochen")
-    setErrorMessage(null)
-    setShowSuccess(false)
-
-    // Kurze Verzögerung, bevor wir zur Cocktailauswahl zurückkehren
-    setTimeout(() => {
-      setSelectedCocktail(null)
-    }, 1500)
-  }
-
   const handleMakeCocktail = async () => {
     if (!selectedCocktail) return
 
@@ -267,23 +239,21 @@ export default function Home() {
       const currentPumpConfig = await getPumpConfig()
 
       // Simuliere den Fortschritt
-      const newIntervalId = setInterval(() => {
+      let intervalId: NodeJS.Timeout
+      intervalId = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
-            clearInterval(newIntervalId)
+            clearInterval(intervalId)
             return 100
           }
           return prev + 5
         })
       }, 300)
 
-      setIntervalId(newIntervalId)
-
       // Starte den Cocktail-Herstellungsprozess mit der gewählten Größe und der aktuellen Pumpenkonfiguration
       await makeCocktail(cocktail, currentPumpConfig, selectedSize)
 
-      clearInterval(newIntervalId)
-      setIntervalId(null)
+      clearInterval(intervalId)
       setProgress(100)
       setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
       setShowSuccess(true)
@@ -297,10 +267,8 @@ export default function Home() {
         setSelectedCocktail(null)
       }, 3000)
     } catch (error) {
-      if (intervalId) {
-        clearInterval(intervalId)
-        setIntervalId(null)
-      }
+      let intervalId: NodeJS.Timeout
+      clearInterval(intervalId)
       setProgress(0)
       setStatusMessage("Fehler bei der Zubereitung!")
       setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
@@ -396,10 +364,7 @@ export default function Home() {
           <div className="flex-1 p-4 flex flex-col">
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
-              <Badge
-                variant={cocktail.alcoholic ? "default" : "outline"}
-                className={`text-xs ${!cocktail.alcoholic ? "bg-white text-black border-white" : ""}`}
-              >
+              <Badge variant={cocktail.alcoholic ? "default" : "outline"} className="text-xs">
                 {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
               </Badge>
             </div>
@@ -534,8 +499,7 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"\
-          text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -588,16 +552,6 @@ export default function Home() {
                 </div>
               </div>
             )}
-
-            {/* Abbrechen-Button während der Zubereitung */}
-            <Button
-              variant="outline"
-              onClick={handleCancelMaking}
-              className="w-full mt-4 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-error))] border-[hsl(var(--cocktail-error))]"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Zubereitung abbrechen
-            </Button>
           </CardContent>
         </Card>
       ) : (
