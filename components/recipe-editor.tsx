@@ -30,8 +30,27 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   useEffect(() => {
     if (cocktail) {
+      console.log("Cocktail im Editor geladen:", cocktail.name, "Bild:", cocktail.image)
       setRecipe([...cocktail.recipe])
-      setImageUrl(cocktail.image.startsWith("/placeholder") ? "" : cocktail.image)
+
+      // Verbesserte Bildpfad-Logik
+      let imagePath = cocktail.image || ""
+
+      // Wenn es ein Platzhalterbild ist, setze leeren String
+      if (imagePath.includes("placeholder")) {
+        setImageUrl("")
+      }
+      // Wenn es ein lokaler Pfad ist, zeige ihn an
+      else if (!imagePath.startsWith("http")) {
+        // Entferne eventuelle URL-Parameter
+        imagePath = imagePath.split("?")[0]
+        setImageUrl(imagePath)
+      }
+      // Wenn es eine URL ist, zeige sie an
+      else {
+        setImageUrl(imagePath)
+      }
+
       setDescription(cocktail.description)
     }
   }, [cocktail])
@@ -50,6 +69,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const isValidUrl = (url: string) => {
     if (!url) return true // Leere URL ist erlaubt
+
+    // Wenn es ein lokaler Pfad ist, ist es gültig
+    if (url.startsWith("/")) return true
+
     try {
       new URL(url)
       return true
@@ -77,10 +100,22 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       // Berechne das Gesamtvolumen des Rezepts
       const totalVolume = recipe.reduce((sum, item) => sum + item.amount, 0)
 
+      // Bestimme den Bildpfad
+      let finalImagePath = imageUrl
+
+      // Wenn keine URL angegeben ist, verwende ein Platzhalterbild
+      if (!finalImagePath) {
+        finalImagePath = `/placeholder.svg?height=200&width=400&query=${encodeURIComponent(cocktail.name)}`
+      }
+      // Stelle sicher, dass lokale Pfade mit / beginnen
+      else if (!finalImagePath.startsWith("http") && !finalImagePath.startsWith("/")) {
+        finalImagePath = `/${finalImagePath}`
+      }
+
       const updatedCocktail = {
         ...cocktail,
         description: description,
-        image: imageUrl || "/placeholder.svg?height=200&width=400",
+        image: finalImagePath,
         recipe: recipe,
         // Aktualisiere auch die Zutaten-Textliste
         ingredients: recipe.map((item) => {
@@ -89,6 +124,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         }),
       }
 
+      console.log("Speichere Cocktail mit Bild:", updatedCocktail.image)
       await saveRecipe(updatedCocktail)
       onSave(updatedCocktail)
       onClose()
@@ -108,9 +144,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     const ingredient = ingredients.find((i) => i.id === id)
     return ingredient ? ingredient.name : id
   }
-
-  // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
-  const isCustomRecipe = cocktail.id.startsWith("custom-")
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -135,18 +168,18 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           <div className="space-y-2">
             <Label htmlFor="imageUrl" className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />
-              Bild-URL (optional)
+              Bild-URL oder Pfad (optional)
             </Label>
             <Input
               id="imageUrl"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
-              placeholder="https://beispiel.com/mein-cocktail.jpg"
+              placeholder="/images/cocktails/mein_cocktail.jpg"
             />
             {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
             <p className="text-xs text-white">
-              Gib die URL zu einem Bild deines Cocktails ein. Leer lassen für ein Platzhalterbild.
+              Gib den Pfad oder die URL zu einem Bild deines Cocktails ein. Leer lassen für ein Platzhalterbild.
             </p>
           </div>
 

@@ -132,7 +132,6 @@ export default function Home() {
   }
 
   // Füge diese Funktion nach loadCocktails hinzu:
-
   const logImagePaths = () => {
     console.log("Bildpfade der Cocktails:")
     cocktailsData.forEach((cocktail) => {
@@ -141,8 +140,6 @@ export default function Home() {
   }
 
   // Rufe die Funktion nach dem Laden der Cocktails auf
-  // Füge diese Zeile in loadCocktails nach setCocktailsData hinzu:
-
   useEffect(() => {
     if (cocktailsData.length > 0) {
       logImagePaths()
@@ -172,6 +169,12 @@ export default function Home() {
   }
 
   const handleEditClick = (cocktailId: string) => {
+    // Finde den Cocktail direkt aus dem vollständigen cocktailsData-Array
+    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
+    if (cocktail) {
+      console.log("Cocktail zum Bearbeiten ausgewählt:", cocktail.name, "Bild:", cocktail.image)
+    }
+
     setCocktailToEdit(cocktailId)
     setPasswordAction("edit")
     setShowPasswordModal(true)
@@ -206,6 +209,9 @@ export default function Home() {
 
       // Aktualisiere die lokale Liste
       setCocktailsData((prev) => prev.map((c) => (c.id === updatedCocktail.id ? updatedCocktail : c)))
+
+      // Logge die aktualisierten Bildpfade
+      console.log("Cocktail aktualisiert:", updatedCocktail.name, "Neues Bild:", updatedCocktail.image)
     } catch (error) {
       console.error("Fehler beim Speichern des Rezepts:", error)
     }
