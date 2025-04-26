@@ -7,6 +7,29 @@ import fs from "fs"
 import path from "path"
 import { setPinHigh } from "@/lib/gpio-controller"
 
+// Neue Funktion zum Aktivieren einer Pumpe für das Entlüften
+export async function activatePumpForPriming(pumpId: number, durationMs: number) {
+  try {
+    // Finde die Pumpe in der Konfiguration
+    const pumpConfig = await getPumpConfig()
+    const pump = pumpConfig.find((p) => p.id === pumpId)
+
+    if (!pump) {
+      throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
+    }
+
+    console.log(`Entlüfte Pumpe ${pumpId} (${pump.ingredient}) an Pin ${pump.pin} für ${durationMs}ms`)
+
+    // Aktiviere die Pumpe für die angegebene Zeit
+    await activatePump(pump.pin, durationMs)
+
+    return { success: true }
+  } catch (error) {
+    console.error(`Fehler beim Entlüften der Pumpe ${pumpId}:`, error)
+    throw error
+  }
+}
+
 // Skaliert die Zutatenmengen proportional zur gewünschten Gesamtmenge
 function scaleRecipe(cocktail: Cocktail, targetSize: number) {
   const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
@@ -454,106 +477,78 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         ],
       },
 
-      // Neue alkoholfreie Cocktails
-      // Tropical Sunrise
+      // Neue alkoholfreie Cocktails mit den aktuell angeschlossenen Zutaten (ohne Sodawasser)
+      // Fruchtpunsch
       {
-        id: "tropical-sunrise",
-        name: "Tropical Sunrise",
-        description: "Erfrischender alkoholfreier Cocktail mit Ananas, Orange und Grenadine",
+        id: "fruchtpunsch",
+        name: "Fruchtpunsch",
+        description: "Erfrischender Mix aus Ananas, Orange und Maracuja",
         image: "/palm-glow.png",
         alcoholic: false,
-        ingredients: ["120ml Ananassaft", "120ml Orangensaft", "20ml Grenadine", "10ml Limettensaft"],
+        ingredients: ["100ml Ananassaft", "100ml Orangensaft", "100ml Maracujasaft"],
         recipe: [
-          { ingredientId: "pineapple-juice", amount: 120 },
-          { ingredientId: "orange-juice", amount: 120 },
-          { ingredientId: "grenadine", amount: 20 },
-          { ingredientId: "lime-juice", amount: 10 },
+          { ingredientId: "pineapple-juice", amount: 100 },
+          { ingredientId: "orange-juice", amount: 100 },
+          { ingredientId: "passion-fruit-juice", amount: 100 },
         ],
       },
 
-      // Passion Fizz
+      // Süß-Sauer Mix
       {
-        id: "passion-fizz",
-        name: "Passion Fizz",
-        description: "Sprudelnder alkoholfreier Cocktail mit Maracuja und Sodawasser",
+        id: "suess-sauer-mix",
+        name: "Süß-Sauer Mix",
+        description: "Ausgewogene Mischung aus süßen und sauren Fruchtsäften",
         image: "/vibrant-passion-fizz.png",
         alcoholic: false,
-        ingredients: ["150ml Maracujasaft", "100ml Sodawasser", "20ml Vanillesirup", "10ml Limettensaft"],
+        ingredients: ["150ml Ananassaft", "50ml Limettensaft", "20ml Grenadine"],
         recipe: [
-          { ingredientId: "passion-fruit-juice", amount: 150 },
-          { ingredientId: "soda-water", amount: 100 },
-          { ingredientId: "vanilla-syrup", amount: 20 },
-          { ingredientId: "lime-juice", amount: 10 },
+          { ingredientId: "pineapple-juice", amount: 150 },
+          { ingredientId: "lime-juice", amount: 50 },
+          { ingredientId: "grenadine", amount: 20 },
         ],
       },
 
-      // Orange Vanilla Dream
+      // Vanille Orange
       {
-        id: "orange-vanilla-dream",
-        name: "Orange Vanilla Dream",
-        description: "Cremiger alkoholfreier Cocktail mit Orange und Vanille",
+        id: "vanille-orange",
+        name: "Vanille Orange",
+        description: "Cremiger Orangensaft mit feiner Vanillenote",
         image: "/citrus-swirl-sunset.png",
         alcoholic: false,
-        ingredients: ["200ml Orangensaft", "30ml Vanillesirup", "70ml Sodawasser"],
+        ingredients: ["200ml Orangensaft", "30ml Vanillesirup"],
         recipe: [
           { ingredientId: "orange-juice", amount: 200 },
           { ingredientId: "vanilla-syrup", amount: 30 },
-          { ingredientId: "soda-water", amount: 70 },
         ],
       },
 
-      // Berry Splash
+      // Maracuja Traum
       {
-        id: "berry-splash",
-        name: "Berry Splash",
-        description: "Fruchtiger alkoholfreier Cocktail mit Grenadine und Zitrusfrüchten",
-        image: "/bursting-berries.png",
-        alcoholic: false,
-        ingredients: [
-          "30ml Grenadine",
-          "100ml Orangensaft",
-          "100ml Ananassaft",
-          "20ml Limettensaft",
-          "50ml Sodawasser",
-        ],
-        recipe: [
-          { ingredientId: "grenadine", amount: 30 },
-          { ingredientId: "orange-juice", amount: 100 },
-          { ingredientId: "pineapple-juice", amount: 100 },
-          { ingredientId: "lime-juice", amount: 20 },
-          { ingredientId: "soda-water", amount: 50 },
-        ],
-      },
-
-      // Pineapple Passion
-      {
-        id: "pineapple-passion",
-        name: "Pineapple Passion",
-        description: "Exotischer alkoholfreier Cocktail mit Ananas und Maracuja",
+        id: "maracuja-traum",
+        name: "Maracuja Traum",
+        description: "Exotischer Cocktail mit Maracuja und Vanille",
         image: "/tropical-blend.png",
         alcoholic: false,
-        ingredients: ["150ml Ananassaft", "100ml Maracujasaft", "15ml Limettensaft", "15ml Vanillesirup"],
+        ingredients: ["200ml Maracujasaft", "20ml Vanillesirup", "10ml Limettensaft"],
         recipe: [
-          { ingredientId: "pineapple-juice", amount: 150 },
-          { ingredientId: "passion-fruit-juice", amount: 100 },
-          { ingredientId: "lime-juice", amount: 15 },
-          { ingredientId: "vanilla-syrup", amount: 15 },
+          { ingredientId: "passion-fruit-juice", amount: 200 },
+          { ingredientId: "vanilla-syrup", amount: 20 },
+          { ingredientId: "lime-juice", amount: 10 },
         ],
       },
 
-      // Citrus Cooler
+      // Grenadine Splash
       {
-        id: "citrus-cooler",
-        name: "Citrus Cooler",
-        description: "Erfrischender alkoholfreier Cocktail mit Limette und Sodawasser",
-        image: "/refreshing-citrus-cooler.png",
+        id: "grenadine-splash",
+        name: "Grenadine Splash",
+        description: "Fruchtig-süßer Mix mit Grenadine und Orangensaft",
+        image: "/bursting-berries.png",
         alcoholic: false,
-        ingredients: ["40ml Limettensaft", "20ml Vanillesirup", "200ml Sodawasser", "10ml Grenadine"],
+        ingredients: ["150ml Orangensaft", "50ml Ananassaft", "30ml Grenadine"],
         recipe: [
-          { ingredientId: "lime-juice", amount: 40 },
-          { ingredientId: "vanilla-syrup", amount: 20 },
-          { ingredientId: "soda-water", amount: 200 },
-          { ingredientId: "grenadine", amount: 10 },
+          { ingredientId: "orange-juice", amount: 150 },
+          { ingredientId: "pineapple-juice", amount: 50 },
+          { ingredientId: "grenadine", amount: 30 },
         ],
       },
     ]
@@ -578,7 +573,14 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     for (const cocktail of correctedDefaultCocktails) {
       // Überspringe den ursprünglichen Malibu Ananas, da wir eine aktualisierte Version haben
       // Überspringe auch Gin Tonic und Cuba Libre
-      if (cocktail.id === "malibu-ananas" || cocktail.id === "gin-tonic" || cocktail.id === "cuba-libre") continue
+      // Überspringe alle alkoholfreien Cocktails, da wir sie ersetzen
+      if (
+        cocktail.id === "malibu-ananas" ||
+        cocktail.id === "gin-tonic" ||
+        cocktail.id === "cuba-libre" ||
+        !cocktail.alcoholic
+      )
+        continue
 
       // Erstelle eine Kopie des Cocktails
       const updatedCocktail = { ...cocktail }
@@ -610,6 +612,9 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
 
       // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
       for (const cocktail of customCocktails) {
+        // Überspringe alkoholfreie Cocktails, da wir sie ersetzen
+        if (!cocktail.alcoholic) continue
+
         // Create a copy of the cocktail
         const updatedCocktail = { ...cocktail }
 

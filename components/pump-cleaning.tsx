@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, Droplets, Check, AlertTriangle, Pause, Play } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
 import { cleanPump } from "@/lib/cocktail-machine"
+import PumpPriming from "./pump-priming"
 
 interface PumpCleaningProps {
   pumpConfig: PumpConfig[]
@@ -121,27 +122,27 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
 
   return (
     <div className="space-y-4">
+      {/* Entlüften-Komponente */}
+      <PumpPriming pumpConfig={pumpConfig} />
+
       <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-white">
             <Droplets className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
             CocktailBot Pumpenreinigung
           </CardTitle>
           <CardDescription className="text-[hsl(var(--cocktail-text-muted))]">
-            Reinige alle Pumpen mit warmem Wasser und Spülmittel, um Rückstände zu entfernen und die Hygiene zu
-            gewährleisten.
+            Reinige alle Pumpen mit warmem Wasser und Spülmittel
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-3">
           <Alert className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-            <AlertDescription className="text-[hsl(var(--cocktail-text))]">
-              <p className="font-medium mb-2">Vorbereitung:</p>
-              <ol className="list-decimal pl-5 space-y-1">
+            <AlertDescription className="text-[hsl(var(--cocktail-text))] text-sm">
+              <p className="font-medium mb-1">Vorbereitung:</p>
+              <ol className="list-decimal pl-4 space-y-1 text-sm">
                 <li>Stelle einen Behälter mit warmem Wasser und etwas Spülmittel bereit.</li>
                 <li>Lege die Ansaugschläuche aller Pumpen in diesen Behälter.</li>
                 <li>Stelle einen leeren Auffangbehälter unter die Ausgänge.</li>
-                <li>Drücke auf "Reinigung starten", um alle Pumpen nacheinander zu spülen.</li>
-                <li>Du kannst die Reinigung jederzeit pausieren, um Wasser nachzufüllen.</li>
               </ol>
             </AlertDescription>
           </Alert>
@@ -170,7 +171,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
           )}
 
           {(cleaningStatus === "cleaning" || cleaningStatus === "paused") && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Progress value={progress} className="h-2" indicatorClassName="bg-[hsl(var(--cocktail-primary))]" />
 
               <div className="flex justify-between items-center">
