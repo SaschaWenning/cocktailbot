@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
 import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
+import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
 import { cocktails as defaultCocktails } from "@/data/cocktails"
@@ -15,6 +15,16 @@ import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
+import CocktailCard from "@/components/cocktail-card"
+import PumpCleaning from "@/components/pump-cleaning"
+import PumpCalibration from "@/components/pump-calibration"
+import IngredientLevels from "@/components/ingredient-levels"
+import ShotSelector from "@/components/shot-selector"
+import PasswordModal from "@/components/password-modal"
+import RecipeEditor from "@/components/recipe-editor"
+import RecipeCreator from "@/components/recipe-creator"
+import DeleteConfirmation from "@/components/delete-confirmation"
+import { Progress } from "@/components/ui/progress"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -490,3 +500,228 @@ export default function Home() {
       </div>
     )
   }
+
+  // Hauptinhalt basierend auf dem ausgewählten Tab
+  const renderContent = () => {
+    // Wenn ein Cocktail ausgewählt ist, zeige die Detailansicht
+    if (selectedCocktail) {
+      const cocktail = cocktailsData.find((c) => c.id === selectedCocktail)
+      if (!cocktail) return null
+
+      if (isMaking) {
+        return (
+          <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
+            <div className="p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
+              <Progress value={progress} className="h-2" />
+
+              {errorMessage && (
+                <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
+                  <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                  <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+
+              {showSuccess && (
+                <div className="flex justify-center">
+                  <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-3">
+                    <Check className="h-8 w-8 text-[hsl(var(--cocktail-success))]" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        )
+      }
+
+      return <CocktailDetail cocktail={cocktail} />
+    }
+
+    // Sonst zeige den Inhalt basierend auf dem aktiven Tab
+    switch (activeTab) {
+      case "cocktails":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Cocktails mit Alkohol</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRecipeCreator(true)}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Neues Rezept
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              {currentPageCocktails.map((cocktail) => (
+                <CocktailCard
+                  key={cocktail.id}
+                  cocktail={cocktail}
+                  onClick={() => setSelectedCocktail(cocktail.id)}
+                  onDelete={cocktail.id.startsWith("custom-") ? handleDeleteClick : undefined}
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <PaginationComponent currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            )}
+
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alkoholfreie Cocktails</h2>
+              <div className="grid grid-cols-3 gap-4">
+                {currentPageVirginCocktails.map((cocktail) => (
+                  <CocktailCard
+                    key={cocktail.id}
+                    cocktail={cocktail}
+                    onClick={() => setSelectedCocktail(cocktail.id)}
+                    onDelete={cocktail.id.startsWith("custom-") ? handleDeleteClick : undefined}
+                  />
+                ))}
+              </div>
+
+              {virginTotalPages > 1 && (
+                <PaginationComponent
+                  currentPage={virginCurrentPage}
+                  totalPages={virginTotalPages}
+                  onPageChange={setVirginCurrentPage}
+                />
+              )}
+            </div>
+          </div>
+        )
+      case "shots":
+        return (
+          <ShotSelector
+            pumpConfig={pumpConfig}
+            ingredientLevels={ingredientLevels}
+            onShotComplete={loadIngredientLevels}
+          />
+        )
+      case "levels":
+        return <IngredientLevels pumpConfig={pumpConfig} />
+      case "cleaning":
+        return <PumpCleaning pumpConfig={pumpConfig} />
+      case "calibration":
+        return isCalibrationLocked ? (
+          <div className="text-center py-8">
+            <Lock className="h-12 w-12 mx-auto mb-4 text-[hsl(var(--cocktail-warning))]" />
+            <h2 className="text-xl font-semibold mb-2 text-[hsl(var(--cocktail-text))]">
+              Kalibrierung ist passwortgeschützt
+            </h2>
+            <p className="text-[hsl(var(--cocktail-text-muted))] mb-4">
+              Bitte gib das Passwort ein, um die Pumpenkalibrierung zu bearbeiten.
+            </p>
+            <Button
+              onClick={handleCalibrationClick}
+              className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
+            >
+              Passwort eingeben
+            </Button>
+          </div>
+        ) : (
+          <PumpCalibration pumpConfig={pumpConfig} />
+        )
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="container mx-auto p-4 max-w-6xl">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold text-center text-[hsl(var(--cocktail-text))]">CocktailBot</h1>
+      </header>
+
+      <div className="mb-6">
+        <nav className="tabs-list">
+          <div className="flex overflow-x-auto space-x-2 pb-2">
+            <Button
+              onClick={() => setActiveTab("cocktails")}
+              className={`flex-1 ${
+                activeTab === "cocktails"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              }`}
+            >
+              Cocktails
+            </Button>
+            <Button
+              onClick={() => setActiveTab("shots")}
+              className={`flex-1 ${
+                activeTab === "shots"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              }`}
+            >
+              Shots
+            </Button>
+            <Button
+              onClick={() => setActiveTab("levels")}
+              className={`flex-1 ${
+                activeTab === "levels"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              }`}
+            >
+              Füllstände
+            </Button>
+            <Button
+              onClick={() => setActiveTab("cleaning")}
+              className={`flex-1 ${
+                activeTab === "cleaning"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              }`}
+            >
+              Reinigung
+            </Button>
+            <Button
+              onClick={() => setActiveTab("calibration")}
+              className={`flex-1 ${
+                activeTab === "calibration"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              }`}
+            >
+              Kalibrierung
+            </Button>
+          </div>
+        </nav>
+      </div>
+
+      <main>{renderContent()}</main>
+
+      {/* Modals */}
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onSuccess={handlePasswordSuccess}
+      />
+
+      <RecipeEditor
+        isOpen={showRecipeEditor}
+        onClose={() => setShowRecipeEditor(false)}
+        cocktail={cocktailToEdit ? cocktailsData.find((c) => c.id === cocktailToEdit) || null : null}
+        onSave={handleRecipeSave}
+        onRequestDelete={handleRequestDelete}
+      />
+
+      <RecipeCreator
+        isOpen={showRecipeCreator}
+        onClose={() => setShowRecipeCreator(false)}
+        onSave={handleNewRecipeSave}
+      />
+
+      <DeleteConfirmation
+        isOpen={showDeleteConfirmation}
+        onClose={() => setShowDeleteConfirmation(false)}
+        onConfirm={handleDeleteConfirm}
+        cocktailName={cocktailToDelete?.name || ""}
+      />
+    </div>
+  )
+}
