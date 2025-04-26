@@ -25,6 +25,7 @@ import RecipeEditor from "@/components/recipe-editor"
 import RecipeCreator from "@/components/recipe-creator"
 import DeleteConfirmation from "@/components/delete-confirmation"
 import { Progress } from "@/components/ui/progress"
+import PumpPriming from "@/components/pump-priming"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -569,28 +570,41 @@ export default function Home() {
             {totalPages > 1 && (
               <PaginationComponent currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
             )}
-
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alkoholfreie Cocktails</h2>
-              <div className="grid grid-cols-3 gap-4">
-                {currentPageVirginCocktails.map((cocktail) => (
-                  <CocktailCard
-                    key={cocktail.id}
-                    cocktail={cocktail}
-                    onClick={() => setSelectedCocktail(cocktail.id)}
-                    onDelete={cocktail.id.startsWith("custom-") ? handleDeleteClick : undefined}
-                  />
-                ))}
-              </div>
-
-              {virginTotalPages > 1 && (
-                <PaginationComponent
-                  currentPage={virginCurrentPage}
-                  totalPages={virginTotalPages}
-                  onPageChange={setVirginCurrentPage}
-                />
-              )}
+          </div>
+        )
+      case "virgin":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Alkoholfreie Cocktails</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRecipeCreator(true)}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Neues Rezept
+              </Button>
             </div>
+            <div className="grid grid-cols-3 gap-4">
+              {currentPageVirginCocktails.map((cocktail) => (
+                <CocktailCard
+                  key={cocktail.id}
+                  cocktail={cocktail}
+                  onClick={() => setSelectedCocktail(cocktail.id)}
+                  onDelete={cocktail.id.startsWith("custom-") ? handleDeleteClick : undefined}
+                />
+              ))}
+            </div>
+
+            {virginTotalPages > 1 && (
+              <PaginationComponent
+                currentPage={virginCurrentPage}
+                totalPages={virginTotalPages}
+                onPageChange={setVirginCurrentPage}
+              />
+            )}
           </div>
         )
       case "shots":
@@ -603,6 +617,8 @@ export default function Home() {
         )
       case "levels":
         return <IngredientLevels pumpConfig={pumpConfig} />
+      case "priming":
+        return <PumpPriming pumpConfig={pumpConfig} />
       case "cleaning":
         return <PumpCleaning pumpConfig={pumpConfig} />
       case "calibration":
@@ -650,6 +666,16 @@ export default function Home() {
               Cocktails
             </Button>
             <Button
+              onClick={() => setActiveTab("virgin")}
+              className={`flex-1 ${
+                activeTab === "virgin"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              }`}
+            >
+              Alkoholfrei
+            </Button>
+            <Button
               onClick={() => setActiveTab("shots")}
               className={`flex-1 ${
                 activeTab === "shots"
@@ -668,6 +694,16 @@ export default function Home() {
               }`}
             >
               Füllstände
+            </Button>
+            <Button
+              onClick={() => setActiveTab("priming")}
+              className={`flex-1 ${
+                activeTab === "priming"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              }`}
+            >
+              Entlüften
             </Button>
             <Button
               onClick={() => setActiveTab("cleaning")}

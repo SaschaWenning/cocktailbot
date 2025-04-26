@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, Droplets, Check, AlertTriangle, Pause, Play } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
 import { cleanPump } from "@/lib/cocktail-machine"
-import PumpPriming from "./pump-priming"
 
 interface PumpCleaningProps {
   pumpConfig: PumpConfig[]
@@ -122,9 +121,6 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
 
   return (
     <div className="space-y-4">
-      {/* Entlüften-Komponente */}
-      <PumpPriming pumpConfig={pumpConfig} />
-
       <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-white">
