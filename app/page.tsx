@@ -482,11 +482,11 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-primary))] text-black border-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))]"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium text-[hsl(var(--cocktail-text))]">
           Seite {currentPage} von {totalPages}
         </span>
         <Button
@@ -494,7 +494,7 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-primary))] text-black border-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))]"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
