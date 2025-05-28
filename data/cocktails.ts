@@ -124,21 +124,21 @@ export const cocktails: Cocktail[] = [
   {
     id: "mojito",
     name: "Mojito",
-    description: "Klassischer Cocktail mit Rum, Limette und Minze",
+    description: "Cocktail mit Rum, Limette, Minze und Mandelsirup",
     image: "/images/cocktails/mojito.jpg",
     alcoholic: true,
     ingredients: [
       "60ml Rum",
       "60ml Limettensaft",
       "20ml Zuckersirup (entspricht 4 TL brauner Zucker)",
-      "100ml Sodawasser zum Auffüllen",
+      "100ml Mandelsirup",
       "Frische Minzblätter",
     ],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "lime-juice", amount: 60 },
       { ingredientId: "sugar-syrup", amount: 20 },
-      { ingredientId: "soda-water", amount: 100 },
+      { ingredientId: "almond-syrup", amount: 100 },
       // Minze manuell hinzufügen
     ],
   },
@@ -318,6 +318,20 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 20 },
       { ingredientId: "passion-fruit-juice", amount: 50 },
       { ingredientId: "grenadine", amount: 20 },
+    ],
+  },
+  {
+    id: "mai-tai",
+    name: "Mai Tai",
+    description: "Klassischer polynesischer Cocktail mit dunklem Rum, Orangenlikör und Mandelsirup",
+    image: "/images/cocktails/mai_tai.png",
+    alcoholic: true,
+    ingredients: ["60ml Dunkler Rum", "15ml Orangenlikör", "15ml Mandelsirup", "20ml Limettensaft"],
+    recipe: [
+      { ingredientId: "dark-rum", amount: 60 },
+      { ingredientId: "triple-sec", amount: 15 },
+      { ingredientId: "almond-syrup", amount: 15 },
+      { ingredientId: "lime-juice", amount: 20 },
     ],
   },
 ]
