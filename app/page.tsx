@@ -639,7 +639,7 @@ export default function Home() {
             </Button>
           </div>
         ) : (
-          <PumpCalibration pumpConfig={pumpConfig} />
+          <PumpCalibration pumpConfig={pumpConfig} onConfigUpdate={loadPumpConfig} />
         )
       default:
         return null
