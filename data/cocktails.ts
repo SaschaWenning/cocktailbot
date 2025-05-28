@@ -283,12 +283,12 @@ export const cocktails: Cocktail[] = [
   {
     id: "touch-down",
     name: "Touch Down",
-    description: "Fruchtiger Cocktail mit Braunem Rum, Triple Sec und Maracujasaft",
+    description: "Fruchtiger Cocktail mit Vodka, Triple Sec und Maracujasaft",
     image: "/images/cocktails/touch_down.jpg",
     alcoholic: true,
-    ingredients: ["60ml Brauner Rum", "40ml Triple Sec", "140ml Maracujasaft", "10ml Limettensaft", "20ml Grenadine"],
+    ingredients: ["40ml Vodka", "40ml Triple Sec", "140ml Maracujasaft", "10ml Limettensaft", "20ml Grenadine"],
     recipe: [
-      { ingredientId: "dark-rum", amount: 60 },
+      { ingredientId: "vodka", amount: 40 },
       { ingredientId: "triple-sec", amount: 40 },
       { ingredientId: "passion-fruit-juice", amount: 140 },
       { ingredientId: "lime-juice", amount: 10 },
@@ -324,7 +324,7 @@ export const cocktails: Cocktail[] = [
     id: "mai-tai",
     name: "Mai Tai",
     description: "Klassischer polynesischer Cocktail mit dunklem Rum, Orangenlikör und Mandelsirup",
-    image: "/images/cocktails/mai_tai.png",
+    image: "/images/cocktails/mai_tai.jpg",
     alcoholic: true,
     ingredients: ["60ml Dunkler Rum", "15ml Orangenlikör", "15ml Mandelsirup", "20ml Limettensaft", "50ml Ananassaft"],
     recipe: [

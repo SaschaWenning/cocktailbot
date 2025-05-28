@@ -203,19 +203,21 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
           <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
             <div className="space-y-2">
-              <Label htmlFor="description">Beschreibung</Label>
+              <Label htmlFor="description" className="text-white">
+                Beschreibung
+              </Label>
               <Input
                 id="description"
                 value={description}
                 onClick={() => handleInputFocus("description", description)}
                 readOnly
-                className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
                 placeholder="Beschreibe deinen Cocktail..."
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="imageUrl" className="flex items-center gap-2">
+              <Label htmlFor="imageUrl" className="flex items-center gap-2 text-white">
                 <ImageIcon className="h-4 w-4" />
                 Bild-URL (optional)
               </Label>
@@ -224,18 +226,18 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 value={imageUrl}
                 onClick={() => handleInputFocus("imageUrl", imageUrl)}
                 readOnly
-                className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
+                className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer ${errors.imageUrl ? "border-red-500" : ""}`}
                 placeholder="https://beispiel.com/mein-cocktail.jpg"
               />
-              {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
-              <p className="text-xs text-white">
+              {errors.imageUrl && <p className="text-red-400 text-xs">{errors.imageUrl}</p>}
+              <p className="text-xs text-gray-300">
                 Gib die URL zu einem Bild deines Cocktails ein. Leer lassen für ein Platzhalterbild.
               </p>
             </div>
 
             <div className="pt-2">
               <div className="flex justify-between items-center mb-2">
-                <Label>Zutaten</Label>
+                <Label className="text-white">Zutaten</Label>
                 <Button
                   type="button"
                   size="sm"
@@ -252,19 +254,19 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             {recipe.map((item, index) => (
               <div
                 key={index}
-                className="grid grid-cols-12 gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded"
+                className="grid grid-cols-12 gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]"
               >
                 <div className="col-span-6">
                   <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
-                    <SelectTrigger className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black">
+                    <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-black border border-[hsl(var(--cocktail-card-border))]">
+                    <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))] max-h-48 overflow-y-auto">
                       {ingredients.map((ingredient) => (
                         <SelectItem
                           key={ingredient.id}
                           value={ingredient.id}
-                          className="text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                          className="text-black hover:bg-gray-100 cursor-pointer"
                         >
                           {ingredient.name}
                         </SelectItem>
@@ -278,7 +280,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                     value={item.amount}
                     onClick={() => handleInputFocus(`amount-${index}`, item.amount.toString())}
                     readOnly
-                    className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
+                    className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
                   />
                 </div>
                 <div className="col-span-2 text-sm text-white">ml</div>
@@ -339,7 +341,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
               <Input
                 value={inputValue}
                 readOnly
-                className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black text-center text-lg"
+                className="bg-white border-[hsl(var(--cocktail-card-border))] text-black text-center text-lg"
                 placeholder={
                   activeInput === "description"
                     ? "Beschreibung..."
