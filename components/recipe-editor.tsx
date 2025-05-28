@@ -5,11 +5,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Trash2 } from "lucide-react"
+import { Loader2, ImageIcon, Trash2, Plus, Minus } from "lucide-react"
+import VirtualKeyboard from "./virtual-keyboard"
 
 interface RecipeEditorProps {
   isOpen: boolean
@@ -24,6 +25,9 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const [imageUrl, setImageUrl] = useState("")
   const [description, setDescription] = useState("")
   const [saving, setSaving] = useState(false)
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [activeInput, setActiveInput] = useState<string | null>(null)
+  const [inputValue, setInputValue] = useState("")
   const [errors, setErrors] = useState<{
     imageUrl?: string
   }>({})
@@ -56,6 +60,42 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   if (!cocktail) return null
 
+  const handleInputFocus = (inputType: string, currentValue = "") => {
+    setActiveInput(inputType)
+    setInputValue(currentValue)
+    setShowKeyboard(true)
+  }
+
+  const handleKeyboardInput = (value: string) => {
+    setInputValue(value)
+  }
+
+  const handleKeyboardConfirm = () => {
+    if (!activeInput) return
+
+    if (activeInput === "description") {
+      setDescription(inputValue)
+    } else if (activeInput === "imageUrl") {
+      setImageUrl(inputValue)
+    } else if (activeInput.startsWith("amount-")) {
+      const index = Number.parseInt(activeInput.replace("amount-", ""))
+      const amount = Number.parseFloat(inputValue)
+      if (!isNaN(amount) && amount >= 0) {
+        handleAmountChange(index, inputValue)
+      }
+    }
+
+    setShowKeyboard(false)
+    setActiveInput(null)
+    setInputValue("")
+  }
+
+  const handleKeyboardCancel = () => {
+    setShowKeyboard(false)
+    setActiveInput(null)
+    setInputValue("")
+  }
+
   const handleAmountChange = (index: number, value: string) => {
     const amount = Number.parseFloat(value)
 
@@ -64,6 +104,29 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     const updatedRecipe = [...recipe]
     updatedRecipe[index] = { ...updatedRecipe[index], amount }
     setRecipe(updatedRecipe)
+  }
+
+  const handleIngredientChange = (index: number, ingredientId: string) => {
+    const updatedRecipe = [...recipe]
+    updatedRecipe[index] = { ...updatedRecipe[index], ingredientId }
+    setRecipe(updatedRecipe)
+  }
+
+  const addIngredient = () => {
+    const availableIngredients = ingredients.filter(
+      (ingredient) => !recipe.some((item) => item.ingredientId === ingredient.id),
+    )
+
+    if (availableIngredients.length > 0) {
+      setRecipe([...recipe, { ingredientId: availableIngredients[0].id, amount: 30 }])
+    }
+  }
+
+  const removeIngredient = (index: number) => {
+    if (recipe.length > 1) {
+      const updatedRecipe = recipe.filter((_, i) => i !== index)
+      setRecipe(updatedRecipe)
+    }
   }
 
   const isValidUrl = (url: string) => {
@@ -131,94 +194,171 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const isCustomRecipe = cocktail.id.startsWith("custom-")
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Rezept bearbeiten: {cocktail.name}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rezept bearbeiten: {cocktail.name}</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
-          <div className="space-y-2">
-            <Label htmlFor="description">Beschreibung</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white"
-              placeholder="Beschreibe deinen Cocktail..."
-              rows={2}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl" className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4" />
-              Bild-URL (optional)
-            </Label>
-            <Input
-              id="imageUrl"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
-              placeholder="https://beispiel.com/mein-cocktail.jpg"
-            />
-            {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
-            <p className="text-xs text-white">
-              Gib die URL zu einem Bild deines Cocktails ein. Leer lassen für ein Platzhalterbild.
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <Label>Zutaten</Label>
-          </div>
-
-          {recipe.map((item, index) => (
-            <div key={index} className="grid grid-cols-12 gap-2 items-center">
-              <div className="col-span-7">
-                <Label className="text-white">{getIngredientName(item.ingredientId)}</Label>
-              </div>
-              <div className="col-span-3">
-                <Input
-                  type="number"
-                  value={item.amount}
-                  onChange={(e) => handleAmountChange(index, e.target.value)}
-                  min="0"
-                  step="1"
-                  className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white"
-                />
-              </div>
-              <div className="col-span-2 text-sm text-white">ml</div>
+          <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="space-y-2">
+              <Label htmlFor="description">Beschreibung</Label>
+              <Input
+                id="description"
+                value={description}
+                onClick={() => handleInputFocus("description", description)}
+                readOnly
+                className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                placeholder="Beschreibe deinen Cocktail..."
+              />
             </div>
-          ))}
-        </div>
 
-        <DialogFooter className="flex justify-between items-center">
-          <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Löschen
-          </Button>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-            >
-              Abbrechen
-            </Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-[#00ff00] text-black hover:bg-[#00cc00]">
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Speichern...
-                </>
-              ) : (
-                "Speichern"
-              )}
-            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="imageUrl" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Bild-URL (optional)
+              </Label>
+              <Input
+                id="imageUrl"
+                value={imageUrl}
+                onClick={() => handleInputFocus("imageUrl", imageUrl)}
+                readOnly
+                className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
+                placeholder="https://beispiel.com/mein-cocktail.jpg"
+              />
+              {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
+              <p className="text-xs text-white">
+                Gib die URL zu einem Bild deines Cocktails ein. Leer lassen für ein Platzhalterbild.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <div className="flex justify-between items-center mb-2">
+                <Label>Zutaten</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={addIngredient}
+                  className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+                  disabled={recipe.length >= ingredients.length}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Zutat hinzufügen
+                </Button>
+              </div>
+            </div>
+
+            {recipe.map((item, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-12 gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded"
+              >
+                <div className="col-span-6">
+                  <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
+                    <SelectTrigger className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black border border-[hsl(var(--cocktail-card-border))]">
+                      {ingredients.map((ingredient) => (
+                        <SelectItem
+                          key={ingredient.id}
+                          value={ingredient.id}
+                          className="text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                        >
+                          {ingredient.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-3">
+                  <Input
+                    type="text"
+                    value={item.amount}
+                    onClick={() => handleInputFocus(`amount-${index}`, item.amount.toString())}
+                    readOnly
+                    className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
+                  />
+                </div>
+                <div className="col-span-2 text-sm text-white">ml</div>
+                <div className="col-span-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => removeIngredient(index)}
+                    disabled={recipe.length <= 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+          <DialogFooter className="flex justify-between items-center">
+            <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Löschen
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              >
+                Abbrechen
+              </Button>
+              <Button onClick={handleSave} disabled={saving} className="bg-[#00ff00] text-black hover:bg-[#00cc00]">
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Speichern...
+                  </>
+                ) : (
+                  "Speichern"
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {showKeyboard && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
+          <div className="w-full max-w-2xl p-4">
+            <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
+              <Label className="text-white mb-2 block">
+                {activeInput === "description" && "Beschreibung eingeben"}
+                {activeInput === "imageUrl" && "Bild-URL eingeben"}
+                {activeInput?.startsWith("amount-") && "Menge eingeben (ml)"}
+              </Label>
+              <Input
+                value={inputValue}
+                readOnly
+                className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-black text-center text-lg"
+                placeholder={
+                  activeInput === "description"
+                    ? "Beschreibung..."
+                    : activeInput === "imageUrl"
+                      ? "https://..."
+                      : "Menge in ml"
+                }
+              />
+            </div>
+            <VirtualKeyboard
+              onInput={handleKeyboardInput}
+              onConfirm={handleKeyboardConfirm}
+              onCancel={handleKeyboardCancel}
+              currentValue={inputValue}
+              inputType={activeInput?.startsWith("amount-") ? "numeric" : "text"}
+            />
+          </div>
+        </div>
+      )}
+    </>
   )
 }

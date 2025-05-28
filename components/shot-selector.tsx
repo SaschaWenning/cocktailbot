@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -25,11 +25,6 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
   const [showSuccess, setShowSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [shotSize, setShotSize] = useState<number>(40) // Standard: 40ml
-
-  // Aktualisiere verfügbare Zutaten, wenn sich die Pumpenkonfiguration ändert
-  useEffect(() => {
-    // Trigger re-render when pump config changes
-  }, [pumpConfig])
 
   // Filtere nur die Zutaten, die an Pumpen angeschlossen sind
   const availableIngredients = pumpConfig.map((pump) => {
@@ -56,9 +51,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
   const checkIngredientAvailable = (ingredientId: string) => {
     const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
-    // Wenn kein Füllstand gefunden wird, nehme an, dass die Zutat verfügbar ist (Standardwert)
-    if (!level) return true
-    return level.currentAmount >= shotSize
+    return level && level.currentAmount >= shotSize
   }
 
   const handleMakeShot = async () => {

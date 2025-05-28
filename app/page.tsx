@@ -9,7 +9,7 @@ import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
 import { cocktails as defaultCocktails } from "@/data/cocktails"
-import { getIngredientLevels, initializeNewIngredientLevel } from "@/lib/ingredient-level-service"
+import { getIngredientLevels } from "@/lib/ingredient-level-service"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
@@ -112,20 +112,6 @@ export default function Home() {
     try {
       const config = await getPumpConfig()
       setPumpConfig(config)
-
-      // Initialisiere Füllstände für alle Zutaten in der Pumpenkonfiguration
-      for (const pump of config) {
-        if (pump.ingredient) {
-          try {
-            await initializeNewIngredientLevel(pump.ingredient)
-          } catch (error) {
-            console.error(`Fehler beim Initialisieren des Füllstands für ${pump.ingredient}:`, error)
-          }
-        }
-      }
-
-      // Lade die Füllstände nach der Initialisierung neu
-      await loadIngredientLevels()
     } catch (error) {
       console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
     }
