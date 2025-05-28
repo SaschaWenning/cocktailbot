@@ -37,6 +37,13 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
     loadLevels()
   }, [])
 
+  // Lade Füllstände neu, wenn sich die Pumpenkonfiguration ändert
+  useEffect(() => {
+    if (pumpConfig.length > 0) {
+      loadLevels()
+    }
+  }, [pumpConfig])
+
   const loadLevels = async () => {
     setLoading(true)
     try {
@@ -408,7 +415,7 @@ export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) 
                 value={activeInput ? refillAmounts[activeInput] || "" : ""}
                 onChange={(e) => activeInput && handleRefillAmountChange(activeInput, e.target.value)}
                 placeholder="Menge in ml"
-                className="text-xl h-12 text-center text-white"
+                className="text-xl h-12 text-center text-black bg-white"
                 autoFocus
                 readOnly
               />
