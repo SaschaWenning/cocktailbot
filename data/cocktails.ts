@@ -326,12 +326,13 @@ export const cocktails: Cocktail[] = [
     description: "Klassischer polynesischer Cocktail mit dunklem Rum, Orangenlikör und Mandelsirup",
     image: "/images/cocktails/mai_tai.png",
     alcoholic: true,
-    ingredients: ["60ml Dunkler Rum", "15ml Orangenlikör", "15ml Mandelsirup", "20ml Limettensaft"],
+    ingredients: ["60ml Dunkler Rum", "15ml Orangenlikör", "15ml Mandelsirup", "20ml Limettensaft", "50ml Ananassaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "triple-sec", amount: 15 },
       { ingredientId: "almond-syrup", amount: 15 },
       { ingredientId: "lime-juice", amount: 20 },
+      { ingredientId: "pineapple-juice", amount: 50 },
     ],
   },
 ]
