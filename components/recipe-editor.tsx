@@ -69,20 +69,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   }
 
   const handleKeyboardInput = (value: string) => {
-    // Für numerische Eingaben (Mengen), stelle sicher dass nur Zahlen und Punkte erlaubt sind
-    if (activeInput?.startsWith("amount-")) {
-      // Erlaube nur Zahlen und einen Dezimalpunkt
-      const numericValue = value.replace(/[^0-9.]/g, "")
-      // Stelle sicher, dass nur ein Dezimalpunkt vorhanden ist
-      const parts = numericValue.split(".")
-      if (parts.length > 2) {
-        setInputValue(parts[0] + "." + parts.slice(1).join(""))
-      } else {
-        setInputValue(numericValue)
-      }
-    } else {
-      setInputValue(value)
-    }
+    setInputValue(value)
   }
 
   const handleKeyboardConfirm = () => {
@@ -114,12 +101,11 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const handleAmountChange = (index: number, value: string) => {
     const amount = Number.parseFloat(value)
 
-    // Erlaube auch leere Werte während der Eingabe
-    if (value === "" || (!isNaN(amount) && amount >= 0)) {
-      const updatedRecipe = [...recipe]
-      updatedRecipe[index] = { ...updatedRecipe[index], amount: value === "" ? 0 : amount }
-      setRecipe(updatedRecipe)
-    }
+    if (isNaN(amount) || amount < 0) return
+
+    const updatedRecipe = [...recipe]
+    updatedRecipe[index] = { ...updatedRecipe[index], amount }
+    setRecipe(updatedRecipe)
   }
 
   const handleIngredientChange = (index: number, ingredientId: string) => {
@@ -364,7 +350,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       </Dialog>
 
       {showKeyboard && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[9999]">
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
           <div className="w-full max-w-2xl p-4">
             <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
               <Label className="text-white mb-2 block">

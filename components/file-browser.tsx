@@ -1,281 +1,167 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Folder, File, ChevronLeft, ChevronRight } from "lucide-react"
+import { Check, ImageIcon } from "lucide-react"
 
 interface FileBrowserProps {
   isOpen: boolean
   onClose: () => void
   onSelect: (path: string) => void
-  baseDir?: string
   fileTypes?: string[]
 }
 
-// Simulierte Ordnerstruktur für die Vorschau
-const fileSystem = {
-  public: {
-    type: "directory",
-    children: {
-      images: {
-        type: "directory",
-        children: {
-          cocktails: {
-            type: "directory",
-            children: {
-              "bahama_mama.jpg": { type: "file", mimeType: "image/jpeg" },
-              "big_john.jpg": { type: "file", mimeType: "image/jpeg" },
-              "long_island_iced_tea.jpg": { type: "file", mimeType: "image/jpeg" },
-              "mai_tai.jpg": { type: "file", mimeType: "image/jpeg" },
-              "malibu_ananas.jpg": { type: "file", mimeType: "image/jpeg" },
-              "malibu_colada.jpg": { type: "file", mimeType: "image/jpeg" },
-              "malibu_sunrise.jpg": { type: "file", mimeType: "image/jpeg" },
-              "malibu_sunset.jpg": { type: "file", mimeType: "image/jpeg" },
-              "mojito.jpg": { type: "file", mimeType: "image/jpeg" },
-              "passion_colada.jpg": { type: "file", mimeType: "image/jpeg" },
-              "peaches_cream.jpg": { type: "file", mimeType: "image/jpeg" },
-              "planters_punch.jpg": { type: "file", mimeType: "image/jpeg" },
-              "sex_on_the_beach.jpg": { type: "file", mimeType: "image/jpeg" },
-              "solero.jpg": { type: "file", mimeType: "image/jpeg" },
-              "swimming_pool.jpg": { type: "file", mimeType: "image/jpeg" },
-              "tequila_sunrise.jpg": { type: "file", mimeType: "image/jpeg" },
-              "touch_down.jpg": { type: "file", mimeType: "image/jpeg" },
-              "zombie.jpg": { type: "file", mimeType: "image/jpeg" },
-            },
-          },
-        },
-      },
-      "bursting-berries.png": { type: "file", mimeType: "image/png" },
-      "citrus-swirl-sunset.png": { type: "file", mimeType: "image/png" },
-      "palm-glow.png": { type: "file", mimeType: "image/png" },
-      "refreshing-citrus-cooler.png": { type: "file", mimeType: "image/png" },
-      "tropical-blend.png": { type: "file", mimeType: "image/png" },
-      "vibrant-passion-fizz.png": { type: "file", mimeType: "image/png" },
-    },
-  },
-}
+// Vereinfachte Dateisystemstruktur - direkt zu den Cocktail-Bildern
+const cocktailImages = [
+  "bahama_mama.jpg",
+  "big_john.jpg",
+  "long_island_iced_tea.jpg",
+  "mai_tai.jpg",
+  "malibu_ananas.jpg",
+  "malibu_colada.jpg",
+  "malibu_sunrise.jpg",
+  "malibu_sunset.jpg",
+  "mojito.jpg",
+  "passion_colada.jpg",
+  "peaches_cream.jpg",
+  "planters_punch.jpg",
+  "sex_on_the_beach.jpg",
+  "solero.jpg",
+  "swimming_pool.jpg",
+  "swimmingpool.jpg",
+  "tequila_sunrise.jpg",
+  "touch_down.jpg",
+  "touchdown.jpg",
+  "zombie.jpg",
+]
 
 export default function FileBrowser({
   isOpen,
   onClose,
   onSelect,
-  baseDir = "",
   fileTypes = ["jpg", "jpeg", "png", "gif"],
 }: FileBrowserProps) {
-  const [currentPath, setCurrentPath] = useState<string[]>(["public"])
-  const [history, setHistory] = useState<string[][]>([["public"]])
-  const [historyIndex, setHistoryIndex] = useState(0)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  // Navigiere zu einem Unterordner
-  const navigateTo = (folder: string) => {
-    const newPath = [...currentPath, folder]
-    setCurrentPath(newPath)
-
-    // Aktualisiere den Verlauf
-    const newHistory = history.slice(0, historyIndex + 1)
-    newHistory.push(newPath)
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-
-    // Zurücksetzen der Auswahl
-    setSelectedFile(null)
-    setPreviewUrl(null)
-  }
-
-  // Navigiere zurück
-  const goBack = () => {
-    if (currentPath.length > 1) {
-      const newPath = currentPath.slice(0, -1)
-      setCurrentPath(newPath)
+  useEffect(() => {
+    if (isOpen) {
       setSelectedFile(null)
-      setPreviewUrl(null)
     }
+  }, [isOpen])
+
+  const getFileExtension = (filename: string) => {
+    return filename.split(".").pop()?.toLowerCase() || ""
   }
 
-  // Navigiere in der Historie
-  const goBackInHistory = () => {
-    if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1)
-      setCurrentPath(history[historyIndex - 1])
-      setSelectedFile(null)
-      setPreviewUrl(null)
-    }
+  const isValidFileType = (filename: string) => {
+    const ext = getFileExtension(filename)
+    return fileTypes.includes(ext)
   }
 
-  const goForwardInHistory = () => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(historyIndex + 1)
-      setCurrentPath(history[historyIndex + 1])
-      setSelectedFile(null)
-      setPreviewUrl(null)
-    }
-  }
-
-  // Wähle eine Datei aus
   const selectFile = (file: string) => {
-    const filePath = [...currentPath, file].join("/")
+    const filePath = `/images/cocktails/${file}`
     setSelectedFile(filePath)
-
-    // Erstelle eine Vorschau-URL
-    setPreviewUrl(`/${filePath}`)
   }
 
-  // Bestätige die Auswahl
-  const confirmSelection = () => {
+  const handleConfirm = () => {
     if (selectedFile) {
-      onSelect(`/${selectedFile}`)
+      onSelect(selectedFile)
       onClose()
     }
   }
 
-  // Hole den aktuellen Ordnerinhalt basierend auf dem Pfad
-  const getCurrentFolder = () => {
-    let current: any = fileSystem
-
-    for (const segment of currentPath) {
-      if (current[segment] && current[segment].type === "directory") {
-        current = current[segment].children
-      } else {
-        return {}
-      }
-    }
-
-    return current
-  }
-
-  // Filtere nach Dateitypen
-  const isValidFileType = (filename: string) => {
-    const extension = filename.split(".").pop()?.toLowerCase() || ""
-    return fileTypes.includes(extension)
-  }
-
-  const currentFolder = getCurrentFolder()
-  const breadcrumb = currentPath.join(" / ")
+  const validImages = cocktailImages.filter(isValidFileType)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Datei auswählen</DialogTitle>
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle>Cocktail-Bild auswählen</DialogTitle>
+          <p className="text-sm text-gray-400">Wähle ein Bild für deinen Cocktail aus</p>
         </DialogHeader>
 
-        <div className="flex items-center space-x-2 mb-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={goBackInHistory}
-            disabled={historyIndex <= 0}
-            className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={goForwardInHistory}
-            disabled={historyIndex >= history.length - 1}
-            className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            onClick={goBack}
-            disabled={currentPath.length <= 1}
-            className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-          >
-            Zurück
-          </Button>
-          <div className="flex-1 overflow-hidden">
-            <div className="text-sm truncate bg-[hsl(var(--cocktail-card-bg))] p-2 rounded">{breadcrumb}</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-[50vh] overflow-y-auto">
-          {Object.entries(currentFolder).map(([name, item]: [string, any]) => {
-            if (item.type === "directory") {
-              return (
-                <div
-                  key={name}
-                  onClick={() => navigateTo(name)}
-                  className="flex flex-col items-center p-2 border border-[hsl(var(--cocktail-card-border))] rounded cursor-pointer hover:bg-[hsl(var(--cocktail-card-bg))]"
-                >
-                  <Folder className="h-12 w-12 text-[hsl(var(--cocktail-primary))]" />
-                  <span className="text-xs mt-1 text-center truncate w-full">{name}</span>
-                </div>
-              )
-            } else if (item.type === "file" && isValidFileType(name)) {
-              const isImage = item.mimeType?.startsWith("image/")
-              const filePath = [...currentPath, name].join("/")
-              const isSelected = selectedFile === filePath
+        <div className="flex-1 overflow-y-auto min-h-0 py-4">
+          <div className="grid grid-cols-3 gap-3">
+            {validImages.map((image) => {
+              const imagePath = `/images/cocktails/${image}`
+              const isSelected = selectedFile === imagePath
+              const displayName = image.replace(/\.(jpg|jpeg|png|gif)$/i, "").replace(/_/g, " ")
 
               return (
                 <div
-                  key={name}
-                  onClick={() => selectFile(name)}
-                  className={`flex flex-col items-center p-2 border rounded cursor-pointer ${
+                  key={image}
+                  className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
                     isSelected
                       ? "border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-primary))]/10"
-                      : "border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-bg))]"
+                      : "border-[hsl(var(--cocktail-card-border))] hover:border-[hsl(var(--cocktail-primary))]/50"
                   }`}
+                  onClick={() => selectFile(image)}
                 >
-                  {isImage ? (
-                    <div className="relative h-12 w-12 bg-[hsl(var(--cocktail-card-bg))] flex items-center justify-center overflow-hidden">
-                      <img
-                        src={`/${filePath}`}
-                        alt={name}
-                        className="max-h-full max-w-full object-contain"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg?height=48&width=48"
-                        }}
-                      />
+                  <div className="aspect-square bg-gray-800 flex items-center justify-center">
+                    <img
+                      src={imagePath || "/placeholder.svg"}
+                      alt={displayName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback: Zeige Icon statt Bild
+                        const target = e.target as HTMLImageElement
+                        target.style.display = "none"
+                        const parent = target.parentElement
+                        if (parent && !parent.querySelector(".fallback-icon")) {
+                          const icon = document.createElement("div")
+                          icon.className = "fallback-icon flex items-center justify-center w-full h-full text-gray-400"
+                          icon.innerHTML =
+                            '<svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd"></path></svg>'
+                          parent.appendChild(icon)
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="p-2 bg-black/80">
+                    <p className="text-xs text-center truncate capitalize">{displayName}</p>
+                  </div>
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 bg-[hsl(var(--cocktail-primary))] text-black rounded-full p-1">
+                      <Check className="w-4 h-4" />
                     </div>
-                  ) : (
-                    <File className="h-12 w-12 text-[hsl(var(--cocktail-text-muted))]" />
                   )}
-                  <span className="text-xs mt-1 text-center truncate w-full">{name}</span>
                 </div>
               )
-            }
-            return null
-          })}
+            })}
+          </div>
+
+          {validImages.length === 0 && (
+            <div className="text-center py-8 text-gray-400">
+              <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>Keine Bilder gefunden</p>
+            </div>
+          )}
         </div>
 
-        {previewUrl && (
-          <div className="mt-4 border border-[hsl(var(--cocktail-card-border))] rounded p-2">
-            <div className="text-sm mb-2">Vorschau:</div>
-            <div className="flex justify-center bg-[hsl(var(--cocktail-card-bg))] p-2 rounded">
-              <img
-                src={previewUrl || "/placeholder.svg"}
-                alt="Vorschau"
-                className="max-h-32 object-contain"
-                onError={(e) => {
-                  e.currentTarget.src = "/placeholder.svg?height=128&width=128"
-                  console.error("Fehler beim Laden des Vorschaubilds:", previewUrl)
-                }}
-              />
+        <DialogFooter className="flex-shrink-0 border-t border-[hsl(var(--cocktail-card-border))] pt-4">
+          <div className="flex justify-between w-full">
+            <div className="text-sm text-gray-400">
+              {selectedFile && <span>Ausgewählt: {selectedFile.split("/").pop()}</span>}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={handleConfirm}
+                disabled={!selectedFile}
+                className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Auswählen
+              </Button>
             </div>
           </div>
-        )}
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-          >
-            Abbrechen
-          </Button>
-          <Button
-            onClick={confirmSelection}
-            disabled={!selectedFile}
-            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-          >
-            Auswählen
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
