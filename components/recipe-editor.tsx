@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Trash2, Plus, Minus } from "lucide-react"
+import { Loader2, ImageIcon, Trash2, Plus, Minus, FolderOpen } from "lucide-react"
 import VirtualKeyboard from "./virtual-keyboard"
+import FileBrowser from "./file-browser"
 
 interface RecipeEditorProps {
   isOpen: boolean
@@ -28,6 +29,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [activeInput, setActiveInput] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState("")
+  const [showFileBrowser, setShowFileBrowser] = useState(false)
   const [errors, setErrors] = useState<{
     imageUrl?: string
   }>({})
@@ -67,7 +69,20 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   }
 
   const handleKeyboardInput = (value: string) => {
-    setInputValue(value)
+    // Für numerische Eingaben (Mengen), stelle sicher dass nur Zahlen und Punkte erlaubt sind
+    if (activeInput?.startsWith("amount-")) {
+      // Erlaube nur Zahlen und einen Dezimalpunkt
+      const numericValue = value.replace(/[^0-9.]/g, "")
+      // Stelle sicher, dass nur ein Dezimalpunkt vorhanden ist
+      const parts = numericValue.split(".")
+      if (parts.length > 2) {
+        setInputValue(parts[0] + "." + parts.slice(1).join(""))
+      } else {
+        setInputValue(numericValue)
+      }
+    } else {
+      setInputValue(value)
+    }
   }
 
   const handleKeyboardConfirm = () => {
@@ -99,11 +114,12 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const handleAmountChange = (index: number, value: string) => {
     const amount = Number.parseFloat(value)
 
-    if (isNaN(amount) || amount < 0) return
-
-    const updatedRecipe = [...recipe]
-    updatedRecipe[index] = { ...updatedRecipe[index], amount }
-    setRecipe(updatedRecipe)
+    // Erlaube auch leere Werte während der Eingabe
+    if (value === "" || (!isNaN(amount) && amount >= 0)) {
+      const updatedRecipe = [...recipe]
+      updatedRecipe[index] = { ...updatedRecipe[index], amount: value === "" ? 0 : amount }
+      setRecipe(updatedRecipe)
+    }
   }
 
   const handleIngredientChange = (index: number, ingredientId: string) => {
@@ -131,6 +147,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const isValidUrl = (url: string) => {
     if (!url) return true // Leere URL ist erlaubt
+
+    // Lokale Pfade sind erlaubt
+    if (url.startsWith("/")) return true
+
     try {
       new URL(url)
       return true
@@ -190,6 +210,11 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     return ingredient ? ingredient.name : id
   }
 
+  const handleFileSelect = (path: string) => {
+    setImageUrl(path)
+    console.log("Ausgewähltes Bild:", path)
+  }
+
   // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
   const isCustomRecipe = cocktail.id.startsWith("custom-")
 
@@ -219,19 +244,28 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             <div className="space-y-2">
               <Label htmlFor="imageUrl" className="flex items-center gap-2 text-white">
                 <ImageIcon className="h-4 w-4" />
-                Bild-URL (optional)
+                Bild-URL oder Pfad
               </Label>
-              <Input
-                id="imageUrl"
-                value={imageUrl}
-                onClick={() => handleInputFocus("imageUrl", imageUrl)}
-                readOnly
-                className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer ${errors.imageUrl ? "border-red-500" : ""}`}
-                placeholder="https://beispiel.com/mein-cocktail.jpg"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="imageUrl"
+                  value={imageUrl}
+                  onClick={() => handleInputFocus("imageUrl", imageUrl)}
+                  readOnly
+                  className={`flex-1 bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer ${errors.imageUrl ? "border-red-500" : ""}`}
+                  placeholder="/images/cocktails/mein-cocktail.jpg"
+                />
+                <Button
+                  type="button"
+                  onClick={() => setShowFileBrowser(true)}
+                  className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                </Button>
+              </div>
               {errors.imageUrl && <p className="text-red-400 text-xs">{errors.imageUrl}</p>}
               <p className="text-xs text-gray-300">
-                Gib die URL zu einem Bild deines Cocktails ein. Leer lassen für ein Platzhalterbild.
+                Wähle ein Bild aus oder gib einen Pfad ein. Leer lassen für ein Platzhalterbild.
               </p>
             </div>
 
@@ -330,7 +364,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       </Dialog>
 
       {showKeyboard && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[9999]">
           <div className="w-full max-w-2xl p-4">
             <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
               <Label className="text-white mb-2 block">
@@ -346,7 +380,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   activeInput === "description"
                     ? "Beschreibung..."
                     : activeInput === "imageUrl"
-                      ? "https://..."
+                      ? "https://... oder /pfad/zum/bild.jpg"
                       : "Menge in ml"
                 }
               />
@@ -361,6 +395,13 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           </div>
         </div>
       )}
+
+      <FileBrowser
+        isOpen={showFileBrowser}
+        onClose={() => setShowFileBrowser(false)}
+        onSelect={handleFileSelect}
+        fileTypes={["jpg", "jpeg", "png", "gif"]}
+      />
     </>
   )
 }

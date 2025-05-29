@@ -616,7 +616,7 @@ export default function Home() {
           />
         )
       case "levels":
-        return <IngredientLevels pumpConfig={pumpConfig} />
+        return <IngredientLevels pumpConfig={pumpConfig} onLevelsUpdated={loadIngredientLevels} />
       case "priming":
         return <PumpPriming pumpConfig={pumpConfig} />
       case "cleaning":
