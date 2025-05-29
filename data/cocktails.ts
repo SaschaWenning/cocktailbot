@@ -19,16 +19,16 @@ export const cocktails: Cocktail[] = [
   {
     id: "mai-tai",
     name: "Mai Tai",
-    description: "Klassischer Cocktail mit Rum, Limette und Mandelsirup",
+    description: "Klassischer polynesischer Cocktail mit dunklem Rum, Orangenlikör und Mandelsirup",
+    image: "/images/cocktails/mai_tai.jpg",
     alcoholic: true,
-    image: "/images/cocktails/mai_tai.png",
-    ingredients: ["60ml Brauner Rum", "30ml Limettensaft", "15ml Orangenlikör", "15ml Mandelsirup", "10ml Zuckersirup"],
+    ingredients: ["60ml Dunkler Rum", "15ml Orangenlikör", "15ml Mandelsirup", "20ml Limettensaft", "50ml Ananassaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
-      { ingredientId: "lime-juice", amount: 30 },
       { ingredientId: "triple-sec", amount: 15 },
-      { ingredientId: "orgeat", amount: 15 },
-      { ingredientId: "simple-syrup", amount: 10 },
+      { ingredientId: "almond-syrup", amount: 15 },
+      { ingredientId: "lime-juice", amount: 20 },
+      { ingredientId: "pineapple-juice", amount: 50 },
     ],
   },
   {
