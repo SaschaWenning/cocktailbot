@@ -535,7 +535,7 @@ export default function Home() {
                     id="show-inactive-alcoholic"
                     checked={showInactiveCocktails}
                     onCheckedChange={setShowInactiveCocktails}
-                    className="data-[state=checked]:bg-sky-500 data-[state=unchecked]:bg-gray-700"
+                    className="data-[state=checked]:bg-[hsl(var(--cocktail-primary))] data-[state=unchecked]:bg-gray-700"
                   />
                   <Label htmlFor="show-inactive-alcoholic" className="text-sm text-[hsl(var(--cocktail-text-muted))]">
                     Deaktivierte anzeigen
@@ -585,7 +585,7 @@ export default function Home() {
                     id="show-inactive-virgin"
                     checked={showInactiveCocktails}
                     onCheckedChange={setShowInactiveCocktails}
-                    className="data-[state=checked]:bg-sky-500 data-[state=unchecked]:bg-gray-700"
+                    className="data-[state=checked]:bg-[hsl(var(--cocktail-primary))] data-[state=unchecked]:bg-gray-700"
                   />
                   <Label htmlFor="show-inactive-virgin" className="text-sm text-[hsl(var(--cocktail-text-muted))]">
                     Deaktivierte anzeigen
