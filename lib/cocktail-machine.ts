@@ -312,7 +312,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     // Lade die Standard-Cocktails
     const { cocktails: defaultCocktails } = await import("@/data/cocktails")
 
-    // Korrigiere die Bildpfade für alle Cocktails
+    // Korrigiere die Bildpfade für alle Cocktails und stelle sicher, dass isActive gesetzt ist
     const correctedDefaultCocktails = defaultCocktails.map((cocktail) => {
       // Ensure consistent image path format
       let image = cocktail.image || ""
@@ -322,11 +322,12 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         }
       }
       console.log(`Normalized default cocktail image: ${cocktail.name} -> ${image}`)
-      return { ...cocktail, image }
+      return { ...cocktail, image, isActive: cocktail.isActive === undefined ? true : cocktail.isActive }
     })
 
     // Definiere die zusätzlichen Cocktails
-    const additionalCocktails: Cocktail[] = [
+    const additionalCocktails: Omit<Cocktail, "isActive">[] = [
+      // isActive wird später hinzugefügt
       // Long Island Iced Tea
       {
         id: "long-island-iced-tea",
@@ -553,8 +554,8 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       },
     ]
 
-    // Korrigiere die Bildpfade für die zusätzlichen Cocktails
-    const correctedAdditionalCocktails = additionalCocktails.map((cocktail) => {
+    // Korrigiere die Bildpfade für die zusätzlichen Cocktails und füge isActive hinzu
+    const correctedAdditionalCocktails: Cocktail[] = additionalCocktails.map((cocktail) => {
       // Ensure consistent image path format
       let image = cocktail.image || ""
       if (image && !image.startsWith("http")) {
@@ -563,7 +564,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         }
       }
       console.log(`Normalized additional cocktail image: ${cocktail.name} -> ${image}`)
-      return { ...cocktail, image }
+      return { ...cocktail, image, isActive: true } // Standardmäßig aktiv
     })
 
     // Erstelle eine Map für die Cocktails, um Duplikate zu vermeiden
@@ -592,9 +593,6 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
           : ingredient,
       )
 
-      // Aktualisiere das Rezept (ingredientId bleibt gleich, da wir bereits dark-rum verwenden)
-      // Wir müssen hier nichts ändern, da die ingredientId bereits "dark-rum" ist
-
       // Füge den aktualisierten Cocktail zur Map hinzu
       cocktailMap.set(cocktail.id, updatedCocktail)
     }
@@ -608,18 +606,21 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
     if (fs.existsSync(COCKTAILS_PATH)) {
       // Lese die Datei
       const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
-      const customCocktails: Cocktail[] = JSON.parse(data)
+      const customCocktailsData: any[] = JSON.parse(data) // Lese als any[], um isActive zu prüfen
 
       // Aktualisiere und füge benutzerdefinierte Cocktails hinzu
-      for (const cocktail of customCocktails) {
+      for (const cocktailData of customCocktailsData) {
         // Überspringe alkoholfreie Cocktails, da wir sie ersetzen
-        if (!cocktail.alcoholic) continue
+        if (!cocktailData.alcoholic) continue
 
         // Create a copy of the cocktail
-        const updatedCocktail = { ...cocktail }
+        const updatedCocktail: Cocktail = {
+          ...cocktailData,
+          isActive: cocktailData.isActive === undefined ? true : cocktailData.isActive,
+        }
 
         // Update the ingredients text list
-        updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
+        updatedCocktail.ingredients = cocktailData.ingredients.map((ingredient: string) =>
           ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
             ? ingredient.replace("Rum", "Brauner Rum")
             : ingredient,
@@ -632,11 +633,11 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
             image = `/${image}`
           }
         }
-        console.log(`Normalized custom cocktail image: ${cocktail.name} -> ${image}`)
+        console.log(`Normalized custom cocktail image: ${cocktailData.name} -> ${image}`)
         updatedCocktail.image = image
 
         // Add the updated cocktail to the map
-        cocktailMap.set(cocktail.id, updatedCocktail)
+        cocktailMap.set(cocktailData.id, updatedCocktail)
       }
     }
 
@@ -647,7 +648,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
 
     // Fallback: Lade nur die Standard-Cocktails
     const { cocktails } = await import("@/data/cocktails")
-    return cocktails
+    return cocktails.map((c) => ({ ...c, isActive: c.isActive === undefined ? true : c.isActive }))
   }
 }
 
@@ -663,18 +664,27 @@ export async function saveRecipe(cocktail: Cocktail) {
     let customCocktails: Cocktail[] = []
     if (fs.existsSync(COCKTAILS_PATH)) {
       const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
-      customCocktails = JSON.parse(data)
+      customCocktails = JSON.parse(data).map((c: any) => ({
+        ...c,
+        isActive: c.isActive === undefined ? true : c.isActive, // Stelle sicher, dass isActive vorhanden ist
+      }))
     }
 
     // Prüfe, ob der Cocktail bereits existiert
     const index = customCocktails.findIndex((c) => c.id === cocktail.id)
 
+    // Stelle sicher, dass der zu speichernde Cocktail die isActive Eigenschaft hat
+    const cocktailToSave = {
+      ...cocktail,
+      isActive: cocktail.isActive === undefined ? true : cocktail.isActive,
+    }
+
     if (index !== -1) {
       // Aktualisiere den bestehenden Cocktail
-      customCocktails[index] = cocktail
+      customCocktails[index] = cocktailToSave
     } else {
       // Füge den neuen Cocktail hinzu
-      customCocktails.push(cocktail)
+      customCocktails.push(cocktailToSave)
     }
 
     // Speichere die aktualisierten Cocktails
