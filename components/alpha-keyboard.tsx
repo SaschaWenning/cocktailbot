@@ -1,91 +1,67 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { SkipBackIcon as Backspace, X, Check } from "lucide-react"
+import type React from "react"
+import { SkipBackIcon as BackspaceIcon, CloudyIcon as ClearIcon, CheckIcon, BanIcon } from "lucide-react"
 
 interface AlphaKeyboardProps {
   onKeyPress: (key: string) => void
   onBackspace: () => void
   onClear: () => void
   onConfirm: () => void
+  onCancel: () => void
 }
 
-export default function AlphaKeyboard({ onKeyPress, onBackspace, onClear, onConfirm }: AlphaKeyboardProps) {
-  // Erste Reihe: q bis p
-  const row1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
-  // Zweite Reihe: a bis l
-  const row2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"]
-  // Dritte Reihe: z bis m
-  const row3 = ["z", "x", "c", "v", "b", "n", "m"]
+const AlphaKeyboard: React.FC<AlphaKeyboardProps> = ({ onKeyPress, onBackspace, onClear, onConfirm, onCancel }) => {
+  const keys = [
+    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+    ["Z", "X", "C", "V", "B", "N", "M"],
+  ]
+
+  const Button = ({
+    children,
+    onClick,
+    className,
+  }: { children: React.ReactNode; onClick: () => void; className?: string }) => (
+    <button
+      onClick={onClick}
+      className={`rounded-md px-2 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-1 ${className}`}
+    >
+      {children}
+    </button>
+  )
 
   return (
-    <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg">
-      {/* Erste Reihe */}
-      <div className="grid grid-cols-10 gap-1 mb-1">
-        {row1.map((key) => (
-          <Button
-            key={key}
-            className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
-            onClick={() => onKeyPress(key)}
-          >
-            {key}
-          </Button>
-        ))}
-      </div>
-
-      {/* Zweite Reihe - zentriert */}
-      <div className="flex justify-center mb-1">
-        <div className="grid grid-cols-9 gap-1">
-          {row2.map((key) => (
+    <div className="flex flex-col items-center">
+      {keys.map((row, rowIndex) => (
+        <div key={rowIndex} className="flex space-x-1 mb-1">
+          {row.map((key) => (
             <Button
               key={key}
-              className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
               onClick={() => onKeyPress(key)}
+              className="h-10 bg-gray-200 text-gray-800 hover:bg-gray-300 px-3"
             >
               {key}
             </Button>
           ))}
         </div>
-      </div>
-
-      {/* Dritte Reihe - zentriert */}
-      <div className="flex justify-center mb-2">
-        <div className="grid grid-cols-7 gap-1">
-          {row3.map((key) => (
-            <Button
-              key={key}
-              className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))]"
-              onClick={() => onKeyPress(key)}
-            >
-              {key}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Aktionstasten */}
-      <div className="grid grid-cols-3 gap-2">
-        <Button
-          className="h-12 text-lg font-medium text-[hsl(var(--cocktail-error))] bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-error))]/20"
-          onClick={onClear}
-        >
-          <X className="h-6 w-6" />
+      ))}
+      <div className="flex space-x-2">
+        <Button onClick={onBackspace} className="h-10 bg-orange-500 text-white hover:bg-orange-600 px-3">
+          <BackspaceIcon className="h-5 w-5" />
         </Button>
-
-        <Button
-          className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-          onClick={onBackspace}
-        >
-          <Backspace className="h-6 w-6" />
+        <Button onClick={onClear} className="h-10 bg-red-500 text-white hover:bg-red-600 px-3">
+          <ClearIcon className="h-5 w-5" />
         </Button>
-
-        <Button
-          className="h-12 text-lg font-medium bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-          onClick={onConfirm}
-        >
-          <Check className="h-6 w-6" />
+        <Button onClick={onCancel} className="h-10 bg-gray-500 text-white hover:bg-gray-600 px-3">
+          <BanIcon className="h-5 w-5 mr-1" /> Abbrechen
+        </Button>
+        <Button onClick={onConfirm} className="h-10 bg-green-500 text-black hover:bg-green-600 px-3">
+          <CheckIcon className="h-5 w-5 mr-1" /> OK
         </Button>
       </div>
     </div>
   )
 }
+
+export default AlphaKeyboard
