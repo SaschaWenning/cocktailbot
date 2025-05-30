@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Cocktail } from "@/types/cocktail"
 import { useState, useEffect } from "react"
-import { Trash2, EyeOff, Edit } from "lucide-react" // Edit importiert
+import { Trash2, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -14,10 +14,9 @@ interface CocktailCardProps {
   selected?: boolean
   onClick: () => void
   onDelete?: (id: string) => void
-  onEdit?: (id: string) => void // Neue Prop für Bearbeiten
 }
 
-export default function CocktailCard({ cocktail, selected = false, onClick, onDelete, onEdit }: CocktailCardProps) {
+export default function CocktailCard({ cocktail, selected = false, onClick, onDelete }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
   const [imageSrc, setImageSrc] = useState<string>("")
 
@@ -44,7 +43,7 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
   const isActive = cocktail.isActive === undefined ? true : cocktail.isActive
 
   if (selected) {
-    // Detailansicht (ausgewählt) - Bearbeiten-Button wird in CocktailDetail in app/page.tsx gehandhabt
+    // Detailansicht (ausgewählt)
     return (
       <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
         <div className="flex flex-col md:flex-row">
@@ -137,40 +136,31 @@ export default function CocktailCard({ cocktail, selected = false, onClick, onDe
             {cocktail.name}
           </h3>
           <div className="flex items-center gap-1">
-            {onEdit && ( // Bearbeiten-Button für alle Cocktails, wenn onEdit übergeben wird
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-blue-400 hover:text-blue-300" // Andere Farbe zur Unterscheidung
-                onClick={(e) => {
-                  e.stopPropagation() // Verhindert Klick auf Karte
-                  onEdit(cocktail.id)
-                }}
-                aria-label="Bearbeiten"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-            {cocktail.id.startsWith("custom-") && onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-[hsl(var(--cocktail-error))]"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(cocktail.id)
-                }}
-                aria-label="Löschen"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
             <Badge
               variant={cocktail.alcoholic ? "default" : "default"}
               className={cn("text-xs bg-[hsl(var(--cocktail-primary))] text-black", !isActive && "opacity-50")}
             >
               {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
             </Badge>
+            {cocktail.id.startsWith("custom-") && onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-[hsl(var(--cocktail-error))]"
+                onClick={(e) => {
+                  if (!isActive) {
+                    // Verhindere Löschen, wenn deaktiviert, oder erlaube es, je nach Anforderung
+                    e.stopPropagation()
+                    return
+                  }
+                  e.stopPropagation()
+                  onDelete(cocktail.id)
+                }}
+                disabled={!isActive && !onDelete} // Optional: Löschen-Button für deaktivierte deaktivieren
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

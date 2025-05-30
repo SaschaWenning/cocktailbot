@@ -10,16 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Trash2, ImageIcon, Wine, GlassWater, X } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
 import type { Cocktail } from "@/types/cocktail"
-import { ingredients as allIngredients } from "@/data/ingredients"
-import { saveRecipe as saveCocktailRecipe } from "@/lib/cocktail-machine" // getAllIngredients importiert, falls benötigt, sonst entfernen
+import { ingredients as allIngredientsData } from "@/data/ingredients" // Renamed to avoid conflict
 import VirtualKeyboard from "@/components/virtual-keyboard"
 import AlphaKeyboard from "@/components/alpha-keyboard"
-import FileBrowser from "@/components/file-browser" // Import FileBrowser
+import FileBrowser from "@/components/file-browser"
 
 interface RecipeCreatorProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (newCocktail: Cocktail) => void
+  onSave: (newCocktail: Cocktail) => Promise<void> // onSave can be async
+}
+
+interface IngredientItem {
+  id: string // For unique key in map
+  ingredientId: string
+  amount: number
 }
 
 export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreatorProps) {
@@ -27,25 +32,27 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   const [description, setDescription] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [alcoholic, setAlcoholic] = useState(true)
-  const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([{ ingredientId: "", amount: 0 }])
+  const [recipe, setRecipe] = useState<IngredientItem[]>([{ id: uuidv4(), ingredientId: "", amount: 0 }])
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; recipe?: string; imageUrl?: string }>({})
 
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [activeInput, setActiveInput] = useState<string | null>(null)
+  const [keyboardTargetIndex, setKeyboardTargetIndex] = useState<number | null>(null)
   const [inputValue, setInputValue] = useState("")
   const [showFileBrowser, setShowFileBrowser] = useState(false)
-  const [availableIngredients, setAvailableIngredients] = useState(allIngredients)
+  const [availableIngredients] = useState(allIngredientsData)
 
   const resetForm = useCallback(() => {
     setName("")
     setDescription("")
     setImageUrl("")
     setAlcoholic(true)
-    setRecipe([{ ingredientId: "", amount: 0 }])
+    setRecipe([{ id: uuidv4(), ingredientId: "", amount: 0 }])
     setErrors({})
     setShowKeyboard(false)
     setActiveInput(null)
+    setKeyboardTargetIndex(null)
     setInputValue("")
     setShowFileBrowser(false)
   }, [])
@@ -54,19 +61,12 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     if (isOpen) {
       resetForm()
     }
-    // Lade verfügbare Zutaten, falls sich die Liste dynamisch ändern kann
-    // Für dieses Beispiel wird angenommen, dass allIngredients statisch ist,
-    // aber wenn es dynamisch wäre (z.B. aus einer API), hier laden:
-    // const fetchIngredients = async () => {
-    //   const ingredients = await getAllIngredients(); // Annahme: Funktion existiert
-    //   setAvailableIngredients(ingredients);
-    // };
-    // fetchIngredients();
   }, [isOpen, resetForm])
 
-  const handleInputClick = (inputId: string, currentValue: string | number) => {
+  const handleInputClick = (inputId: string, currentValue: string | number, index?: number) => {
     setActiveInput(inputId)
     setInputValue(String(currentValue))
+    setKeyboardTargetIndex(index === undefined ? null : index)
     setShowKeyboard(true)
   }
 
@@ -85,59 +85,55 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   const handleKeyboardConfirm = () => {
     if (!activeInput) return
 
-    if (activeInput === "name") {
-      setName(inputValue)
-    } else if (activeInput === "description") {
-      setDescription(inputValue)
-    } else if (activeInput === "imageUrl") {
-      setImageUrl(inputValue)
-    } else if (activeInput.startsWith("amount-")) {
-      const index = Number.parseInt(activeInput.replace("amount-", ""))
+    if (activeInput === "name") setName(inputValue)
+    else if (activeInput === "description") setDescription(inputValue)
+    else if (activeInput === "imageUrl") setImageUrl(inputValue)
+    else if (activeInput === "amount" && keyboardTargetIndex !== null) {
       const amount = Number.parseFloat(inputValue)
       if (!isNaN(amount) && amount >= 0) {
         const updatedRecipe = [...recipe]
-        updatedRecipe[index] = { ...updatedRecipe[index], amount }
+        updatedRecipe[keyboardTargetIndex] = { ...updatedRecipe[keyboardTargetIndex], amount }
         setRecipe(updatedRecipe)
-      } else {
-        // Optional: Fehlerbehandlung für ungültige Menge
-        console.warn("Ungültige Mengeneingabe:", inputValue)
       }
     }
     setShowKeyboard(false)
     setActiveInput(null)
+    setKeyboardTargetIndex(null)
     // inputValue wird nicht zurückgesetzt, damit der Wert im Feld bleibt
   }
 
   const handleKeyboardCancel = () => {
     setShowKeyboard(false)
     setActiveInput(null)
+    setKeyboardTargetIndex(null)
     setInputValue("") // Wert verwerfen
   }
 
   const handleAddIngredient = () => {
-    setRecipe([...recipe, { ingredientId: "", amount: 0 }])
+    setRecipe([...recipe, { id: uuidv4(), ingredientId: "", amount: 0 }])
   }
 
-  const handleRemoveIngredient = (index: number) => {
+  const handleRemoveIngredient = (idToRemove: string) => {
     if (recipe.length <= 1) return
-    setRecipe(recipe.filter((_, i) => i !== index))
+    setRecipe(recipe.filter((item) => item.id !== idToRemove))
   }
 
-  const handleIngredientChange = (index: number, ingredientId: string) => {
-    const updatedRecipe = [...recipe]
-    updatedRecipe[index] = { ...updatedRecipe[index], ingredientId }
-    setRecipe(updatedRecipe)
+  const handleIngredientChange = (idToChange: string, newIngredientId: string) => {
+    setRecipe(recipe.map((item) => (item.id === idToChange ? { ...item, ingredientId: newIngredientId } : item)))
   }
-
-  // handleAmountChange wird jetzt durch handleInputClick und handleKeyboardConfirm abgedeckt
 
   const validateForm = () => {
     const newErrors: { name?: string; recipe?: string; imageUrl?: string } = {}
     if (!name.trim()) newErrors.name = "Name ist erforderlich"
-    if (!imageUrl.trim()) newErrors.imageUrl = "Bild-URL ist erforderlich" // Oder Bildauswahl
+    if (!imageUrl.trim()) newErrors.imageUrl = "Bild-URL oder Auswahl ist erforderlich"
 
     const hasValidIngredients = recipe.every((item) => item.ingredientId && item.amount > 0)
-    if (!hasValidIngredients) newErrors.recipe = "Alle Zutaten müssen eine gültige Zutat und Menge haben"
+    if (!hasValidIngredients || recipe.length === 0) {
+      newErrors.recipe = "Mindestens eine Zutat mit gültiger Auswahl und Menge > 0 ist erforderlich"
+    }
+    if (recipe.some((item) => !item.ingredientId || item.amount <= 0)) {
+      newErrors.recipe = "Alle Zutaten müssen eine gültige Auswahl und eine Menge > 0 haben."
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -151,61 +147,85 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         id: `custom-${uuidv4().slice(0, 8)}`,
         name,
         description,
-        image: imageUrl, // Verwende die ausgewählte/eingegebene URL
+        image: imageUrl,
         alcoholic,
-        ingredients: recipe.map((item) => {
-          const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
-          return `${item.amount || 0}ml ${ingredient?.name || "Unbekannte Zutat"}`
-        }),
-        recipe: recipe.filter((item) => item.ingredientId && item.amount > 0),
+        ingredients: recipe
+          .filter((item) => item.ingredientId && item.amount > 0)
+          .map((item) => {
+            const ingredient = availableIngredients.find((i) => i.id === item.ingredientId)
+            return `${item.amount}ml ${ingredient?.name || "Unbekannte Zutat"}`
+          }),
+        recipe: recipe
+          .filter((item) => item.ingredientId && item.amount > 0)
+          .map(({ ingredientId, amount }) => ({ ingredientId, amount })),
+        isActive: true, // New cocktails are active by default
       }
-      await saveCocktailRecipe(newCocktail)
-      onSave(newCocktail)
-      onClose() // Schließt den Dialog nach dem Speichern
+      await onSave(newCocktail)
+      // onClose will be called by parent if save is successful
     } catch (error) {
       console.error("Fehler beim Speichern des Rezepts:", error)
-      // Optional: Fehler dem Benutzer anzeigen
+      setErrors({ recipe: "Fehler beim Speichern des Rezepts. Bitte versuche es erneut." })
     } finally {
       setSaving(false)
     }
   }
 
   const handleOpenImageSelector = () => {
-    setActiveInput("imageUrl")
+    // setActiveInput("imageUrl"); // No need to set activeInput if FileBrowser handles its own state
     setShowFileBrowser(true)
   }
 
   const handleFileSelect = (filePath: string) => {
     setImageUrl(filePath)
     setShowFileBrowser(false)
-    setActiveInput(null) // Wichtig, um den Fokus zurückzusetzen
-    // Kein inputValue Reset hier, da imageUrl direkt gesetzt wird
+    // setActiveInput(null); // Reset active input if it was set
   }
 
-  const isNumericInput = activeInput?.startsWith("amount-") ?? false
-  const isAlphaNumericInput = activeInput === "name" || activeInput === "description" || activeInput === "imageUrl"
+  const isNumericInput = activeInput === "amount"
+  const isAlphaNumericInput = ["name", "description", "imageUrl"].includes(activeInput || "")
 
-  const handleDialogCloseInteraction = () => {
-    if (showKeyboard || showFileBrowser) {
-      // Mache nichts, wenn Tastatur oder FileBrowser offen ist
-      return
+  const handleDialogCloseInteraction = (open: boolean) => {
+    if (!open) {
+      if (showKeyboard || showFileBrowser) {
+        // Prevent closing if keyboard or file browser is open
+        // Instead, you might want to close the keyboard/filebrowser first
+        if (showKeyboard) {
+          setShowKeyboard(false)
+          setActiveInput(null)
+        }
+        if (showFileBrowser) {
+          setShowFileBrowser(false)
+        }
+        return // Keep the main dialog open
+      }
+      onClose() // Close main dialog
     }
-    onClose()
   }
 
   return (
     <>
       <Dialog
-        open={isOpen && !showFileBrowser} // Hauptdialog nur offen, wenn FileBrowser nicht offen ist
+        open={isOpen && !showFileBrowser}
         onOpenChange={(open) => {
-          if (!open) handleDialogCloseInteraction()
+          if (!open) {
+            // If attempting to close
+            if (showKeyboard) {
+              setShowKeyboard(false)
+              setActiveInput(null)
+              // Do not call onClose() yet, keep dialog open
+            } else if (showFileBrowser) {
+              setShowFileBrowser(false)
+              // Do not call onClose() yet, keep dialog open
+            } else {
+              onClose() // All sub-dialogs are closed, so close main dialog
+            }
+          }
         }}
       >
         <DialogContent
           className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-lg"
           onInteractOutside={(e) => {
-            if (showKeyboard) {
-              // FileBrowser wird separat behandelt
+            if (showKeyboard || showFileBrowser) {
               e.preventDefault()
             }
           }}
@@ -214,8 +234,12 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               e.preventDefault()
               setShowKeyboard(false)
               setActiveInput(null)
+            } else if (showFileBrowser) {
+              e.preventDefault()
+              setShowFileBrowser(false)
+            } else {
+              onClose() // Default behavior if no sub-dialog is open
             }
-            // Wenn nichts offen ist, schließt der Dialog normal via onOpenChange
           }}
         >
           <DialogHeader>
@@ -225,16 +249,15 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 variant="ghost"
                 size="icon"
                 className="absolute right-4 top-4 text-white hover:text-gray-400"
-                onClick={handleDialogCloseInteraction}
+                onClick={() => handleDialogCloseInteraction(false)} // Explicitly call with false
               >
                 <X className="h-4 w-4" />
               </Button>
             </DialogClose>
           </DialogHeader>
 
-          {!showKeyboard && ( // FileBrowser wird jetzt außerhalb dieses Blocks gehandhabt
+          {!showKeyboard && (
             <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
-              {/* Name Input */}
               <div className="space-y-2">
                 <Label htmlFor="name-display">Name</Label>
                 <Input
@@ -248,7 +271,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 {errors.name && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.name}</p>}
               </div>
 
-              {/* Description Input */}
               <div className="space-y-2">
                 <Label htmlFor="description-display">Beschreibung</Label>
                 <Textarea
@@ -262,14 +284,13 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 />
               </div>
 
-              {/* Image URL Input & File Browser */}
               <div className="space-y-2">
-                <Label htmlFor="imageUrl-display">Bild-URL</Label>
-                <div className="flex gap-2">
+                <Label htmlFor="imageUrl-display">Bild</Label>
+                <div className="flex gap-2 items-center">
                   <Input
                     id="imageUrl-display"
                     value={imageUrl}
-                    onClick={() => handleInputClick("imageUrl", imageUrl)} // Für manuelle Eingabe via AlphaKeyboard
+                    onClick={() => handleInputClick("imageUrl", imageUrl)}
                     readOnly
                     className={`flex-1 bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white cursor-pointer ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
                     placeholder="/images/cocktails/mein_cocktail.jpg"
@@ -277,22 +298,24 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleOpenImageSelector} // Öffnet den FileBrowser Dialog
+                    onClick={handleOpenImageSelector}
                     className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
                   >
                     <ImageIcon className="h-4 w-4" />
                   </Button>
                 </div>
                 {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
-                <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-md p-3 text-white mt-2">
-                  <p className="text-xs text-[hsl(var(--cocktail-primary))]">
-                    Klicke auf das Feld, um die URL manuell einzugeben, oder nutze den{" "}
-                    <ImageIcon className="inline h-3 w-3" /> Button, um ein Bild auszuwählen.
-                  </p>
-                </div>
+                {imageUrl && (
+                  <div className="mt-2">
+                    <img
+                      src={imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`}
+                      alt="Vorschau"
+                      className="max-h-20 rounded-md border border-[hsl(var(--cocktail-card-border))]"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Cocktail Type */}
               <div className="space-y-2">
                 <Label>Cocktail-Typ</Label>
                 <div className="flex gap-4">
@@ -313,7 +336,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 </div>
               </div>
 
-              {/* Ingredients */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <Label>Zutaten</Label>
@@ -322,16 +344,19 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                     variant="outline"
                     size="sm"
                     onClick={handleAddIngredient}
-                    className="h-8 px-2 bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[#00ff00] hover:text-black"
+                    className="h-8 px-2 bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black"
                   >
-                    <Plus className="h-4 w-4 mr-1" /> Zutat hinzufügen
+                    <Plus className="h-4 w-4 mr-1" /> Zutat
                   </Button>
                 </div>
                 {errors.recipe && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.recipe}</p>}
                 {recipe.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                  <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
                     <div className="col-span-7">
-                      <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
+                      <Select
+                        value={item.ingredientId}
+                        onValueChange={(value) => handleIngredientChange(item.id, value)}
+                      >
                         <SelectTrigger className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white">
                           <SelectValue placeholder="Zutat wählen" />
                         </SelectTrigger>
@@ -347,9 +372,9 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                     <div className="col-span-3">
                       <Input
                         id={`amount-display-${index}`}
-                        type="text" // Text, da readOnly und von Tastatur befüllt
+                        type="text"
                         value={item.amount || "0"}
-                        onClick={() => handleInputClick(`amount-${index}`, item.amount)}
+                        onClick={() => handleInputClick("amount", item.amount, index)}
                         readOnly
                         className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white cursor-pointer text-right pr-2"
                         placeholder="ml"
@@ -360,7 +385,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleRemoveIngredient(index)}
+                        onClick={() => handleRemoveIngredient(item.id)}
                         disabled={recipe.length <= 1}
                         className="h-8 w-8 text-white hover:text-[hsl(var(--cocktail-error))]"
                       >
@@ -379,7 +404,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 {activeInput === "name" && "Namen eingeben"}
                 {activeInput === "description" && "Beschreibung eingeben"}
                 {activeInput === "imageUrl" && "Bild-URL eingeben"}
-                {activeInput?.startsWith("amount-") && "Menge eingeben (ml)"}
+                {activeInput === "amount" && "Menge eingeben (ml)"}
               </div>
               <Input
                 value={inputValue}
@@ -394,7 +419,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   onClear={handleKeyboardClear}
                   onConfirm={handleKeyboardConfirm}
                   onCancel={handleKeyboardCancel}
-                  allowDecimal={true} // Mengen können Dezimalstellen haben
+                  allowDecimal={true}
                   numericOnly={true}
                 />
               ) : (
@@ -404,22 +429,26 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   onClear={handleKeyboardClear}
                   onConfirm={handleKeyboardConfirm}
                   onCancel={handleKeyboardCancel}
-                /> // Für Name, Beschreibung, ImageUrl
+                />
               )}
             </div>
           )}
 
-          {!showKeyboard && ( // FileBrowser wird jetzt außerhalb dieses Blocks gehandhabt
+          {!showKeyboard && (
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleDialogCloseInteraction}
+                onClick={() => handleDialogCloseInteraction(false)} // Explicitly call with false
                 className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
               >
                 Abbrechen
               </Button>
-              <Button onClick={handleSave} disabled={saving} className="bg-[#00ff00] text-black hover:bg-[#00cc00]">
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+              >
                 {saving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Speichern...
@@ -433,12 +462,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         </DialogContent>
       </Dialog>
 
-      {/* FileBrowser als separater Dialog, gesteuert durch showFileBrowser */}
       <FileBrowser
         isOpen={showFileBrowser}
         onClose={() => {
           setShowFileBrowser(false)
-          setActiveInput(null) // Wichtig, um den Fokus zurückzusetzen
+          // setActiveInput(null); // Reset active input if it was set
         }}
         onSelect={handleFileSelect}
       />
