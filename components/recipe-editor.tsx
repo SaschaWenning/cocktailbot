@@ -1,20 +1,20 @@
 "use client"
 
-import { useState, useEffect, useCallback, useId } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import type { Cocktail, RecipeItem } from "@/types/cocktail" // Angenommen RecipeItem ist in types.tsx definiert
+import type { Cocktail, RecipeItem } from "@/types/cocktail"
 import { ingredients as allIngredientsData } from "@/data/ingredients"
 import { saveRecipe as saveCocktailServerAction } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Trash2, Plus, Minus, FolderOpen, XIcon, EyeOff, Eye } from "lucide-react"
-import VirtualKeyboard from "./virtual-keyboard"
+import VirtualKeyboard from "./virtual-keyboard" // Annahme: VirtualKeyboard wird importiert
 import FileBrowser from "./file-browser"
+import { useId } from "react"
 
-// Hilfsfunktion für eine tiefe Kopie, um Prop-Mutationen zu vermeiden
 const deepClone = <T,>(obj: T): T => JSON.parse(JSON.stringify(obj))
 
 interface RecipeEditorProps {
@@ -35,37 +35,32 @@ export default function RecipeEditor({
   const [editableCocktail, setEditableCocktail] = useState<Cocktail | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-
-  // States für Sub-Modals
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [keyboardTarget, setKeyboardTarget] = useState<{ field: string; index?: number } | null>(null)
   const [keyboardValue, setKeyboardValue] = useState("")
   const [showFileBrowser, setShowFileBrowser] = useState(false)
 
-  // Eindeutige IDs für Formularfelder generieren
   const descriptionId = useId()
   const imageUrlId = useId()
   const isActiveId = useId()
-  const ingredientIds = Array.from({ length: 10 }, () => useId()) // Generate unique IDs for ingredients
-  const amountIds = Array.from({ length: 10 }, () => useId()) // Generate unique IDs for amounts
+  const [ingredientIds, setIngredientIds] = useState<string[]>([])
+  const [amountIds, setAmountIds] = useState<string[]>([])
 
-  // Initialisierung und Reset des Editor-States
   useEffect(() => {
     if (isOpen && initialCocktail) {
-      setEditableCocktail(deepClone(initialCocktail))
-      // Normalisiere Bild-URL beim Laden
-      setEditableCocktail((prev) => {
-        if (!prev) return null
-        let imagePath = prev.image || ""
-        if (imagePath.startsWith("/placeholder")) imagePath = ""
-        else {
-          imagePath = imagePath.split("?")[0]
-          if (imagePath && !imagePath.startsWith("http") && !imagePath.startsWith("/")) {
-            imagePath = `/${imagePath}`
-          }
+      const clonedCocktail = deepClone(initialCocktail)
+      let imagePath = clonedCocktail.image || ""
+      if (imagePath.startsWith("/placeholder")) imagePath = ""
+      else {
+        imagePath = imagePath.split("?")[0]
+        if (imagePath && !imagePath.startsWith("http") && !imagePath.startsWith("/")) {
+          imagePath = `/${imagePath}`
         }
-        return { ...prev, image: imagePath }
-      })
+      }
+      clonedCocktail.image = imagePath
+      setEditableCocktail(clonedCocktail)
+      setIngredientIds(Array.from({ length: clonedCocktail.recipe?.length || 5 }, () => useId()))
+      setAmountIds(Array.from({ length: clonedCocktail.recipe?.length || 5 }, () => useId()))
     } else if (!isOpen) {
       setEditableCocktail(null)
       setIsSaving(false)
@@ -74,10 +69,11 @@ export default function RecipeEditor({
       setKeyboardTarget(null)
       setKeyboardValue("")
       setShowFileBrowser(false)
+      setIngredientIds([])
+      setAmountIds([])
     }
   }, [isOpen, initialCocktail])
 
-  // Allgemeine Handler für Feldänderungen
   const handleChange = useCallback((field: keyof Cocktail, value: any) => {
     setEditableCocktail((prev) => (prev ? { ...prev, [field]: value } : null))
   }, [])
@@ -91,7 +87,6 @@ export default function RecipeEditor({
     })
   }, [])
 
-  // Handler für Tastatur
   const openKeyboard = (field: string, currentValue: string | number, index?: number) => {
     setKeyboardTarget({ field, index })
     setKeyboardValue(String(currentValue))
@@ -105,7 +100,6 @@ export default function RecipeEditor({
 
   const handleKeyboardConfirm = () => {
     if (!keyboardTarget || editableCocktail === null) return
-
     const { field, index } = keyboardTarget
     if (field === "description") handleChange("description", keyboardValue)
     else if (field === "image") handleChange("image", keyboardValue)
@@ -116,7 +110,6 @@ export default function RecipeEditor({
     setShowKeyboard(false)
   }
 
-  // Handler für Zutaten
   const addRecipeIngredient = () => {
     if (!editableCocktail) return
     const currentRecipe = editableCocktail.recipe || []
@@ -132,12 +125,9 @@ export default function RecipeEditor({
     handleChange("recipe", newRecipe)
   }
 
-  // Handler für Speichern und Löschen
   const handleSubmit = async () => {
     if (!editableCocktail) return
     setFormError(null)
-
-    // Validierung (Beispiel: Bild-URL)
     if (
       editableCocktail.image &&
       !editableCocktail.image.startsWith("/") &&
@@ -150,7 +140,6 @@ export default function RecipeEditor({
         return
       }
     }
-
     setIsSaving(true)
     try {
       const ingredientsTextList = (editableCocktail.recipe || []).map((item) => {
@@ -179,7 +168,6 @@ export default function RecipeEditor({
     if (editableCocktail) onRequestDelete(editableCocktail.id)
   }
 
-  // Handler für FileBrowser
   const handleFileSelected = (path: string) => {
     handleChange("image", path)
     setShowFileBrowser(false)
@@ -192,8 +180,11 @@ export default function RecipeEditor({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md"
-          onInteractOutside={(e) => {
-            if (showKeyboard || showFileBrowser) e.preventDefault()
+          onPointerDownOutside={(e) => {
+            // Geändert zu onPointerDownOutside
+            if (showKeyboard || showFileBrowser) {
+              e.preventDefault() // Verhindert das Schließen des Dialogs, wenn Sub-Modals offen sind
+            }
           }}
           onEscapeKeyDown={(e) => {
             if (showKeyboard) {
@@ -203,6 +194,7 @@ export default function RecipeEditor({
               e.preventDefault()
               setShowFileBrowser(false)
             }
+            // Wenn kein Sub-Modal offen ist, wird der Dialog normal durch onOpenChange geschlossen
           }}
         >
           <DialogHeader className="flex flex-row justify-between items-center">
@@ -267,7 +259,6 @@ export default function RecipeEditor({
                   size="icon"
                   onClick={() => setShowFileBrowser(true)}
                   className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-                  disabled={(editableCocktail.recipe || []).length >= allIngredientsData.length}
                 >
                   <FolderOpen size={18} />
                 </Button>
@@ -289,54 +280,52 @@ export default function RecipeEditor({
                 </Button>
               </div>
               <div className="space-y-2">
-                {(editableCocktail.recipe || []).map((item, index) => {
-                  return (
-                    <div
-                      key={`recipe-item-${index}`}
-                      className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]"
+                {(editableCocktail.recipe || []).map((item, index) => (
+                  <div
+                    key={ingredientIds[index] || `recipe-item-${index}`} // Fallback, falls nicht genügend IDs
+                    className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]"
+                  >
+                    <Select
+                      value={item.ingredientId}
+                      onValueChange={(value) => handleRecipeChange(index, "ingredientId", value)}
                     >
-                      <Select
-                        value={item.ingredientId}
-                        onValueChange={(value) => handleRecipeChange(index, "ingredientId", value)}
+                      <SelectTrigger
+                        id={ingredientIds[index]}
+                        className="bg-white text-black border-[hsl(var(--cocktail-card-border))]"
+                        aria-label={`Zutat ${index + 1}`}
                       >
-                        <SelectTrigger
-                          id={ingredientIds[index]}
-                          className="bg-white text-black border-[hsl(var(--cocktail-card-border))]"
-                          aria-label={`Zutat ${index + 1}`}
-                        >
-                          <SelectValue placeholder="Zutat wählen" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-[hsl(var(--cocktail-card-border))]">
-                          {allIngredientsData.map((ing) => (
-                            <SelectItem key={ing.id} value={ing.id} className="text-black hover:bg-gray-100">
-                              {ing.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        id={amountIds[index]}
-                        type="text"
-                        value={item.amount}
-                        readOnly
-                        onClick={() => openKeyboard("amount", item.amount, index)}
-                        className="w-20 bg-white text-black text-center cursor-pointer border-[hsl(var(--cocktail-card-border))]"
-                        aria-label={`Menge Zutat ${index + 1}`}
-                      />
-                      <span className="text-sm text-white">ml</span>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="destructive"
-                        onClick={() => removeRecipeIngredient(index)}
-                        disabled={(editableCocktail.recipe || []).length <= 1}
-                        aria-label={`Zutat ${index + 1} entfernen`}
-                      >
-                        <Minus size={16} />
-                      </Button>
-                    </div>
-                  )
-                })}
+                        <SelectValue placeholder="Zutat wählen" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-[hsl(var(--cocktail-card-border))]">
+                        {allIngredientsData.map((ing) => (
+                          <SelectItem key={ing.id} value={ing.id} className="text-black hover:bg-gray-100">
+                            {ing.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id={amountIds[index]}
+                      type="text"
+                      value={item.amount}
+                      readOnly
+                      onClick={() => openKeyboard("amount", item.amount, index)}
+                      className="w-20 bg-white text-black text-center cursor-pointer border-[hsl(var(--cocktail-card-border))]"
+                      aria-label={`Menge Zutat ${index + 1}`}
+                    />
+                    <span className="text-sm text-white">ml</span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      onClick={() => removeRecipeIngredient(index)}
+                      disabled={(editableCocktail.recipe || []).length <= 1}
+                      aria-label={`Zutat ${index + 1} entfernen`}
+                    >
+                      <Minus size={16} />
+                    </Button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -377,13 +366,14 @@ export default function RecipeEditor({
       {showKeyboard && keyboardTarget && (
         <div
           className="fixed inset-0 bg-black/80 flex items-end justify-center z-[1000]"
-          onClick={() => setShowKeyboard(false)}
+          onClick={(e) => {
+            // Nur schließen, wenn auf das Overlay geklickt wird, nicht auf die Tastatur selbst
+            if (e.target === e.currentTarget) {
+              setShowKeyboard(false)
+            }
+          }}
         >
-          {" "}
-          {/* Overlay Klick schließt Tastatur */}
           <div className="w-full max-w-2xl p-2 sm:p-4" onClick={(e) => e.stopPropagation()}>
-            {" "}
-            {/* Verhindert Schließen bei Klick auf Tastatur selbst */}
             <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-3 sm:p-4 mb-2 sm:mb-4">
               <Label className="text-white mb-2 block text-center text-sm sm:text-base">
                 {keyboardTarget.field === "description" && "Beschreibung"}
