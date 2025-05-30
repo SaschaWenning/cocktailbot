@@ -259,26 +259,26 @@ export async function getPumpConfig(): Promise<PumpConfig[]> {
       return config
     } else {
       // Wenn die Datei nicht existiert, lade die Standardkonfiguration
-      const { pumpConfig } = await import("@/data/pump-config")
+      const { pumpConfig: defaultConfig } = await import("@/data/pump-config")
 
       // Speichere die Standardkonfiguration in der JSON-Datei
       fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
-      fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+      fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(defaultConfig, null, 2), "utf8")
 
       // Protokolliere die Standardkonfiguration
       // console.log("Standard-Pumpenkonfiguration geladen:")
-      // pumpConfig.forEach((pump) => {
+      // defaultConfig.forEach((pump) => {
       //   console.log(`Pumpe ${pump.id} (${pump.ingredient}): Pin ${pump.pin}, Durchflussrate ${pump.flowRate} ml/s`)
       // })
 
-      return pumpConfig
+      return defaultConfig
     }
   } catch (error) {
     console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
 
     // Fallback: Lade die Standardkonfiguration
-    const { pumpConfig } = await import("@/data/pump-config")
-    return pumpConfig
+    const { pumpConfig: defaultConfig } = await import("@/data/pump-config")
+    return defaultConfig
   }
 }
 
@@ -309,7 +309,7 @@ export async function savePumpConfig(pumpConfig: PumpConfig[]) {
 // Funktion zum Laden aller Cocktails (Standard + benutzerdefinierte)
 export async function getAllCocktails(): Promise<Cocktail[]> {
   try {
-    // Lade die Standard-Cocktails
+    // Lade die Standard-Cocktails (deine ursprüngliche Liste)
     const { cocktails: defaultCocktailsSource } = await import("@/data/cocktails")
 
     // Stelle sicher, dass alle Standard-Cocktails `isActive` haben und Bildpfade normalisiert sind
@@ -318,66 +318,29 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       if (image && !image.startsWith("http") && !image.startsWith("/")) {
         image = `/${image}`
       }
+      // Ersetze "Rum" durch "Brauner Rum" in der Zutatenliste für Konsistenz, falls nötig
+      const updatedIngredients = cocktail.ingredients.map((ingredient) =>
+        ingredient.toLowerCase().includes(" rum") &&
+        !ingredient.toLowerCase().includes("brauner rum") &&
+        !ingredient.toLowerCase().includes("weißer rum")
+          ? ingredient.replace(/rum/gi, "Brauner Rum")
+          : ingredient,
+      )
       return {
         ...cocktail,
         image,
+        ingredients: updatedIngredients,
         isActive: cocktail.isActive === undefined ? true : cocktail.isActive,
       }
     })
 
-    // Definiere die zusätzlichen Cocktails direkt mit `isActive: true`
+    // Definiere zusätzliche Cocktails (hauptsächlich neue alkoholfreie und explizite Updates)
     const additionalCocktails: Cocktail[] = [
       {
-        id: "long-island-iced-tea",
-        name: "Long Island Iced Tea",
-        description: "Klassischer, starker Cocktail mit fünf verschiedenen Spirituosen und Cola",
-        image: "/images/cocktails/long_island_iced_tea.jpg",
-        alcoholic: true,
-        ingredients: [
-          "15ml Brauner Rum",
-          "15ml Triple Sec",
-          "15ml Vodka",
-          "15ml Tequila",
-          "30ml Limettensaft",
-          "150ml Cola (selbst hinzufügen)",
-        ],
-        recipe: [
-          { ingredientId: "dark-rum", amount: 15 },
-          { ingredientId: "triple-sec", amount: 15 },
-          { ingredientId: "vodka", amount: 15 },
-          { ingredientId: "tequila", amount: 15 },
-          { ingredientId: "lime-juice", amount: 30 },
-        ],
-        isActive: true,
-      },
-      {
-        id: "bahama-mama",
-        name: "Bahama Mama",
-        description: "Tropischer Cocktail mit Braunem Rum, Malibu und Fruchtsäften",
-        image: "/images/cocktails/bahama_mama.jpg",
-        alcoholic: true,
-        ingredients: [
-          "50ml Brauner Rum",
-          "40ml Malibu",
-          "80ml Orangensaft",
-          "80ml Ananassaft",
-          "20ml Limettensaft",
-          "20ml Grenadine",
-        ],
-        recipe: [
-          { ingredientId: "dark-rum", amount: 50 },
-          { ingredientId: "malibu", amount: 40 },
-          { ingredientId: "orange-juice", amount: 80 },
-          { ingredientId: "pineapple-juice", amount: 80 },
-          { ingredientId: "lime-juice", amount: 20 },
-          { ingredientId: "grenadine", amount: 20 },
-        ],
-        isActive: true,
-      },
-      {
-        id: "malibu-ananas-updated",
-        name: "Malibu Ananas",
-        description: "Süßer Kokoslikör mit Ananassaft",
+        // Explizites Update für Malibu Ananas, falls gewünscht
+        id: "malibu-ananas-updated", // Diese ID wird verwendet, um die Standard "malibu-ananas" zu überschreiben
+        name: "Malibu Ananas (Neu)",
+        description: "Süßer Kokoslikör mit Ananassaft - optimierte Version",
         image: "/images/cocktails/malibu_ananas.jpg",
         alcoholic: true,
         ingredients: ["80ml Malibu", "220ml Ananassaft"],
@@ -387,92 +350,12 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         ],
         isActive: true,
       },
-      {
-        id: "swimmingpool",
-        name: "Swimmingpool",
-        description: "Blauer, tropischer Cocktail mit Vodka und Ananassaft",
-        image: "/images/cocktails/swimmingpool.jpg",
-        alcoholic: true,
-        ingredients: [
-          "60ml Vodka",
-          "30ml Blue Curacao",
-          "180ml Ananassaft",
-          "40ml Cream of Coconut (selbst hinzufügen)",
-        ],
-        recipe: [
-          { ingredientId: "vodka", amount: 60 },
-          { ingredientId: "blue-curacao", amount: 30 },
-          { ingredientId: "pineapple-juice", amount: 180 },
-        ],
-        isActive: true,
-      },
-      {
-        id: "tequila-sunrise",
-        name: "Tequila Sunrise",
-        description: "Klassischer Cocktail mit Tequila, Orangensaft und Grenadine",
-        image: "/images/cocktails/tequila_sunrise.jpg",
-        alcoholic: true,
-        ingredients: ["60ml Tequila", "220ml Orangensaft", "20ml Grenadine"],
-        recipe: [
-          { ingredientId: "tequila", amount: 60 },
-          { ingredientId: "orange-juice", amount: 220 },
-          { ingredientId: "grenadine", amount: 20 },
-        ],
-        isActive: true,
-      },
-      {
-        id: "touch-down",
-        name: "Touch Down",
-        description: "Fruchtiger Cocktail mit Braunem Rum, Triple Sec und Maracujasaft",
-        image: "/images/cocktails/touch_down.jpg",
-        alcoholic: true,
-        ingredients: [
-          "60ml Brauner Rum",
-          "40ml Triple Sec",
-          "140ml Maracujasaft",
-          "10ml Limettensaft",
-          "20ml Grenadine",
-        ],
-        recipe: [
-          { ingredientId: "dark-rum", amount: 60 },
-          { ingredientId: "triple-sec", amount: 40 },
-          { ingredientId: "passion-fruit-juice", amount: 140 },
-          { ingredientId: "lime-juice", amount: 10 },
-          { ingredientId: "grenadine", amount: 20 },
-        ],
-        isActive: true,
-      },
-      {
-        id: "zombie",
-        name: "Zombie",
-        description: "Starker, fruchtiger Cocktail mit Braunem Rum und verschiedenen Fruchtsäften",
-        image: "/images/cocktails/zombie.jpg",
-        alcoholic: true,
-        ingredients: [
-          "40ml Brauner Rum",
-          "30ml Triple Sec",
-          "80ml Ananassaft",
-          "50ml Orangensaft",
-          "20ml Limettensaft",
-          "50ml Maracujasaft",
-          "20ml Grenadine",
-        ],
-        recipe: [
-          { ingredientId: "dark-rum", amount: 40 },
-          { ingredientId: "triple-sec", amount: 30 },
-          { ingredientId: "pineapple-juice", amount: 80 },
-          { ingredientId: "orange-juice", amount: 50 },
-          { ingredientId: "lime-juice", amount: 20 },
-          { ingredientId: "passion-fruit-juice", amount: 50 },
-          { ingredientId: "grenadine", amount: 20 },
-        ],
-        isActive: true,
-      },
+      // Neue alkoholfreie Cocktails
       {
         id: "fruchtpunsch",
         name: "Fruchtpunsch",
         description: "Erfrischender Mix aus Ananas, Orange und Maracuja",
-        image: "/palm-glow.png",
+        image: "/palm-glow.png", // Stelle sicher, dass dieses Bild existiert
         alcoholic: false,
         ingredients: ["100ml Ananassaft", "100ml Orangensaft", "100ml Maracujasaft"],
         recipe: [
@@ -486,7 +369,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "suess-sauer-mix",
         name: "Süß-Sauer Mix",
         description: "Ausgewogene Mischung aus süßen und sauren Fruchtsäften",
-        image: "/vibrant-passion-fizz.png",
+        image: "/vibrant-passion-fizz.png", // Stelle sicher, dass dieses Bild existiert
         alcoholic: false,
         ingredients: ["150ml Ananassaft", "50ml Limettensaft", "20ml Grenadine"],
         recipe: [
@@ -500,7 +383,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "vanille-orange",
         name: "Vanille Orange",
         description: "Cremiger Orangensaft mit feiner Vanillenote",
-        image: "/citrus-swirl-sunset.png",
+        image: "/citrus-swirl-sunset.png", // Stelle sicher, dass dieses Bild existiert
         alcoholic: false,
         ingredients: ["200ml Orangensaft", "30ml Vanillesirup"],
         recipe: [
@@ -513,7 +396,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "maracuja-traum",
         name: "Maracuja Traum",
         description: "Exotischer Cocktail mit Maracuja und Vanille",
-        image: "/tropical-blend.png",
+        image: "/tropical-blend.png", // Stelle sicher, dass dieses Bild existiert
         alcoholic: false,
         ingredients: ["200ml Maracujasaft", "20ml Vanillesirup", "10ml Limettensaft"],
         recipe: [
@@ -527,7 +410,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         id: "grenadine-splash",
         name: "Grenadine Splash",
         description: "Fruchtig-süßer Mix mit Grenadine und Orangensaft",
-        image: "/bursting-berries.png",
+        image: "/bursting-berries.png", // Stelle sicher, dass dieses Bild existiert
         alcoholic: false,
         ingredients: ["150ml Orangensaft", "50ml Ananassaft", "30ml Grenadine"],
         recipe: [
@@ -538,7 +421,6 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         isActive: true,
       },
     ].map((cocktail) => {
-      // Ensure image paths are correct for additional cocktails too
       let image = cocktail.image || ""
       if (image && !image.startsWith("http") && !image.startsWith("/")) {
         image = `/${image}`
@@ -546,60 +428,62 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       return { ...cocktail, image }
     })
 
-    // Erstelle eine Map für die Cocktails, um Duplikate zu vermeiden
     const cocktailMap = new Map<string, Cocktail>()
 
-    // Füge zuerst die Standard-Cocktails hinzu (bereits normalisiert)
+    // 1. Füge deine Standard-Cocktails hinzu
     for (const cocktail of defaultCocktails) {
-      if (
-        cocktail.id === "malibu-ananas" || // Wird durch malibu-ananas-updated ersetzt
-        cocktail.id === "gin-tonic" ||
-        cocktail.id === "cuba-libre" || // Werden nicht mehr verwendet
-        !cocktail.alcoholic // Alkoholfreie werden durch additionalCocktails ersetzt
-      )
-        continue
-
-      const updatedCocktail = { ...cocktail }
-      updatedCocktail.ingredients = cocktail.ingredients.map((ingredient) =>
-        ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
-          ? ingredient.replace("Rum", "Brauner Rum")
-          : ingredient,
-      )
-      cocktailMap.set(cocktail.id, updatedCocktail)
-    }
-
-    // Füge die zusätzlichen Cocktails hinzu (bereits normalisiert)
-    for (const cocktail of additionalCocktails) {
+      // Filterung: Entferne den Standard 'malibu-ananas', da 'malibu-ananas-updated' ihn ersetzen soll.
+      if (cocktail.id === "malibu-ananas") {
+        // Wenn du die Originalversion von Malibu Ananas behalten willst und die neue zusätzlich,
+        // dann kommentiere diese if-Bedingung aus oder benenne 'malibu-ananas-updated' anders.
+        // Aktuell wird der Standard 'malibu-ananas' übersprungen, damit die 'updated' Version aus additionalCocktails greift.
+        // Wenn 'malibu-ananas-updated' nicht existiert oder anders heißt, wird der Standard hier hinzugefügt.
+        const updatedVersionExists = additionalCocktails.some((ac) => ac.id === "malibu-ananas-updated")
+        if (updatedVersionExists) continue // Überspringe Standard, wenn Update existiert
+      }
       cocktailMap.set(cocktail.id, cocktail)
     }
 
-    // Prüfe, ob die Datei für benutzerdefinierte Cocktails existiert
+    // 2. Füge zusätzliche Cocktails hinzu (diese können Standard-Cocktails überschreiben, wenn die ID gleich ist,
+    // oder neue hinzufügen, wenn die ID einzigartig ist)
+    for (const cocktail of additionalCocktails) {
+      // Wenn die ID "malibu-ananas-updated" ist, setze sie mit der ID "malibu-ananas" in die Map,
+      // um den Standard-Cocktail effektiv zu überschreiben.
+      if (cocktail.id === "malibu-ananas-updated") {
+        cocktailMap.set("malibu-ananas", { ...cocktail, id: "malibu-ananas", name: "Malibu Ananas" }) // Name ggf. anpassen
+      } else {
+        cocktailMap.set(cocktail.id, cocktail)
+      }
+    }
+
+    // 3. Lade benutzerdefinierte Cocktails und überschreibe ggf. vorhandene
     if (fs.existsSync(COCKTAILS_PATH)) {
       const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
       const customCocktailsData: any[] = JSON.parse(data)
 
       for (const cocktailData of customCocktailsData) {
-        if (!cocktailData.alcoholic && !additionalCocktails.find((ac) => ac.id === cocktailData.id)) continue // Nur alkoholische oder nicht bereits ersetzte alkoholfreie
-
         let image = cocktailData.image || ""
         if (image && !image.startsWith("http") && !image.startsWith("/")) {
           image = `/${image}`
         }
+        const updatedIngredientsCustom = (cocktailData.ingredients || []).map((ingredient: string) =>
+          ingredient.toLowerCase().includes(" rum") &&
+          !ingredient.toLowerCase().includes("brauner rum") &&
+          !ingredient.toLowerCase().includes("weißer rum")
+            ? ingredient.replace(/rum/gi, "Brauner Rum")
+            : ingredient,
+        )
 
         const updatedCocktail: Cocktail = {
           ...cocktailData,
           image,
+          ingredients: updatedIngredientsCustom,
           isActive: cocktailData.isActive === undefined ? true : cocktailData.isActive,
-          ingredients: cocktailData.ingredients.map((ingredient: string) =>
-            ingredient.includes("Rum") && !ingredient.includes("Brauner Rum")
-              ? ingredient.replace("Rum", "Brauner Rum")
-              : ingredient,
-          ),
         }
-        cocktailMap.set(cocktailData.id, updatedCocktail)
+        cocktailMap.set(cocktailData.id, updatedCocktail) // Überschreibt Standard oder Zusätzliche mit gleicher ID
       }
     }
-    // console.log("Final cocktail list from getAllCocktails:", Array.from(cocktailMap.values()).map(c => ({id: c.id, name: c.name, isActive: c.isActive, image: c.image})));
+    // console.log("Final cocktail list from getAllCocktails:", Array.from(cocktailMap.values()).map(c => ({id: c.id, name: c.name, isActive: c.isActive})));
     return Array.from(cocktailMap.values())
   } catch (error) {
     console.error("Fehler beim Laden der Cocktails:", error)
@@ -616,7 +500,6 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
 export async function saveRecipe(cocktail: Cocktail) {
   try {
     // console.log("Speichere Rezept:", cocktail)
-
     fs.mkdirSync(path.dirname(COCKTAILS_PATH), { recursive: true })
     let customCocktails: Cocktail[] = []
     if (fs.existsSync(COCKTAILS_PATH)) {
@@ -629,7 +512,6 @@ export async function saveRecipe(cocktail: Cocktail) {
 
     const index = customCocktails.findIndex((c) => c.id === cocktail.id)
     const cocktailToSave: Cocktail = {
-      // Ensure the cocktail being saved has all properties
       ...cocktail,
       isActive: cocktail.isActive === undefined ? true : cocktail.isActive,
       image:
