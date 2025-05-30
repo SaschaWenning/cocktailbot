@@ -50,8 +50,9 @@ export default function Home() {
   const [lowIngredients, setLowIngredients] = useState<string[]>([])
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
-  const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
+  const [calibrationUnlocked, setCalibrationUnlocked] = useState(false)
 
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
@@ -154,8 +155,7 @@ export default function Home() {
     if (passwordAction === "edit") {
       setShowRecipeEditor(true)
     } else if (passwordAction === "calibration") {
-      setIsCalibrationLocked(false)
-      setActiveTab("calibration")
+      setCalibrationUnlocked(true)
     }
   }
 
@@ -262,6 +262,16 @@ export default function Home() {
       setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
       setTimeout(() => setIsMaking(false), 3000)
     }
+  }
+
+  const handleCancelCocktail = () => {
+    setIsCancelling(true)
+    setIsMaking(false)
+    setProgress(0)
+    setStatusMessage("")
+    setErrorMessage(null)
+    setSelectedCocktail(null)
+    setIsCancelling(false)
   }
 
   // Berechne das aktuelle Gesamtvolumen des ausgewählten Cocktails
@@ -523,11 +533,22 @@ export default function Home() {
                 </Alert>
               )}
 
-              {showSuccess && (
+              {showSuccess ? (
                 <div className="flex justify-center">
                   <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-3">
                     <Check className="h-8 w-8 text-[hsl(var(--cocktail-success))]" />
                   </div>
+                </div>
+              ) : (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelCocktail}
+                    disabled={isCancelling}
+                    className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  >
+                    {isCancelling ? "Abbrechen..." : "Abbrechen"}
+                  </Button>
                 </div>
               )}
             </div>
@@ -622,7 +643,10 @@ export default function Home() {
       case "cleaning":
         return <PumpCleaning pumpConfig={pumpConfig} />
       case "calibration":
-        return isCalibrationLocked ? (
+        if (calibrationUnlocked) {
+          return <PumpCalibration pumpConfig={pumpConfig} onConfigUpdate={loadPumpConfig} />
+        }
+        return (
           <div className="text-center py-8">
             <Lock className="h-12 w-12 mx-auto mb-4 text-[hsl(var(--cocktail-warning))]" />
             <h2 className="text-xl font-semibold mb-2 text-[hsl(var(--cocktail-text))]">
@@ -638,8 +662,6 @@ export default function Home() {
               Passwort eingeben
             </Button>
           </div>
-        ) : (
-          <PumpCalibration pumpConfig={pumpConfig} onConfigUpdate={loadPumpConfig} />
         )
       default:
         return null
@@ -716,7 +738,12 @@ export default function Home() {
               Reinigung
             </Button>
             <Button
-              onClick={() => setActiveTab("calibration")}
+              onClick={() => {
+                if (activeTab !== "calibration") {
+                  setCalibrationUnlocked(false)
+                }
+                setActiveTab("calibration")
+              }}
               className={`flex-1 ${
                 activeTab === "calibration"
                   ? "bg-[hsl(var(--cocktail-primary))] text-black"

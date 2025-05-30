@@ -68,8 +68,19 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     setShowKeyboard(true)
   }
 
-  const handleKeyboardInput = (value: string) => {
-    setInputValue(value)
+  const handleKeyPress = (key: string) => {
+    if (activeInput?.startsWith("amount-") && key === "." && inputValue.includes(".")) {
+      return // Verhindere mehrere Dezimalpunkte
+    }
+    setInputValue((prev) => prev + key)
+  }
+
+  const handleBackspace = () => {
+    setInputValue((prev) => prev.slice(0, -1))
+  }
+
+  const handleClear = () => {
+    setInputValue("")
   }
 
   const handleKeyboardConfirm = () => {
@@ -377,11 +388,13 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
               />
             </div>
             <VirtualKeyboard
-              onInput={handleKeyboardInput}
+              onKeyPress={handleKeyPress}
+              onBackspace={handleBackspace}
+              onClear={handleClear}
               onConfirm={handleKeyboardConfirm}
               onCancel={handleKeyboardCancel}
-              currentValue={inputValue}
-              inputType={activeInput?.startsWith("amount-") ? "numeric" : "text"}
+              allowDecimal={activeInput?.startsWith("amount-")}
+              numericOnly={activeInput?.startsWith("amount-")}
             />
           </div>
         </div>
