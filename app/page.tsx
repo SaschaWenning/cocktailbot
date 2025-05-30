@@ -4,11 +4,10 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
-import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock } from "lucide-react"
+import { makeCocktail, getPumpConfig, /* saveRecipe, */ deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine" // saveRecipe removed
+import { AlertCircle, ChevronLeft, ChevronRight, Trash2, Check, Lock } from "lucide-react" // Edit, Plus removed
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
-// cocktails as defaultCocktails wurde entfernt, da getAllCocktails jetzt die Quelle ist
 import { getIngredientLevels, initializeNewIngredientLevel } from "@/lib/ingredient-level-service"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import type { PumpConfig } from "@/types/pump"
@@ -20,8 +19,8 @@ import PumpCalibration from "@/components/pump-calibration"
 import IngredientLevels from "@/components/ingredient-levels"
 import ShotSelector from "@/components/shot-selector"
 import PasswordModal from "@/components/password-modal"
-import RecipeEditor from "@/components/recipe-editor"
-import RecipeCreator from "@/components/recipe-creator"
+// import RecipeEditor from "@/components/recipe-editor" // Removed
+// import RecipeCreator from "@/components/recipe-creator" // Removed
 import DeleteConfirmation from "@/components/delete-confirmation"
 import { Progress } from "@/components/ui/progress"
 import PumpPriming from "@/components/pump-priming"
@@ -40,10 +39,10 @@ export default function Home() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [activeTab, setActiveTab] = useState("cocktails")
   const [showPasswordModal, setShowPasswordModal] = useState(false)
-  const [showRecipeEditor, setShowRecipeEditor] = useState(false)
-  const [showRecipeCreator, setShowRecipeCreator] = useState(false)
+  // const [showRecipeEditor, setShowRecipeEditor] = useState(false) // Removed
+  // const [showRecipeCreator, setShowRecipeCreator] = useState(false) // Removed
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [cocktailToEdit, setCocktailToEdit] = useState<string | null>(null)
+  // const [cocktailToEdit, setCocktailToEdit] = useState<string | null>(null) // Removed
   const [cocktailToDelete, setCocktailToDelete] = useState<Cocktail | null>(null)
   const [cocktailsData, setCocktailsData] = useState<Cocktail[]>([]) // Initial leer
   const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>([])
@@ -52,7 +51,7 @@ export default function Home() {
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
   const [isCancelling, setIsCancelling] = useState(false)
-  const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
+  const [passwordAction, setPasswordAction] = useState<"calibration">("calibration") // Simplified, "edit" path removed
   const [calibrationUnlocked, setCalibrationUnlocked] = useState(false)
   const [showInactiveCocktails, setShowInactiveCocktails] = useState(false) // Neuer State
 
@@ -151,11 +150,7 @@ export default function Home() {
     setSelectedCocktail(cocktailId)
   }
 
-  const handleEditClick = (cocktailId: string) => {
-    setCocktailToEdit(cocktailId)
-    setPasswordAction("edit")
-    setShowPasswordModal(true)
-  }
+  // handleEditClick function removed
 
   const handleDeleteClick = (cocktailId: string) => {
     const cocktail = cocktailsData.find((c) => c.id === cocktailId)
@@ -166,54 +161,22 @@ export default function Home() {
   }
 
   const handleCalibrationClick = () => {
-    setPasswordAction("calibration")
+    setPasswordAction("calibration") // Only action left for password
     setShowPasswordModal(true)
   }
 
   const handlePasswordSuccess = () => {
     setShowPasswordModal(false)
-    if (passwordAction === "edit") {
-      setShowRecipeEditor(true)
-    } else if (passwordAction === "calibration") {
+    // The "edit" action path is removed.
+    // passwordAction will always be "calibration" when this is called from a path that still exists.
+    if (passwordAction === "calibration") {
       setCalibrationUnlocked(true)
     }
   }
 
-  const handleRecipeSave = async (updatedCocktail: Cocktail) => {
-    try {
-      await saveRecipe(updatedCocktail)
-      // Lade alle Cocktails neu, um die Änderungen (inkl. isActive) zu reflektieren
-      await loadCocktails()
-    } catch (error) {
-      console.error("Fehler beim Speichern des Rezepts:", error)
-      setErrorMessage("Fehler beim Speichern des Rezepts.")
-    }
-  }
-
-  const handleNewRecipeSave = async (newCocktail: Cocktail) => {
-    try {
-      // Stelle sicher, dass neue Cocktails standardmäßig aktiv sind
-      const cocktailToSave = {
-        ...newCocktail,
-        isActive: newCocktail.isActive === undefined ? true : newCocktail.isActive,
-      }
-      await saveRecipe(cocktailToSave)
-      // Lade alle Cocktails neu
-      await loadCocktails()
-    } catch (error) {
-      console.error("Fehler beim Speichern des neuen Rezepts:", error)
-      setErrorMessage("Fehler beim Speichern des neuen Rezepts.")
-    }
-  }
-
-  const handleRequestDelete = (cocktailId: string) => {
-    const cocktail = cocktailsData.find((c) => c.id === cocktailId)
-    if (cocktail) {
-      setCocktailToDelete(cocktail)
-      setShowRecipeEditor(false) // Editor schließen, bevor Bestätigungsdialog kommt
-      setShowDeleteConfirmation(true)
-    }
-  }
+  // handleRecipeSave function removed
+  // handleNewRecipeSave function removed
+  // handleRequestDelete (from editor) function removed - keep main handleDeleteClick
 
   const handleDeleteConfirm = async () => {
     if (!cocktailToDelete) return
@@ -278,7 +241,7 @@ export default function Home() {
         setSelectedCocktail(null)
       }, 3000)
     } catch (error) {
-      let intervalId: NodeJS.Timeout | undefined
+      let intervalId: NodeJS.Timeout | undefined // ensure intervalId is declared if used in catch
       if (intervalId) clearInterval(intervalId)
       setProgress(0)
       setStatusMessage("Fehler bei der Zubereitung!")
@@ -435,19 +398,9 @@ export default function Home() {
                     Abbrechen
                   </Button>
                 </div>
-                <div className="flex justify-between mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleEditClick(cocktail.id)
-                    }}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Bearbeiten
-                  </Button>
+                <div className="flex justify-end mt-4">
+                  {" "}
+                  {/* Edit button removed, only delete for custom */}
                   {isCustomRecipe && (
                     <Button
                       variant="destructive"
@@ -573,15 +526,7 @@ export default function Home() {
                     Deaktivierte anzeigen
                   </Label>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowRecipeCreator(true)}
-                  className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Neues Rezept
-                </Button>
+                {/* "New Recipe" button removed */}
               </div>
             </div>
             {alcoholicCocktails.length === 0 && (
@@ -623,15 +568,7 @@ export default function Home() {
                     Deaktivierte anzeigen
                   </Label>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowRecipeCreator(true)}
-                  className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Neues Rezept
-                </Button>
+                {/* "New Recipe" button removed */}
               </div>
             </div>
             {virginCocktails.length === 0 && (
@@ -822,19 +759,8 @@ export default function Home() {
         onSuccess={handlePasswordSuccess}
       />
 
-      <RecipeEditor
-        isOpen={showRecipeEditor}
-        onClose={() => setShowRecipeEditor(false)}
-        cocktail={cocktailToEdit ? cocktailsData.find((c) => c.id === cocktailToEdit) || null : null}
-        onSave={handleRecipeSave}
-        onRequestDelete={handleRequestDelete}
-      />
-
-      <RecipeCreator
-        isOpen={showRecipeCreator}
-        onClose={() => setShowRecipeCreator(false)}
-        onSave={handleNewRecipeSave}
-      />
+      {/* RecipeEditor instance removed */}
+      {/* RecipeCreator instance removed */}
 
       <DeleteConfirmation
         isOpen={showDeleteConfirmation}
