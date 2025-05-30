@@ -21,7 +21,7 @@ import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Trash2, Plus, Minus, FolderOpen, XIcon, EyeOff, Eye } from "lucide-react"
 import VirtualKeyboard from "./virtual-keyboard"
 import FileBrowser from "./file-browser"
-import { Switch } from "@/components/ui/switch" // Import Switch
+import { Switch } from "@/components/ui/switch"
 
 interface RecipeEditorProps {
   isOpen: boolean
@@ -35,47 +35,45 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
   const [imageUrl, setImageUrl] = useState("")
   const [description, setDescription] = useState("")
-  const [isActive, setIsActive] = useState(true) // Neuer State für Aktiv/Deaktiviert
+  const [isActive, setIsActive] = useState(true)
+  const [cocktailName, setCocktailName] = useState("") // Für den Titel
   const [saving, setSaving] = useState(false)
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [activeInput, setActiveInput] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState("")
   const [showFileBrowser, setShowFileBrowser] = useState(false)
-  const [errors, setErrors] = useState<{
-    imageUrl?: string
-  }>({})
+  const [errors, setErrors] = useState<{ imageUrl?: string }>({})
 
   useEffect(() => {
     if (cocktail) {
-      setRecipe([...cocktail.recipe])
+      // console.log("RecipeEditor received cocktail:", JSON.stringify(cocktail, null, 2));
+      setRecipe(cocktail.recipe ? [...cocktail.recipe] : []) // Sicherstellen, dass recipe ein Array ist
 
       let imagePath = cocktail.image || ""
       if (imagePath.startsWith("/placeholder")) {
         setImageUrl("")
       } else {
         imagePath = imagePath.split("?")[0]
-        if (imagePath && !imagePath.startsWith("http")) {
-          if (!imagePath.startsWith("/")) {
-            imagePath = `/${imagePath}`
-          }
+        if (imagePath && !imagePath.startsWith("http") && !imagePath.startsWith("/")) {
+          imagePath = `/${imagePath}`
         }
         setImageUrl(imagePath)
       }
-      setDescription(cocktail.description)
-      setIsActive(cocktail.isActive === undefined ? true : cocktail.isActive) // isActive initialisieren
-      console.log(`Editor loaded for ${cocktail.name} with image path: ${imagePath}, isActive: ${cocktail.isActive}`)
+      setDescription(cocktail.description || "")
+      setIsActive(cocktail.isActive === undefined ? true : cocktail.isActive)
+      setCocktailName(cocktail.name || "Unbenannter Cocktail")
     } else {
-      // Reset state when no cocktail is provided (e.g. dialog closes)
       setRecipe([])
       setImageUrl("")
       setDescription("")
       setIsActive(true)
+      setCocktailName("Rezept bearbeiten")
     }
   }, [cocktail])
 
   const handleInputFocus = useCallback((inputType: string, currentValue = "") => {
     setActiveInput(inputType)
-    setInputValue(currentValue)
+    setInputValue(String(currentValue)) // Sicherstellen, dass es ein String ist
     setShowKeyboard(true)
   }, [])
 
@@ -117,8 +115,13 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       const amount = Number.parseFloat(inputValue)
       if (!isNaN(amount) && amount >= 0) {
         setRecipe((prevRecipe) => {
-          const updatedRecipe = [...prevRecipe]
-          updatedRecipe[index] = { ...updatedRecipe[index], amount }
+          const updatedRecipe = prevRecipe ? [...prevRecipe] : []
+          if (updatedRecipe[index]) {
+            updatedRecipe[index] = { ...updatedRecipe[index], amount }
+          } else {
+            // Sollte nicht passieren, wenn recipe korrekt initialisiert wird
+            console.warn("Versuch, Menge für nicht existierendes Rezept-Item zu setzen")
+          }
           return updatedRecipe
         })
       }
@@ -137,29 +140,33 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const handleIngredientChange = useCallback((index: number, ingredientId: string) => {
     setRecipe((prevRecipe) => {
-      const updatedRecipe = [...prevRecipe]
-      updatedRecipe[index] = { ...updatedRecipe[index], ingredientId }
+      const updatedRecipe = prevRecipe ? [...prevRecipe] : []
+      if (updatedRecipe[index]) {
+        updatedRecipe[index] = { ...updatedRecipe[index], ingredientId }
+      }
       return updatedRecipe
     })
   }, [])
 
   const addIngredient = useCallback(() => {
+    const currentRecipe = recipe || []
     const availableIngredients = ingredients.filter(
-      (ingredient) => !recipe.some((item) => item.ingredientId === ingredient.id),
+      (ingredient) => !currentRecipe.some((item) => item.ingredientId === ingredient.id),
     )
 
     if (availableIngredients.length > 0) {
-      setRecipe((prevRecipe) => [...prevRecipe, { ingredientId: availableIngredients[0].id, amount: 30 }])
+      setRecipe((prevRecipe = []) => [...prevRecipe, { ingredientId: availableIngredients[0].id, amount: 30 }])
     }
   }, [recipe])
 
   const removeIngredient = useCallback(
     (index: number) => {
-      if (recipe.length > 1) {
-        setRecipe((prevRecipe) => prevRecipe.filter((_, i) => i !== index))
+      const currentRecipe = recipe || []
+      if (currentRecipe.length > 1) {
+        setRecipe((prevRecipe = []) => prevRecipe.filter((_, i) => i !== index))
       }
     },
-    [recipe.length],
+    [recipe],
   )
 
   const isValidUrl = useCallback((url: string) => {
@@ -187,14 +194,15 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
     setSaving(true)
     try {
-      const updatedIngredients = updateIngredientsList(recipe)
+      const currentRecipe = recipe || []
+      const updatedIngredients = updateIngredientsList(currentRecipe)
       const updatedCocktail: Cocktail = {
-        ...cocktail,
+        ...cocktail, // Behält ID und Name des ursprünglichen Cocktails
         description: description,
         image: imageUrl || `/placeholder.svg?height=200&width=400&query=${encodeURIComponent(cocktail.name)}`,
-        recipe: recipe,
+        recipe: currentRecipe,
         ingredients: updatedIngredients,
-        isActive: isActive, // isActive Wert speichern
+        isActive: isActive,
       }
 
       await saveRecipe(updatedCocktail)
@@ -202,6 +210,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       onClose()
     } catch (error) {
       console.error("Fehler beim Speichern des Rezepts:", error)
+      // Hier könnte eine Fehlermeldung für den Benutzer angezeigt werden
     } finally {
       setSaving(false)
     }
@@ -219,7 +228,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const isNumericInput = activeInput?.startsWith("amount-") ?? false
 
-  if (!cocktail) return null
+  if (!isOpen || !cocktail) return null // Dialog nicht rendern, wenn nicht offen oder kein Cocktail
 
   return (
     <>
@@ -244,7 +253,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             }}
           >
             <DialogHeader className="flex flex-row justify-between items-center">
-              <DialogTitle>Rezept bearbeiten: {cocktail.name}</DialogTitle>
+              <DialogTitle>Rezept bearbeiten: {cocktailName}</DialogTitle>
               <DialogClose asChild>
                 <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-400 hover:text-white">
                   <XIcon className="h-5 w-5" />
@@ -253,7 +262,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             </DialogHeader>
 
             <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
-              {/* Aktiv/Deaktiviert Schalter */}
               <div className="flex items-center justify-between p-3 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]">
                 <Label htmlFor="isActive" className="text-white flex items-center">
                   {isActive ? (
@@ -321,7 +329,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                     size="sm"
                     onClick={addIngredient}
                     className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-                    disabled={recipe.length >= ingredients.length}
+                    disabled={(recipe || []).length >= ingredients.length}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Zutat hinzufügen
@@ -329,9 +337,9 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 </div>
               </div>
 
-              {recipe.map((item, index) => (
+              {(recipe || []).map((item, index) => (
                 <div
-                  key={`${item.ingredientId}-${index}`}
+                  key={`${item.ingredientId}-${index}`} // Besser wäre eine stabilere ID, falls vorhanden
                   className="grid grid-cols-12 gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]"
                 >
                   <div className="col-span-6">
@@ -354,7 +362,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                   </div>
                   <div className="col-span-3">
                     <Input
-                      type="text"
+                      type="text" // Bleibt text wegen virtueller Tastatur
                       value={item.amount}
                       onClick={() => handleInputFocus(`amount-${index}`, item.amount.toString())}
                       readOnly
@@ -368,7 +376,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                       size="sm"
                       variant="destructive"
                       onClick={() => removeIngredient(index)}
-                      disabled={recipe.length <= 1}
+                      disabled={(recipe || []).length <= 1}
                       className="h-8 w-8 p-0"
                     >
                       <Minus className="h-4 w-4" />
