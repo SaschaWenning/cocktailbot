@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,173 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     imageUrl?: string
   }>({})
 
+  const handleInputFocus = useCallback((inputType: string, currentValue = "") => {
+    setActiveInput(inputType)
+    setInputValue(currentValue)
+    setShowKeyboard(true)
+  }, [])
+
+  const handleKeyPress = useCallback(
+    (key: string) => {
+      if (activeInput?.startsWith("amount-") && key === "." && inputValue.includes(".")) {
+        return // Verhindere mehrere Dezimalpunkte
+      }
+      setInputValue((prev) => prev + key)
+    },
+    [activeInput, inputValue],
+  )
+
+  const handleBackspace = useCallback(() => {
+    setInputValue((prev) => prev.slice(0, -1))
+  }, [])
+
+  const handleClear = useCallback(() => {
+    setInputValue("")
+  }, [])
+
+  const updateIngredientsList = useCallback((newRecipe: { ingredientId: string; amount: number }[]) => {
+    return newRecipe.map((item) => {
+      const ingredient = ingredients.find((i) => i.id === item.ingredientId)
+      const ingredientName = ingredient ? ingredient.name : item.ingredientId
+      return `${item.amount}ml ${ingredientName}`
+    })
+  }, [])
+
+  const handleKeyboardConfirm = useCallback(() => {
+    if (!activeInput) return
+
+    if (activeInput === "description") {
+      setDescription(inputValue)
+    } else if (activeInput === "imageUrl") {
+      setImageUrl(inputValue)
+    } else if (activeInput.startsWith("amount-")) {
+      const index = Number.parseInt(activeInput.replace("amount-", ""))
+      const amount = Number.parseFloat(inputValue)
+      if (!isNaN(amount) && amount >= 0) {
+        setRecipe((prevRecipe) => {
+          const updatedRecipe = [...prevRecipe]
+          updatedRecipe[index] = { ...updatedRecipe[index], amount }
+          return updatedRecipe
+        })
+      }
+    }
+
+    setShowKeyboard(false)
+    setActiveInput(null)
+    setInputValue("")
+  }, [activeInput, inputValue])
+
+  const handleKeyboardCancel = useCallback(() => {
+    setShowKeyboard(false)
+    setActiveInput(null)
+    setInputValue("")
+  }, [])
+
+  const handleAmountChange = useCallback((index: number, amount: number) => {
+    if (isNaN(amount) || amount < 0) return
+
+    setRecipe((prevRecipe) => {
+      const updatedRecipe = [...prevRecipe]
+      updatedRecipe[index] = { ...updatedRecipe[index], amount }
+      return updatedRecipe
+    })
+  }, [])
+
+  const handleIngredientChange = useCallback((index: number, ingredientId: string) => {
+    setRecipe((prevRecipe) => {
+      const updatedRecipe = [...prevRecipe]
+      updatedRecipe[index] = { ...updatedRecipe[index], ingredientId }
+      return updatedRecipe
+    })
+  }, [])
+
+  const addIngredient = useCallback(() => {
+    const availableIngredients = ingredients.filter(
+      (ingredient) => !recipe.some((item) => item.ingredientId === ingredient.id),
+    )
+
+    if (availableIngredients.length > 0) {
+      setRecipe((prevRecipe) => [...prevRecipe, { ingredientId: availableIngredients[0].id, amount: 30 }])
+    }
+  }, [recipe])
+
+  const removeIngredient = useCallback(
+    (index: number) => {
+      if (recipe.length > 1) {
+        setRecipe((prevRecipe) => prevRecipe.filter((_, i) => i !== index))
+      }
+    },
+    [recipe.length],
+  )
+
+  const isValidUrl = useCallback((url: string) => {
+    if (!url) return true // Leere URL ist erlaubt
+
+    // Lokale Pfade sind erlaubt
+    if (url.startsWith("/")) return true
+
+    try {
+      new URL(url)
+      return true
+    } catch (e) {
+      return false
+    }
+  }, [])
+
+  const validateForm = useCallback(() => {
+    const newErrors: { imageUrl?: string } = {}
+
+    if (imageUrl && !isValidUrl(imageUrl)) {
+      newErrors.imageUrl = "Bitte gib eine gültige URL ein"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }, [imageUrl, isValidUrl])
+
+  const handleSave = useCallback(async () => {
+    if (!cocktail || !validateForm()) return
+
+    setSaving(true)
+    try {
+      // Erstelle die aktualisierte Zutaten-Textliste basierend auf dem aktuellen Rezept
+      const updatedIngredients = updateIngredientsList(recipe)
+
+      const updatedCocktail: Cocktail = {
+        ...cocktail,
+        description: description,
+        image: imageUrl || "/placeholder.svg?height=200&width=400",
+        recipe: recipe,
+        ingredients: updatedIngredients, // Aktualisierte Zutaten-Textliste
+      }
+
+      console.log("Speichere Cocktail mit aktualisierten Zutaten:", {
+        name: updatedCocktail.name,
+        ingredients: updatedCocktail.ingredients,
+        recipe: updatedCocktail.recipe,
+      })
+
+      await saveRecipe(updatedCocktail)
+      onSave(updatedCocktail)
+      onClose()
+    } catch (error) {
+      console.error("Fehler beim Speichern des Rezepts:", error)
+    } finally {
+      setSaving(false)
+    }
+  }, [cocktail, validateForm, recipe, description, imageUrl, updateIngredientsList, onSave, onClose])
+
+  const handleDeleteRequest = useCallback(() => {
+    if (!cocktail) return
+    onRequestDelete(cocktail.id)
+  }, [cocktail, onRequestDelete])
+
+  const handleFileSelect = useCallback((path: string) => {
+    setImageUrl(path)
+    setShowFileBrowser(false)
+    console.log("Ausgewähltes Bild:", path)
+  }, [])
+
   useEffect(() => {
     if (cocktail) {
       setRecipe([...cocktail.recipe])
@@ -60,165 +227,14 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     }
   }, [cocktail])
 
-  if (!cocktail) return null
-
-  const handleInputFocus = (inputType: string, currentValue = "") => {
-    setActiveInput(inputType)
-    setInputValue(currentValue)
-    setShowKeyboard(true)
-  }
-
-  const handleKeyPress = (key: string) => {
-    if (activeInput?.startsWith("amount-") && key === "." && inputValue.includes(".")) {
-      return // Verhindere mehrere Dezimalpunkte
-    }
-    setInputValue((prev) => prev + key)
-  }
-
-  const handleBackspace = () => {
-    setInputValue((prev) => prev.slice(0, -1))
-  }
-
-  const handleClear = () => {
-    setInputValue("")
-  }
-
-  const handleKeyboardConfirm = () => {
-    if (!activeInput) return
-
-    if (activeInput === "description") {
-      setDescription(inputValue)
-    } else if (activeInput === "imageUrl") {
-      setImageUrl(inputValue)
-    } else if (activeInput.startsWith("amount-")) {
-      const index = Number.parseInt(activeInput.replace("amount-", ""))
-      const amount = Number.parseFloat(inputValue)
-      if (!isNaN(amount) && amount >= 0) {
-        handleAmountChange(index, amount)
-      }
-    }
-
-    setShowKeyboard(false)
-    setActiveInput(null)
-    setInputValue("")
-  }
-
-  const handleKeyboardCancel = () => {
-    setShowKeyboard(false)
-    setActiveInput(null)
-    setInputValue("")
-  }
-
-  const handleAmountChange = (index: number, amount: number) => {
-    if (isNaN(amount) || amount < 0) return
-
-    const updatedRecipe = [...recipe]
-    updatedRecipe[index] = { ...updatedRecipe[index], amount }
-    setRecipe(updatedRecipe)
-  }
-
-  const handleIngredientChange = (index: number, ingredientId: string) => {
-    const updatedRecipe = [...recipe]
-    updatedRecipe[index] = { ...updatedRecipe[index], ingredientId }
-    setRecipe(updatedRecipe)
-  }
-
-  const addIngredient = () => {
-    const availableIngredients = ingredients.filter(
-      (ingredient) => !recipe.some((item) => item.ingredientId === ingredient.id),
-    )
-
-    if (availableIngredients.length > 0) {
-      setRecipe([...recipe, { ingredientId: availableIngredients[0].id, amount: 30 }])
-    }
-  }
-
-  const removeIngredient = (index: number) => {
-    if (recipe.length > 1) {
-      const updatedRecipe = recipe.filter((_, i) => i !== index)
-      setRecipe(updatedRecipe)
-    }
-  }
-
-  const isValidUrl = (url: string) => {
-    if (!url) return true // Leere URL ist erlaubt
-
-    // Lokale Pfade sind erlaubt
-    if (url.startsWith("/")) return true
-
-    try {
-      new URL(url)
-      return true
-    } catch (e) {
-      return false
-    }
-  }
-
-  const validateForm = () => {
-    const newErrors: { imageUrl?: string } = {}
-
-    if (imageUrl && !isValidUrl(imageUrl)) {
-      newErrors.imageUrl = "Bitte gib eine gültige URL ein"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSave = async () => {
-    if (!cocktail || !validateForm()) return
-
-    setSaving(true)
-    try {
-      // Erstelle die aktualisierte Zutaten-Textliste basierend auf dem aktuellen Rezept
-      const updatedIngredients = recipe.map((item) => {
-        const ingredient = ingredients.find((i) => i.id === item.ingredientId)
-        const ingredientName = ingredient ? ingredient.name : item.ingredientId
-        return `${item.amount}ml ${ingredientName}`
-      })
-
-      const updatedCocktail: Cocktail = {
-        ...cocktail,
-        description: description,
-        image: imageUrl || "/placeholder.svg?height=200&width=400",
-        recipe: recipe,
-        ingredients: updatedIngredients, // Aktualisierte Zutaten-Textliste
-      }
-
-      console.log("Speichere Cocktail mit aktualisierten Zutaten:", {
-        name: updatedCocktail.name,
-        ingredients: updatedCocktail.ingredients,
-        recipe: updatedCocktail.recipe,
-      })
-
-      await saveRecipe(updatedCocktail)
-      onSave(updatedCocktail)
-      onClose()
-    } catch (error) {
-      console.error("Fehler beim Speichern des Rezepts:", error)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDeleteRequest = () => {
-    if (!cocktail) return
-    onRequestDelete(cocktail.id)
-  }
-
-  const getIngredientName = (id: string) => {
-    const ingredient = ingredients.find((i) => i.id === id)
-    return ingredient ? ingredient.name : id
-  }
-
-  const handleFileSelect = (path: string) => {
-    setImageUrl(path)
-    setShowFileBrowser(false)
-    console.log("Ausgewähltes Bild:", path)
-  }
-
   // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
-  const isCustomRecipe = cocktail.id.startsWith("custom-")
+  const isCustomRecipe = cocktail?.id.startsWith("custom-") ?? false
+
+  // Bestimme den Tastatur-Typ basierend auf dem aktiven Input
+  const isNumericInput = activeInput?.startsWith("amount-") ?? false
+  const keyboardType = isNumericInput ? "numeric" : "text"
+
+  if (!cocktail) return null
 
   return (
     <>
@@ -289,7 +305,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
             {recipe.map((item, index) => (
               <div
-                key={index}
+                key={`${item.ingredientId}-${index}`}
                 className="grid grid-cols-12 gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]"
               >
                 <div className="col-span-6">
@@ -393,8 +409,8 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
               onClear={handleClear}
               onConfirm={handleKeyboardConfirm}
               onCancel={handleKeyboardCancel}
-              allowDecimal={activeInput?.startsWith("amount-")}
-              numericOnly={activeInput?.startsWith("amount-")}
+              allowDecimal={isNumericInput}
+              numericOnly={isNumericInput}
             />
           </div>
         </div>
