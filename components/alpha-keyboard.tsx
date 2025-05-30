@@ -38,7 +38,7 @@ const AlphaKeyboard: React.FC<AlphaKeyboardProps> = ({ onKeyPress, onBackspace, 
           {row.map((key) => (
             <Button
               key={key}
-              onClick={() => onKeyPress(key)}
+              onClick={() => onKeyPress(key.toLowerCase())}
               className="h-10 bg-gray-200 text-gray-800 hover:bg-gray-300 px-3"
             >
               {key}
