@@ -24,7 +24,11 @@ export default function AddIngredientDialog({ isOpen, onClose, onIngredientAdded
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Keyboard state - ähnlich wie in RecipeCreator
   const [showKeyboard, setShowKeyboard] = useState(false)
+  const [activeInput, setActiveInput] = useState<HTMLInputElement | null>(null)
+  const [inputValue, setInputValue] = useState("")
+
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -33,8 +37,9 @@ export default function AddIngredientDialog({ isOpen, onClose, onIngredientAdded
       setAlcoholic(false)
       setError(null)
       setIsLoading(false)
-      // Wichtig: Tastatur nicht automatisch öffnen, erst bei Fokus
       setShowKeyboard(false)
+      setActiveInput(null)
+      setInputValue("")
     }
   }, [isOpen])
 
@@ -48,7 +53,7 @@ export default function AddIngredientDialog({ isOpen, onClose, onIngredientAdded
     try {
       const newIngredient = await saveCustomIngredient({ name: name.trim(), alcoholic })
       onIngredientAdded(newIngredient)
-      onClose() // Close dialog on success
+      onClose()
     } catch (err) {
       console.error("Failed to save ingredient:", err)
       setError(err instanceof Error ? err.message : "Ein unbekannter Fehler ist aufgetreten.")
@@ -57,29 +62,32 @@ export default function AddIngredientDialog({ isOpen, onClose, onIngredientAdded
     }
   }
 
-  const handleNameFocus = () => {
+  // Input focus handler - ähnlich wie in RecipeCreator
+  const handleInputFocus = (input: HTMLInputElement) => {
+    setActiveInput(input)
+    setInputValue(input.value)
     setShowKeyboard(true)
   }
 
   const handleKeyboardClose = () => {
     setShowKeyboard(false)
-    // Optional: Fokus zurück auf das Input-Feld setzen, nachdem die Tastatur geschlossen wurde.
-    // nameInputRef.current?.focus()
+    setActiveInput(null)
   }
 
   const handleKeyboardConfirm = (currentValue: string) => {
-    setName(currentValue)
+    if (activeInput) {
+      setName(currentValue)
+      activeInput.value = currentValue
+    }
     setShowKeyboard(false)
-    // Optional: Fokus zurück auf das Input-Feld setzen.
-    // nameInputRef.current?.focus()
+    setActiveInput(null)
   }
 
-  // Diese Funktion stellt sicher, dass der Dialog korrekt geschlossen wird,
-  // auch wenn die Tastatur offen ist (Tastatur wird zuerst geschlossen).
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       if (showKeyboard) {
         setShowKeyboard(false)
+        setActiveInput(null)
       }
       onClose()
     }
@@ -88,7 +96,21 @@ export default function AddIngredientDialog({ isOpen, onClose, onIngredientAdded
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
+        <DialogContent
+          className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md"
+          onInteractOutside={(e) => {
+            if (showKeyboard) {
+              e.preventDefault()
+            }
+          }}
+          onEscapeKeyDown={(e) => {
+            if (showKeyboard) {
+              e.preventDefault()
+              setShowKeyboard(false)
+              setActiveInput(null)
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Neue Zutat hinzufügen</DialogTitle>
           </DialogHeader>
@@ -106,9 +128,8 @@ export default function AddIngredientDialog({ isOpen, onClose, onIngredientAdded
                 id="ingredient-name"
                 ref={nameInputRef}
                 value={name}
-                onFocus={handleNameFocus}
-                onChange={(e) => setName(e.target.value)} // Erlaubt direkte Eingabe als Fallback
-                readOnly={showKeyboard} // Verhindert Tippen, wenn Tastatur offen ist (für Konsistenz)
+                onFocus={() => nameInputRef.current && handleInputFocus(nameInputRef.current)}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="z.B. Cola Zero"
                 className="bg-[hsl(var(--cocktail-input-bg))] border-[hsl(var(--cocktail-input-border))] text-white"
               />
@@ -129,8 +150,10 @@ export default function AddIngredientDialog({ isOpen, onClose, onIngredientAdded
             <Button
               variant="outline"
               onClick={() => {
-                // Stellt sicher, dass onClose aufgerufen wird, was auch die Tastatur schließt
-                if (showKeyboard) setShowKeyboard(false)
+                if (showKeyboard) {
+                  setShowKeyboard(false)
+                  setActiveInput(null)
+                }
                 onClose()
               }}
               className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
@@ -148,10 +171,10 @@ export default function AddIngredientDialog({ isOpen, onClose, onIngredientAdded
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {showKeyboard && nameInputRef.current && (
+      {showKeyboard && activeInput && (
         <AlphaKeyboard
-          targetInput={nameInputRef.current}
-          initialValue={name}
+          targetInput={activeInput}
+          initialValue={inputValue}
           onClose={handleKeyboardClose}
           onConfirm={handleKeyboardConfirm}
           maxLength={50}
