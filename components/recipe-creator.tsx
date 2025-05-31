@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, Trash2, ImageIcon, X } from "lucide-react"
-import { v4 as uuidv4 } from "uuid"
+import { Loader2, Plus, Trash2, ImageIcon } from "lucide-react"
 import type { Cocktail } from "@/types/cocktail"
 import type { Ingredient } from "@/types/pump"
 import { getAllIngredients } from "@/lib/ingredient-manager"
@@ -30,22 +29,15 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   const [alcoholic, setAlcoholic] = useState(true)
   const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([{ ingredientId: "", amount: 0 }])
   const [saving, setSaving] = useState(false)
-  const [errors, setErrors] = useState<{ name?: string; recipe?: string; imageUrl?: string }>({})
+  const [errors, setErrors] = useState<{ name?: string; recipe?: string }>({})
 
   const [showFileBrowser, setShowFileBrowser] = useState(false)
   const [showAlphaKeyboard, setShowAlphaKeyboard] = useState(false)
   const [showNumericKeyboard, setShowNumericKeyboard] = useState(false)
   const [activeField, setActiveField] = useState<"name" | "description" | "imageUrl" | null>(null)
   const [activeAmountIndex, setActiveAmountIndex] = useState<number | null>(null)
-  const [keyboardValue, setKeyboardValue] = useState("")
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([])
   const [loadingIngredients, setLoadingIngredients] = useState(false)
-
-  // Refs für die Eingabefelder
-  const nameInputRef = useRef<HTMLInputElement>(null)
-  const descriptionInputRef = useRef<HTMLTextAreaElement>(null)
-  const imageUrlInputRef = useRef<HTMLInputElement>(null)
-  const amountInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
     if (isOpen) {
@@ -66,7 +58,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     setShowFileBrowser(false)
     setActiveField(null)
     setActiveAmountIndex(null)
-    setKeyboardValue("")
   }
 
   const loadIngredients = async () => {
@@ -105,10 +96,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   }
 
   const validateForm = () => {
-    const newErrors: { name?: string; recipe?: string; imageUrl?: string } = {}
+    const newErrors: { name?: string; recipe?: string } = {}
     if (!name.trim()) newErrors.name = "Name ist erforderlich"
-
-    // Bildvalidierung entfernt, um Cocktails ohne Bild zu erlauben
 
     const hasValidIngredients = recipe.some((item) => item.ingredientId && item.amount > 0)
     if (!hasValidIngredients) {
@@ -131,10 +120,10 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         })
 
       const newCocktail: Cocktail = {
-        id: `custom-${uuidv4().slice(0, 8)}`,
+        id: `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         name,
         description,
-        image: imageUrl || `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(name)}`, // Fallback für fehlende Bilder
+        image: imageUrl || `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(name)}`,
         alcoholic,
         ingredients: ingredientsList,
         recipe: recipe.filter((item) => item.ingredientId && item.amount > 0),
@@ -144,49 +133,33 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       onClose()
     } catch (error) {
       console.error("Fehler beim Speichern des Rezepts:", error)
-      // Optional: Fehler dem Benutzer anzeigen
     } finally {
       setSaving(false)
     }
   }
 
-  // Handler für Tastatur-Eingaben
+  // Tastatur-Handler
   const handleOpenAlphaKeyboard = (field: "name" | "description" | "imageUrl") => {
     setActiveField(field)
-    setKeyboardValue(field === "name" ? name : field === "description" ? description : imageUrl)
     setShowAlphaKeyboard(true)
   }
 
   const handleOpenNumericKeyboard = (index: number) => {
     setActiveAmountIndex(index)
-    setKeyboardValue(recipe[index].amount > 0 ? recipe[index].amount.toString() : "")
     setShowNumericKeyboard(true)
   }
 
-  const handleKeyboardKeyPress = (key: string) => {
-    setKeyboardValue((prev) => prev + key)
-  }
-
-  const handleKeyboardBackspace = () => {
-    setKeyboardValue((prev) => prev.slice(0, -1))
-  }
-
-  const handleKeyboardClear = () => {
-    setKeyboardValue("")
-  }
-
-  const handleAlphaKeyboardConfirm = () => {
-    if (activeField === "name") setName(keyboardValue)
-    else if (activeField === "description") setDescription(keyboardValue)
-    else if (activeField === "imageUrl") setImageUrl(keyboardValue)
-
+  const handleAlphaKeyboardConfirm = (value: string) => {
+    if (activeField === "name") setName(value)
+    else if (activeField === "description") setDescription(value)
+    else if (activeField === "imageUrl") setImageUrl(value)
     setShowAlphaKeyboard(false)
     setActiveField(null)
   }
 
-  const handleNumericKeyboardConfirm = () => {
+  const handleNumericKeyboardConfirm = (value: string) => {
     if (activeAmountIndex !== null) {
-      const amount = Number.parseInt(keyboardValue) || 0
+      const amount = Number.parseInt(value) || 0
       handleAmountChange(activeAmountIndex, amount)
     }
     setShowNumericKeyboard(false)
@@ -200,70 +173,20 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     setActiveAmountIndex(null)
   }
 
-  const handleOpenFileBrowser = () => {
-    setShowFileBrowser(true)
+  const getCurrentValue = () => {
+    if (activeField === "name") return name
+    if (activeField === "description") return description
+    if (activeField === "imageUrl") return imageUrl
+    if (activeAmountIndex !== null) return recipe[activeAmountIndex].amount.toString()
+    return ""
   }
-
-  const handleFileSelect = (filePath: string) => {
-    setImageUrl(filePath)
-    setShowFileBrowser(false)
-  }
-
-  const handleDialogClose = () => {
-    // Schließe zuerst alle untergeordneten Dialoge
-    if (showAlphaKeyboard || showNumericKeyboard || showFileBrowser) {
-      setShowAlphaKeyboard(false)
-      setShowNumericKeyboard(false)
-      setShowFileBrowser(false)
-      setActiveField(null)
-      setActiveAmountIndex(null)
-      return
-    }
-
-    // Dann schließe den Hauptdialog
-    onClose()
-  }
-
-  // Stellen Sie sicher, dass amountInputRefs die richtige Länge hat
-  useEffect(() => {
-    amountInputRefs.current = amountInputRefs.current.slice(0, recipe.length)
-    while (amountInputRefs.current.length < recipe.length) {
-      amountInputRefs.current.push(null)
-    }
-  }, [recipe.length])
 
   return (
     <>
-      <Dialog
-        open={isOpen}
-        onOpenChange={(open) => {
-          if (!open) handleDialogClose()
-        }}
-      >
-        <DialogContent
-          className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-lg"
-          onInteractOutside={(e) => {
-            if (showAlphaKeyboard || showNumericKeyboard || showFileBrowser) {
-              e.preventDefault()
-            }
-          }}
-          onEscapeKeyDown={(e) => {
-            if (showAlphaKeyboard || showNumericKeyboard || showFileBrowser) {
-              e.preventDefault()
-              handleDialogClose()
-            }
-          }}
-        >
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-[hsl(var(--cocktail-text))]">Neues Cocktail-Rezept erstellen</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-4 top-4 text-white hover:text-gray-400"
-              onClick={handleDialogClose}
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogHeader>
 
           <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -274,7 +197,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               </Label>
               <Input
                 id="name"
-                ref={nameInputRef}
                 value={name}
                 onClick={() => handleOpenAlphaKeyboard("name")}
                 readOnly
@@ -291,7 +213,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               </Label>
               <Textarea
                 id="description"
-                ref={descriptionInputRef}
                 value={description}
                 onClick={() => handleOpenAlphaKeyboard("description")}
                 readOnly
@@ -309,7 +230,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               <div className="flex gap-2">
                 <Input
                   id="imageUrl"
-                  ref={imageUrlInputRef}
                   value={imageUrl}
                   onClick={() => handleOpenAlphaKeyboard("imageUrl")}
                   readOnly
@@ -319,7 +239,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleOpenFileBrowser}
+                  onClick={() => setShowFileBrowser(true)}
                   className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
                 >
                   <ImageIcon className="h-4 w-4" />
@@ -395,7 +315,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   </div>
                   <div className="col-span-3">
                     <Input
-                      ref={(el) => (amountInputRefs.current[index] = el)}
                       type="text"
                       value={item.amount || ""}
                       onClick={() => handleOpenNumericKeyboard(index)}
@@ -425,7 +344,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
             <Button
               type="button"
               variant="outline"
-              onClick={handleDialogClose}
+              onClick={onClose}
               className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
             >
               Abbrechen
@@ -448,31 +367,39 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       </Dialog>
 
       {/* AlphaKeyboard für Text-Eingaben */}
-      {showAlphaKeyboard && (
+      {showAlphaKeyboard && activeField && (
         <AlphaKeyboard
-          onKeyPress={handleKeyboardKeyPress}
-          onBackspace={handleKeyboardBackspace}
-          onClear={handleKeyboardClear}
+          targetInput={null}
+          initialValue={getCurrentValue()}
+          onClose={handleKeyboardCancel}
           onConfirm={handleAlphaKeyboardConfirm}
-          onCancel={handleKeyboardCancel}
+          maxLength={activeField === "name" ? 50 : activeField === "description" ? 200 : 100}
         />
       )}
 
       {/* VirtualKeyboard für numerische Eingaben */}
-      {showNumericKeyboard && (
+      {showNumericKeyboard && activeAmountIndex !== null && (
         <VirtualKeyboard
-          onKeyPress={handleKeyboardKeyPress}
-          onBackspace={handleKeyboardBackspace}
-          onClear={handleKeyboardClear}
+          targetInput={null}
+          initialValue={getCurrentValue()}
+          onClose={handleKeyboardCancel}
           onConfirm={handleNumericKeyboardConfirm}
-          onCancel={handleKeyboardCancel}
           allowDecimal={false}
-          numericOnly={true}
+          maxLength={4}
         />
       )}
 
       {/* FileBrowser für Bildauswahl */}
-      <FileBrowser isOpen={showFileBrowser} onClose={() => setShowFileBrowser(false)} onSelect={handleFileSelect} />
+      {showFileBrowser && (
+        <FileBrowser
+          isOpen={showFileBrowser}
+          onClose={() => setShowFileBrowser(false)}
+          onSelect={(filePath) => {
+            setImageUrl(filePath)
+            setShowFileBrowser(false)
+          }}
+        />
+      )}
     </>
   )
 }
