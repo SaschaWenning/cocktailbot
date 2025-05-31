@@ -83,7 +83,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       const index = Number.parseInt(activeInput.replace("amount-", ""))
       const amount = Number.parseFloat(inputValue)
       if (!isNaN(amount) && amount >= 0) {
-        handleAmountChange(index, inputValue)
+        handleAmountChange(index, amount)
       }
     }
 
@@ -98,9 +98,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     setInputValue("")
   }
 
-  const handleAmountChange = (index: number, value: string) => {
-    const amount = Number.parseFloat(value)
-
+  const handleAmountChange = (index: number, amount: number) => {
     if (isNaN(amount) || amount < 0) return
 
     const updatedRecipe = [...recipe]
@@ -161,20 +159,26 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
     setSaving(true)
     try {
-      // Berechne das Gesamtvolumen des Rezepts
-      const totalVolume = recipe.reduce((sum, item) => sum + item.amount, 0)
+      // Erstelle die aktualisierte Zutaten-Textliste basierend auf dem aktuellen Rezept
+      const updatedIngredients = recipe.map((item) => {
+        const ingredient = ingredients.find((i) => i.id === item.ingredientId)
+        const ingredientName = ingredient ? ingredient.name : item.ingredientId
+        return `${item.amount}ml ${ingredientName}`
+      })
 
-      const updatedCocktail = {
+      const updatedCocktail: Cocktail = {
         ...cocktail,
         description: description,
         image: imageUrl || "/placeholder.svg?height=200&width=400",
         recipe: recipe,
-        // Aktualisiere auch die Zutaten-Textliste
-        ingredients: recipe.map((item) => {
-          const ingredient = ingredients.find((i) => i.id === item.ingredientId)
-          return `${item.amount}ml ${ingredient?.name || item.ingredientId}`
-        }),
+        ingredients: updatedIngredients, // Aktualisierte Zutaten-Textliste
       }
+
+      console.log("Speichere Cocktail mit aktualisierten Zutaten:", {
+        name: updatedCocktail.name,
+        ingredients: updatedCocktail.ingredients,
+        recipe: updatedCocktail.recipe,
+      })
 
       await saveRecipe(updatedCocktail)
       onSave(updatedCocktail)
@@ -198,6 +202,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const handleFileSelect = (path: string) => {
     setImageUrl(path)
+    setShowFileBrowser(false)
     console.log("Ausgewähltes Bild:", path)
   }
 
@@ -350,7 +355,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       </Dialog>
 
       {showKeyboard && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[9999]">
           <div className="w-full max-w-2xl p-4">
             <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
               <Label className="text-white mb-2 block">
