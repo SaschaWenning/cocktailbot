@@ -14,6 +14,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "passion-fruit-juice", amount: 120 },
       { ingredientId: "lime-juice", amount: 10 },
     ],
+    isActive: true,
   },
   {
     id: "malibu-ananas",
@@ -26,6 +27,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "malibu", amount: 80 },
       { ingredientId: "pineapple-juice", amount: 220 },
     ],
+    isActive: true,
   },
   {
     id: "malibu-sunrise",
@@ -40,6 +42,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 10 },
       { ingredientId: "grenadine", amount: 10 },
     ],
+    isActive: true,
   },
   {
     id: "malibu-colada",
@@ -53,6 +56,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "pineapple-juice", amount: 150 },
       // Cream of Coconut manuell hinzufügen
     ],
+    isActive: true,
   },
   {
     id: "peaches-cream",
@@ -67,6 +71,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "orange-juice", amount: 200 },
       { ingredientId: "grenadine", amount: 20 },
     ],
+    isActive: true,
   },
   {
     id: "planters-punch",
@@ -82,6 +87,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "grenadine", amount: 10 },
       { ingredientId: "pineapple-juice", amount: 100 },
     ],
+    isActive: true,
   },
   {
     id: "solero",
@@ -97,6 +103,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "vanilla-syrup", amount: 20 },
       { ingredientId: "vodka", amount: 60 },
     ],
+    isActive: true,
   },
   {
     id: "sex-on-the-beach",
@@ -120,6 +127,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "pineapple-juice", amount: 90 },
       { ingredientId: "grenadine", amount: 20 },
     ],
+    isActive: true,
   },
   {
     id: "mojito",
@@ -141,6 +149,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "almond-syrup", amount: 100 },
       // Minze manuell hinzufügen
     ],
+    isActive: true,
   },
   {
     id: "passion-colada",
@@ -154,6 +163,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "malibu", amount: 40 },
       { ingredientId: "passion-fruit-juice", amount: 200 },
     ],
+    isActive: true,
   },
   {
     id: "gin-tonic",
@@ -166,6 +176,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "gin", amount: 50 },
       { ingredientId: "tonic-water", amount: 150 },
     ],
+    isActive: true,
   },
   {
     id: "cuba-libre",
@@ -179,6 +190,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "cola", amount: 150 },
       { ingredientId: "lime-juice", amount: 10 },
     ],
+    isActive: true,
   },
   {
     id: "virgin-colada",
@@ -192,6 +204,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "coconut-milk", amount: 50 },
       { ingredientId: "sugar-syrup", amount: 15 },
     ],
+    isActive: true,
   },
   {
     id: "shirley-temple",
@@ -205,6 +218,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "grenadine", amount: 15 },
       { ingredientId: "lime-juice", amount: 15 },
     ],
+    isActive: true,
   },
   // Zusätzliche Cocktails
   {
@@ -229,6 +243,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 30 },
       // Cola wird manuell hinzugefügt
     ],
+    isActive: true,
   },
   {
     id: "bahama-mama",
@@ -252,6 +267,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 20 },
       { ingredientId: "grenadine", amount: 20 },
     ],
+    isActive: true,
   },
   {
     id: "swimmingpool",
@@ -266,6 +282,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "pineapple-juice", amount: 180 },
       // Cream of Coconut manuell hinzufügen
     ],
+    isActive: true,
   },
   {
     id: "tequila-sunrise",
@@ -279,6 +296,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "orange-juice", amount: 220 },
       { ingredientId: "grenadine", amount: 20 },
     ],
+    isActive: true,
   },
   {
     id: "touch-down",
@@ -294,6 +312,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 10 },
       { ingredientId: "grenadine", amount: 20 },
     ],
+    isActive: true,
   },
   {
     id: "zombie",
@@ -319,6 +338,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "passion-fruit-juice", amount: 50 },
       { ingredientId: "grenadine", amount: 20 },
     ],
+    isActive: true,
   },
   {
     id: "mai-tai",
@@ -334,6 +354,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 20 },
       { ingredientId: "pineapple-juice", amount: 50 },
     ],
+    isActive: true,
   },
   {
     id: "malibu-sunset",
@@ -348,6 +369,7 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "orange-juice", amount: 60 },
       { ingredientId: "grenadine", amount: 15 },
     ],
+    isActive: true,
   },
   {
     id: "swimming-pool",
@@ -363,5 +385,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "coconut-milk", amount: 50 },
       { ingredientId: "lime-juice", amount: 15 },
     ],
+    isActive: true,
   },
 ]

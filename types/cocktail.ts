@@ -9,4 +9,5 @@ export interface Cocktail {
     ingredientId: string
     amount: number // in ml
   }[]
+  isActive: boolean // Neue Eigenschaft
 }
