@@ -125,8 +125,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   const validateForm = () => {
     const newErrors: { name?: string; recipe?: string; imageUrl?: string } = {}
     if (!name.trim()) newErrors.name = "Name ist erforderlich"
-    if (!imageUrl.trim()) newErrors.imageUrl = "Bild-URL ist erforderlich" // Oder Bildauswahl
-
     const hasValidIngredients = recipe.every((item) => item.ingredientId && item.amount > 0)
     if (!hasValidIngredients) newErrors.recipe = "Alle Zutaten müssen eine gültige Zutat und Menge haben"
 
@@ -142,7 +140,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         id: `custom-${uuidv4().slice(0, 8)}`,
         name,
         description,
-        image: imageUrl, // Verwende die ausgewählte/eingegebene URL
+        image: imageUrl || "/placeholder.svg?height=400&width=400", // Verwende die ausgewählte/eingegebene URL
         alcoholic,
         ingredients: recipe.map((item) => {
           const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
@@ -258,7 +256,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   value={imageUrl}
                   onClick={() => handleInputClick("imageUrl", imageUrl)}
                   readOnly
-                  className={`flex-1 bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white cursor-pointer ${errors.imageUrl ? "border-[hsl(var(--cocktail-error))]" : ""}`}
+                  className={`flex-1 bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white cursor-pointer`}
                   placeholder="/images/cocktails/mein_cocktail.jpg"
                 />
                 <Button
@@ -273,11 +271,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   <ImageIcon className="h-4 w-4" />
                 </Button>
               </div>
-              {errors.imageUrl && <p className="text-[hsl(var(--cocktail-error))] text-xs">{errors.imageUrl}</p>}
               <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-md p-3 text-white mt-2">
                 <p className="text-xs text-[hsl(var(--cocktail-primary))]">
                   Klicke auf das Feld, um die URL manuell einzugeben, oder nutze den{" "}
-                  <ImageIcon className="inline h-3 w-3" /> Button, um ein Bild auszuwählen.
+                  <ImageIcon className="inline h-3 w-3" /> Button, um ein Bild auszuwählen. Ohne Bild wird ein
+                  Platzhalter verwendet.
                 </p>
               </div>
             </div>
@@ -400,26 +398,15 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         )}
 
         {showFileBrowser && activeInput === "imageUrl" && (
-          <div className="my-4">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-semibold text-white">Bild auswählen</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowFileBrowser(false)
-                  setActiveInput(null)
-                }}
-                className="text-white hover:text-gray-400"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <FileBrowser
-              onFileSelect={handleFileSelect}
-              currentDirectory="/images/cocktails/" // Startverzeichnis
-            />
-          </div>
+          <FileBrowser
+            isOpen={showFileBrowser}
+            onClose={() => {
+              setShowFileBrowser(false)
+              setActiveInput(null)
+            }}
+            onSelect={handleFileSelect}
+            fileTypes={["jpg", "jpeg", "png", "gif"]}
+          />
         )}
 
         {!showKeyboard && !showFileBrowser && (
