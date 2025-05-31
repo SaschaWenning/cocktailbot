@@ -1,441 +1,478 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect, useRef, useId } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect, useRef } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import type { Cocktail, RecipeItem } from "@/types/cocktail"
+import { Loader2, Plus, Trash2, ImageIcon, X } from "lucide-react"
+import { v4 as uuidv4 } from "uuid"
+import type { Cocktail } from "@/types/cocktail"
 import type { Ingredient } from "@/types/pump"
-import { getAllIngredients } from "@/lib/ingredient-manager" // Updated import
-import FileBrowser from "./file-browser"
-import AlphaKeyboard from "./alpha-keyboard"
-import VirtualKeyboard from "./virtual-keyboard"
-import { Trash2, PlusCircle, FolderOpen, Loader2 } from "lucide-react"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import Image from "next/image"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { getAllIngredients } from "@/lib/ingredient-manager"
+import VirtualKeyboard from "@/components/virtual-keyboard"
+import AlphaKeyboard from "@/components/alpha-keyboard"
+import FileBrowser from "@/components/file-browser"
+import { Switch } from "@/components/ui/switch"
 
 interface RecipeCreatorProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (cocktail: Cocktail) => Promise<void>
+  onSave: (newCocktail: Cocktail) => Promise<void>
 }
-
-const initialRecipeItem: RecipeItem = { ingredientId: "", amount: 0 }
 
 export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreatorProps) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [alcoholic, setAlcoholic] = useState(true)
-  const [recipe, setRecipe] = useState<RecipeItem[]>([initialRecipeItem])
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSaving, setIsSaving] = useState(false)
-
-  const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([])
-  const [loadingIngredients, setLoadingIngredients] = useState(true)
+  const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([{ ingredientId: "", amount: 0 }])
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState<{ name?: string; recipe?: string; imageUrl?: string }>({})
 
   const [showFileBrowser, setShowFileBrowser] = useState(false)
   const [showAlphaKeyboard, setShowAlphaKeyboard] = useState(false)
   const [showNumericKeyboard, setShowNumericKeyboard] = useState(false)
-  const [activeInput, setActiveInput] = useState<{
-    type: "name" | "description" | "imageUrl" | `recipeAmount-${number}`
-    ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>
-    maxLength?: number
-  } | null>(null)
-  const [activeNumericInput, setActiveNumericInput] = useState<{
-    index: number
-    ref: React.RefObject<HTMLInputElement>
-  } | null>(null)
+  const [activeField, setActiveField] = useState<"name" | "description" | "imageUrl" | null>(null)
+  const [activeAmountIndex, setActiveAmountIndex] = useState<number | null>(null)
+  const [keyboardValue, setKeyboardValue] = useState("")
+  const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([])
+  const [loadingIngredients, setLoadingIngredients] = useState(false)
 
-  const uniqueId = useId()
-
+  // Refs für die Eingabefelder
   const nameInputRef = useRef<HTMLInputElement>(null)
-  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const descriptionInputRef = useRef<HTMLTextAreaElement>(null)
   const imageUrlInputRef = useRef<HTMLInputElement>(null)
-  const recipeAmountInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const amountInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
     if (isOpen) {
-      // Reset form when dialog opens
-      setName("")
-      setDescription("")
-      setImageUrl("")
-      setAlcoholic(true)
-      setRecipe([{ ingredientId: "", amount: 0 }])
-      setErrors({})
-      setIsSaving(false)
-      loadIngredientsData()
+      resetForm()
+      loadIngredients()
     }
   }, [isOpen])
 
-  const loadIngredientsData = async () => {
+  const resetForm = () => {
+    setName("")
+    setDescription("")
+    setImageUrl("")
+    setAlcoholic(true)
+    setRecipe([{ ingredientId: "", amount: 0 }])
+    setErrors({})
+    setShowAlphaKeyboard(false)
+    setShowNumericKeyboard(false)
+    setShowFileBrowser(false)
+    setActiveField(null)
+    setActiveAmountIndex(null)
+    setKeyboardValue("")
+  }
+
+  const loadIngredients = async () => {
     setLoadingIngredients(true)
     try {
       const ingredients = await getAllIngredients()
       setAvailableIngredients(ingredients)
     } catch (error) {
       console.error("Fehler beim Laden der Zutaten:", error)
-      // Optionally set an error state to display to the user
     } finally {
       setLoadingIngredients(false)
     }
   }
 
-  const handleAddRecipeItem = () => {
-    setRecipe([...recipe, { ...initialRecipeItem }])
+  const handleAddIngredient = () => {
+    setRecipe([...recipe, { ingredientId: "", amount: 0 }])
   }
 
-  const handleRemoveRecipeItem = (index: number) => {
-    const newRecipe = recipe.filter((_, i) => i !== index)
-    if (newRecipe.length === 0) {
-      setRecipe([initialRecipeItem]) // Ensure there's always one item if all are removed
-    } else {
-      setRecipe(newRecipe)
-    }
-  }
-
-  const handleRecipeChange = (index: number, field: keyof RecipeItem, value: string | number) => {
+  const handleRemoveIngredient = (index: number) => {
+    if (recipe.length <= 1) return
     const newRecipe = [...recipe]
-    if (field === "amount") {
-      newRecipe[index][field] = Number(value) || 0
-    } else {
-      newRecipe[index][field] = value as string
-    }
+    newRecipe.splice(index, 1)
     setRecipe(newRecipe)
   }
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-    if (!name.trim()) newErrors.name = "Name ist erforderlich."
-    if (!imageUrl.trim()) newErrors.imageUrl = "Bild-URL ist erforderlich."
-    if (recipe.length === 0 || recipe.some((item) => !item.ingredientId || item.amount <= 0)) {
-      newErrors.recipe = "Mindestens eine gültige Zutat mit Menge > 0 ist erforderlich."
+  const handleIngredientChange = (index: number, ingredientId: string) => {
+    const newRecipe = [...recipe]
+    newRecipe[index].ingredientId = ingredientId
+    setRecipe(newRecipe)
+  }
+
+  const handleAmountChange = (index: number, amount: number) => {
+    const newRecipe = [...recipe]
+    newRecipe[index].amount = amount
+    setRecipe(newRecipe)
+  }
+
+  const validateForm = () => {
+    const newErrors: { name?: string; recipe?: string; imageUrl?: string } = {}
+    if (!name.trim()) newErrors.name = "Name ist erforderlich"
+
+    // Bildvalidierung entfernt, um Cocktails ohne Bild zu erlauben
+
+    const hasValidIngredients = recipe.some((item) => item.ingredientId && item.amount > 0)
+    if (!hasValidIngredients) {
+      newErrors.recipe = "Mindestens eine Zutat mit gültiger Auswahl und Menge > 0 ist erforderlich"
     }
-    recipe.forEach((item, index) => {
-      if (!item.ingredientId) newErrors[`recipeIngredient-${index}`] = "Zutat auswählen."
-      if (item.amount <= 0) newErrors[`recipeAmount-${index}`] = "Menge > 0."
-    })
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async () => {
+  const handleSave = async () => {
     if (!validateForm()) return
-    setIsSaving(true)
-
-    const ingredientsList = recipe
-      .map((item) => {
-        const foundIngredient = availableIngredients.find((ing) => ing.id === item.ingredientId)
-        return foundIngredient ? `${item.amount}ml ${foundIngredient.name}` : null
-      })
-      .filter(Boolean) as string[]
-
-    const newCocktail: Cocktail = {
-      id: `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
-      name: name.trim(),
-      description: description.trim(),
-      image: imageUrl.trim(),
-      alcoholic,
-      ingredients: ingredientsList,
-      recipe,
-      isActive: true, // New cocktails are active by default
-    }
+    setSaving(true)
     try {
+      const ingredientsList = recipe
+        .filter((item) => item.ingredientId && item.amount > 0)
+        .map((item) => {
+          const ingredient = availableIngredients.find((i) => i.id === item.ingredientId)
+          return `${item.amount}ml ${ingredient?.name || "Unbekannte Zutat"}`
+        })
+
+      const newCocktail: Cocktail = {
+        id: `custom-${uuidv4().slice(0, 8)}`,
+        name,
+        description,
+        image: imageUrl || `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(name)}`, // Fallback für fehlende Bilder
+        alcoholic,
+        ingredients: ingredientsList,
+        recipe: recipe.filter((item) => item.ingredientId && item.amount > 0),
+        isActive: true,
+      }
       await onSave(newCocktail)
-      // onClose will be called by parent on successful save if desired
+      onClose()
     } catch (error) {
-      console.error("Error saving cocktail from creator:", error)
-      setErrors({ form: "Fehler beim Speichern des Cocktails." })
+      console.error("Fehler beim Speichern des Rezepts:", error)
+      // Optional: Fehler dem Benutzer anzeigen
     } finally {
-      setIsSaving(false)
+      setSaving(false)
     }
   }
 
-  const openAlphaKeyboard = (
-    type: "name" | "description" | "imageUrl",
-    ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>,
-    maxLength?: number,
-  ) => {
-    setActiveInput({ type, ref, maxLength })
+  // Handler für Tastatur-Eingaben
+  const handleOpenAlphaKeyboard = (field: "name" | "description" | "imageUrl") => {
+    setActiveField(field)
+    setKeyboardValue(field === "name" ? name : field === "description" ? description : imageUrl)
     setShowAlphaKeyboard(true)
   }
 
-  const openNumericKeyboard = (index: number, ref: React.RefObject<HTMLInputElement>) => {
-    setActiveNumericInput({ index, ref })
+  const handleOpenNumericKeyboard = (index: number) => {
+    setActiveAmountIndex(index)
+    setKeyboardValue(recipe[index].amount > 0 ? recipe[index].amount.toString() : "")
     setShowNumericKeyboard(true)
   }
 
-  const handleDialogInteraction = (callback: () => void) => {
-    if (showAlphaKeyboard || showNumericKeyboard || showFileBrowser) {
-      // If an inner dialog/keyboard is open, do nothing to prevent closing the main dialog
-      return
-    }
-    callback()
+  const handleKeyboardKeyPress = (key: string) => {
+    setKeyboardValue((prev) => prev + key)
   }
 
-  const recipeAmountInputRefsArray = Array.from({ length: recipe.length }, (_, index) => useRef<HTMLInputElement>(null))
+  const handleKeyboardBackspace = () => {
+    setKeyboardValue((prev) => prev.slice(0, -1))
+  }
+
+  const handleKeyboardClear = () => {
+    setKeyboardValue("")
+  }
+
+  const handleAlphaKeyboardConfirm = () => {
+    if (activeField === "name") setName(keyboardValue)
+    else if (activeField === "description") setDescription(keyboardValue)
+    else if (activeField === "imageUrl") setImageUrl(keyboardValue)
+
+    setShowAlphaKeyboard(false)
+    setActiveField(null)
+  }
+
+  const handleNumericKeyboardConfirm = () => {
+    if (activeAmountIndex !== null) {
+      const amount = Number.parseInt(keyboardValue) || 0
+      handleAmountChange(activeAmountIndex, amount)
+    }
+    setShowNumericKeyboard(false)
+    setActiveAmountIndex(null)
+  }
+
+  const handleKeyboardCancel = () => {
+    setShowAlphaKeyboard(false)
+    setShowNumericKeyboard(false)
+    setActiveField(null)
+    setActiveAmountIndex(null)
+  }
+
+  const handleOpenFileBrowser = () => {
+    setShowFileBrowser(true)
+  }
+
+  const handleFileSelect = (filePath: string) => {
+    setImageUrl(filePath)
+    setShowFileBrowser(false)
+  }
+
+  const handleDialogClose = () => {
+    // Schließe zuerst alle untergeordneten Dialoge
+    if (showAlphaKeyboard || showNumericKeyboard || showFileBrowser) {
+      setShowAlphaKeyboard(false)
+      setShowNumericKeyboard(false)
+      setShowFileBrowser(false)
+      setActiveField(null)
+      setActiveAmountIndex(null)
+      return
+    }
+
+    // Dann schließe den Hauptdialog
+    onClose()
+  }
+
+  // Stellen Sie sicher, dass amountInputRefs die richtige Länge hat
+  useEffect(() => {
+    amountInputRefs.current = amountInputRefs.current.slice(0, recipe.length)
+    while (amountInputRefs.current.length < recipe.length) {
+      amountInputRefs.current.push(null)
+    }
+  }, [recipe.length])
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) handleDialogInteraction(onClose)
-      }}
-    >
-      <DialogContent
-        className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-2xl"
-        onInteractOutside={(e) => handleDialogInteraction(() => e.preventDefault())} // Prevent close if inner dialogs are open
-        onEscapeKeyDown={(e) => handleDialogInteraction(() => e.preventDefault())} // Prevent close if inner dialogs are open
+    <>
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) handleDialogClose()
+        }}
       >
-        <DialogHeader>
-          <DialogTitle>Neuen Cocktail erstellen</DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="max-h-[70vh] p-1 pr-3">
-          <div className="space-y-4 py-4 pr-2">
-            {errors.form && (
-              <Alert variant="destructive">
-                <AlertDescription>{errors.form}</AlertDescription>
-              </Alert>
-            )}
+        <DialogContent
+          className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-lg"
+          onInteractOutside={(e) => {
+            if (showAlphaKeyboard || showNumericKeyboard || showFileBrowser) {
+              e.preventDefault()
+            }
+          }}
+          onEscapeKeyDown={(e) => {
+            if (showAlphaKeyboard || showNumericKeyboard || showFileBrowser) {
+              e.preventDefault()
+              handleDialogClose()
+            }
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-[hsl(var(--cocktail-text))]">Neues Cocktail-Rezept erstellen</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-4 top-4 text-white hover:text-gray-400"
+              onClick={handleDialogClose}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
 
-            {/* Name */}
-            <div className="space-y-1">
-              <Label htmlFor={`${uniqueId}-name`} className="text-[hsl(var(--cocktail-text))]">
+          <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
+            {/* Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-[hsl(var(--cocktail-text))]">
                 Name
               </Label>
               <Input
-                id={`${uniqueId}-name`}
+                id="name"
                 ref={nameInputRef}
                 value={name}
-                onFocus={() => openAlphaKeyboard("name", nameInputRef, 50)}
+                onClick={() => handleOpenAlphaKeyboard("name")}
                 readOnly
-                className={`bg-[hsl(var(--cocktail-input-bg))] border-[hsl(var(--cocktail-input-border))] text-white ${errors.name ? "border-red-500" : ""}`}
+                className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white cursor-pointer ${errors.name ? "border-red-500" : ""}`}
+                placeholder="z.B. Mein Super Cocktail"
               />
-              {errors.name && <p className="text-xs text-red-400">{errors.name}</p>}
+              {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
             </div>
 
-            {/* Description */}
-            <div className="space-y-1">
-              <Label htmlFor={`${uniqueId}-description`} className="text-[hsl(var(--cocktail-text))]">
+            {/* Description Input */}
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-[hsl(var(--cocktail-text))]">
                 Beschreibung
               </Label>
               <Textarea
-                id={`${uniqueId}-description`}
-                ref={descriptionTextareaRef}
+                id="description"
+                ref={descriptionInputRef}
                 value={description}
-                onFocus={() => openAlphaKeyboard("description", descriptionTextareaRef, 200)}
+                onClick={() => handleOpenAlphaKeyboard("description")}
                 readOnly
-                className="bg-[hsl(var(--cocktail-input-bg))] border-[hsl(var(--cocktail-input-border))] text-white min-h-[80px]"
+                className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white cursor-pointer"
+                placeholder="Beschreibe deinen Cocktail..."
+                rows={2}
               />
             </div>
 
-            {/* Image URL */}
-            <div className="space-y-1">
-              <Label htmlFor={`${uniqueId}-imageUrl`} className="text-[hsl(var(--cocktail-text))]">
-                Bild-URL
+            {/* Image URL Input & File Browser */}
+            <div className="space-y-2">
+              <Label htmlFor="imageUrl" className="text-[hsl(var(--cocktail-text))]">
+                Bild (optional)
               </Label>
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2">
                 <Input
-                  id={`${uniqueId}-imageUrl`}
+                  id="imageUrl"
                   ref={imageUrlInputRef}
                   value={imageUrl}
-                  onFocus={() => openAlphaKeyboard("imageUrl", imageUrlInputRef, 200)}
+                  onClick={() => handleOpenAlphaKeyboard("imageUrl")}
                   readOnly
-                  className={`flex-grow bg-[hsl(var(--cocktail-input-bg))] border-[hsl(var(--cocktail-input-border))] text-white ${errors.imageUrl ? "border-red-500" : ""}`}
+                  className="flex-1 bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white cursor-pointer"
+                  placeholder="Bild auswählen oder URL eingeben"
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  size="icon"
-                  onClick={() => setShowFileBrowser(true)}
-                  className="border-[hsl(var(--cocktail-button-border))] hover:bg-[hsl(var(--cocktail-button-hover-bg))]"
+                  onClick={handleOpenFileBrowser}
+                  className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
                 >
-                  <FolderOpen className="h-4 w-4" />
+                  <ImageIcon className="h-4 w-4" />
                 </Button>
               </div>
               {imageUrl && (
-                <div className="mt-2 relative w-full h-32 rounded overflow-hidden border border-[hsl(var(--cocktail-card-border))]">
-                  <Image
+                <div className="mt-2 h-32 relative rounded overflow-hidden border border-[hsl(var(--cocktail-card-border))]">
+                  <img
                     src={imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`}
                     alt="Vorschau"
-                    layout="fill"
-                    objectFit="cover"
-                    onError={(e) => (e.currentTarget.src = "/placeholder.svg?height=128&width=128")}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(name || "Cocktail")}`
+                    }}
                   />
                 </div>
               )}
-              {errors.imageUrl && <p className="text-xs text-red-400">{errors.imageUrl}</p>}
             </div>
 
-            {/* Alcoholic Switch */}
-            <div className="flex items-center space-x-2 pt-2">
-              <Switch
-                id={`${uniqueId}-alcoholic`}
-                checked={alcoholic}
-                onCheckedChange={setAlcoholic}
-                className="data-[state=checked]:bg-sky-500 data-[state=unchecked]:bg-gray-700"
-              />
-              <Label htmlFor={`${uniqueId}-alcoholic`} className="text-[hsl(var(--cocktail-text))]">
-                Alkoholisch
-              </Label>
+            {/* Cocktail Type */}
+            <div className="space-y-2">
+              <Label className="text-[hsl(var(--cocktail-text))]">Cocktail-Typ</Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="alcoholic"
+                  checked={alcoholic}
+                  onCheckedChange={setAlcoholic}
+                  className="data-[state=checked]:bg-[hsl(var(--cocktail-primary))] data-[state=unchecked]:bg-gray-700"
+                />
+                <Label htmlFor="alcoholic" className="text-[hsl(var(--cocktail-text))]">
+                  {alcoholic ? "Mit Alkohol" : "Ohne Alkohol"}
+                </Label>
+              </div>
             </div>
 
-            {/* Recipe Items */}
-            <div className="space-y-3 pt-2">
-              <Label className="text-[hsl(var(--cocktail-text))]">Zutaten</Label>
-              {errors.recipe && <p className="text-xs text-red-400">{errors.recipe}</p>}
-              {recipe.map((item, index) => {
-                const itemInputRef = recipeAmountInputRefsArray[index]
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 p-2 border border-[hsl(var(--cocktail-card-border))] rounded"
-                  >
-                    <div className="flex-grow">
-                      <Select
-                        value={item.ingredientId}
-                        onValueChange={(value) => handleRecipeChange(index, "ingredientId", value)}
-                      >
-                        <SelectTrigger
-                          className={`bg-[hsl(var(--cocktail-input-bg))] border-[hsl(var(--cocktail-input-border))] text-white ${errors[`recipeIngredient-${index}`] ? "border-red-500" : ""}`}
-                        >
-                          <SelectValue placeholder="Zutat wählen" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-black text-white border-[hsl(var(--cocktail-card-border))] max-h-48">
-                          {loadingIngredients ? (
-                            <div className="flex items-center justify-center p-2">
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" /> Zutaten laden...
-                            </div>
-                          ) : (
-                            availableIngredients.map((ing) => (
-                              <SelectItem key={ing.id} value={ing.id}>
-                                {ing.name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      {errors[`recipeIngredient-${index}`] && (
-                        <p className="text-xs text-red-400 mt-1">{errors[`recipeIngredient-${index}`]}</p>
-                      )}
-                    </div>
-                    <div className="w-24">
-                      <Input
-                        type="number" // Fallback for non-touch devices
-                        ref={itemInputRef}
-                        value={item.amount === 0 ? "" : item.amount.toString()}
-                        onFocus={() => itemInputRef.current && openNumericKeyboard(index, itemInputRef)}
-                        readOnly
-                        placeholder="ml"
-                        className={`bg-[hsl(var(--cocktail-input-bg))] border-[hsl(var(--cocktail-input-border))] text-white text-center ${errors[`recipeAmount-${index}`] ? "border-red-500" : ""}`}
-                      />
-                      {errors[`recipeAmount-${index}`] && (
-                        <p className="text-xs text-red-400 mt-1">{errors[`recipeAmount-${index}`]}</p>
-                      )}
-                    </div>
+            {/* Ingredients */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label className="text-[hsl(var(--cocktail-text))]">Zutaten</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddIngredient}
+                  className="h-8 px-2 bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black"
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Zutat hinzufügen
+                </Button>
+              </div>
+              {errors.recipe && <p className="text-red-500 text-xs">{errors.recipe}</p>}
+              {recipe.map((item, index) => (
+                <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                  <div className="col-span-7">
+                    <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
+                      <SelectTrigger className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white">
+                        <SelectValue placeholder="Zutat wählen" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black text-white border-[hsl(var(--cocktail-card-border))]">
+                        {loadingIngredients ? (
+                          <div className="flex items-center justify-center p-2">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <span>Lade Zutaten...</span>
+                          </div>
+                        ) : (
+                          availableIngredients.map((ingredient) => (
+                            <SelectItem key={ingredient.id} value={ingredient.id}>
+                              {ingredient.name} {ingredient.alcoholic ? "(Alk)" : ""}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-3">
+                    <Input
+                      ref={(el) => (amountInputRefs.current[index] = el)}
+                      type="text"
+                      value={item.amount || ""}
+                      onClick={() => handleOpenNumericKeyboard(index)}
+                      readOnly
+                      className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-white cursor-pointer text-right pr-2"
+                      placeholder="ml"
+                    />
+                  </div>
+                  <div className="col-span-2 flex justify-end">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleRemoveRecipeItem(index)}
-                      className="text-red-500 hover:text-red-400"
+                      onClick={() => handleRemoveIngredient(index)}
+                      disabled={recipe.length <= 1}
+                      className="h-8 w-8 text-white hover:text-red-500"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                )
-              })}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddRecipeItem}
-                className="w-full border-[hsl(var(--cocktail-button-border))] hover:bg-[hsl(var(--cocktail-button-hover-bg))]"
-              >
-                <PlusCircle className="mr-2 h-4 w-4" /> Zutat hinzufügen
-              </Button>
+                </div>
+              ))}
             </div>
           </div>
-        </ScrollArea>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => handleDialogInteraction(onClose)}
-            className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-          >
-            Abbrechen
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSaving || loadingIngredients}
-            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-          >
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loadingIngredients ? "Zutaten laden..." : "Speichern"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
 
-      {showFileBrowser && (
-        <FileBrowser
-          isOpen={showFileBrowser}
-          onClose={() => setShowFileBrowser(false)}
-          onSelect={(filePath) => {
-            setImageUrl(filePath)
-            setShowFileBrowser(false)
-          }}
-          baseDirectory="public/images/cocktails"
-        />
-      )}
-      {showAlphaKeyboard && activeInput && activeInput.ref.current && (
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDialogClose}
+              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Speichern...
+                </>
+              ) : (
+                "Speichern"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AlphaKeyboard für Text-Eingaben */}
+      {showAlphaKeyboard && (
         <AlphaKeyboard
-          targetInput={activeInput.ref.current}
-          initialValue={
-            activeInput.type === "name"
-              ? name
-              : activeInput.type === "description"
-                ? description
-                : activeInput.type === "imageUrl"
-                  ? imageUrl
-                  : ""
-          }
-          onClose={() => {
-            setShowAlphaKeyboard(false)
-            activeInput.ref.current?.focus()
-          }}
-          onConfirm={(value) => {
-            if (activeInput.type === "name") setName(value)
-            else if (activeInput.type === "description") setDescription(value)
-            else if (activeInput.type === "imageUrl") setImageUrl(value)
-            setShowAlphaKeyboard(false)
-            activeInput.ref.current?.focus()
-          }}
-          maxLength={activeInput.maxLength}
+          onKeyPress={handleKeyboardKeyPress}
+          onBackspace={handleKeyboardBackspace}
+          onClear={handleKeyboardClear}
+          onConfirm={handleAlphaKeyboardConfirm}
+          onCancel={handleKeyboardCancel}
         />
       )}
-      {showNumericKeyboard && activeNumericInput && activeNumericInput.ref.current && (
+
+      {/* VirtualKeyboard für numerische Eingaben */}
+      {showNumericKeyboard && (
         <VirtualKeyboard
-          targetInput={activeNumericInput.ref.current}
-          initialValue={recipe[activeNumericInput.index].amount.toString()}
-          onClose={() => {
-            setShowNumericKeyboard(false)
-            activeNumericInput.ref.current?.focus()
-          }}
-          onConfirm={(value) => {
-            handleRecipeChange(activeNumericInput.index, "amount", value)
-            setShowNumericKeyboard(false)
-            activeNumericInput.ref.current?.focus()
-          }}
-          allowDecimal={false} // Amounts are usually whole numbers for ml
-          maxLength={4}
+          onKeyPress={handleKeyboardKeyPress}
+          onBackspace={handleKeyboardBackspace}
+          onClear={handleKeyboardClear}
+          onConfirm={handleNumericKeyboardConfirm}
+          onCancel={handleKeyboardCancel}
+          allowDecimal={false}
+          numericOnly={true}
         />
       )}
-    </Dialog>
+
+      {/* FileBrowser für Bildauswahl */}
+      <FileBrowser isOpen={showFileBrowser} onClose={() => setShowFileBrowser(false)} onSelect={handleFileSelect} />
+    </>
   )
 }
