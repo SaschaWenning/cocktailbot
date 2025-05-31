@@ -1,4 +1,4 @@
-import type { Cocktail } from "@/types/cocktail" // Stellt sicher, dass der Typ importiert wird
+import type { Cocktail } from "@/types/cocktail"
 
 export const cocktails: Cocktail[] = [
   {
@@ -14,10 +14,9 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "passion-fruit-juice", amount: 120 },
       { ingredientId: "lime-juice", amount: 10 },
     ],
-    isActive: true,
   },
   {
-    id: "malibu-ananas", // Wird ggf. durch 'malibu-ananas-updated' aus additionalCocktails ersetzt
+    id: "malibu-ananas",
     name: "Malibu Ananas",
     description: "Süßer Kokoslikör mit Ananassaft",
     image: "/images/cocktails/malibu_ananas.jpg",
@@ -27,7 +26,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "malibu", amount: 80 },
       { ingredientId: "pineapple-juice", amount: 220 },
     ],
-    isActive: true,
   },
   {
     id: "malibu-sunrise",
@@ -42,7 +40,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 10 },
       { ingredientId: "grenadine", amount: 10 },
     ],
-    isActive: true,
   },
   {
     id: "malibu-colada",
@@ -56,7 +53,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "pineapple-juice", amount: 150 },
       // Cream of Coconut manuell hinzufügen
     ],
-    isActive: true,
   },
   {
     id: "peaches-cream",
@@ -71,7 +67,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "orange-juice", amount: 200 },
       { ingredientId: "grenadine", amount: 20 },
     ],
-    isActive: true,
   },
   {
     id: "planters-punch",
@@ -87,7 +82,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "grenadine", amount: 10 },
       { ingredientId: "pineapple-juice", amount: 100 },
     ],
-    isActive: true,
   },
   {
     id: "solero",
@@ -103,7 +97,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "vanilla-syrup", amount: 20 },
       { ingredientId: "vodka", amount: 60 },
     ],
-    isActive: true,
   },
   {
     id: "sex-on-the-beach",
@@ -127,7 +120,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "pineapple-juice", amount: 90 },
       { ingredientId: "grenadine", amount: 20 },
     ],
-    isActive: true,
   },
   {
     id: "mojito",
@@ -143,13 +135,12 @@ export const cocktails: Cocktail[] = [
       "Frische Minzblätter",
     ],
     recipe: [
-      { ingredientId: "dark-rum", amount: 60 }, // oder white-rum, je nach Präferenz
+      { ingredientId: "dark-rum", amount: 60 },
       { ingredientId: "lime-juice", amount: 60 },
       { ingredientId: "sugar-syrup", amount: 20 },
       { ingredientId: "almond-syrup", amount: 100 },
       // Minze manuell hinzufügen
     ],
-    isActive: true,
   },
   {
     id: "passion-colada",
@@ -163,26 +154,24 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "malibu", amount: 40 },
       { ingredientId: "passion-fruit-juice", amount: 200 },
     ],
-    isActive: true,
   },
   {
     id: "gin-tonic",
     name: "Gin & Tonic",
     description: "Klassischer Longdrink mit Gin und Tonic Water",
-    image: "/images/cocktails/gin_tonic.jpg", // Bildpfad ggf. anpassen
+    image: "/images/cocktails/gin_tonic.jpg",
     alcoholic: true,
     ingredients: ["50ml Gin", "150ml Tonic Water", "Limettenscheibe"],
     recipe: [
       { ingredientId: "gin", amount: 50 },
       { ingredientId: "tonic-water", amount: 150 },
     ],
-    isActive: true,
   },
   {
     id: "cuba-libre",
     name: "Cuba Libre",
     description: "Rum-Cola mit einem Spritzer Limette",
-    image: "/images/cocktails/cuba_libre.jpg", // Bildpfad ggf. anpassen
+    image: "/images/cocktails/cuba_libre.jpg",
     alcoholic: true,
     ingredients: ["50ml brauner Rum", "150ml Cola", "10ml Limettensaft"],
     recipe: [
@@ -190,13 +179,12 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "cola", amount: 150 },
       { ingredientId: "lime-juice", amount: 10 },
     ],
-    isActive: true,
   },
   {
     id: "virgin-colada",
     name: "Virgin Colada",
     description: "Alkoholfreie Version der Piña Colada",
-    image: "/images/cocktails/virgin_colada.jpg", // Bildpfad ggf. anpassen
+    image: "/images/cocktails/virgin_colada.jpg",
     alcoholic: false,
     ingredients: ["100ml Ananassaft", "50ml Kokosmilch", "15ml Zuckersirup"],
     recipe: [
@@ -204,13 +192,12 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "coconut-milk", amount: 50 },
       { ingredientId: "sugar-syrup", amount: 15 },
     ],
-    isActive: true,
   },
   {
     id: "shirley-temple",
     name: "Shirley Temple",
     description: "Süßer alkoholfreier Cocktail mit Ginger Ale und Grenadine",
-    image: "/images/cocktails/shirley_temple.jpg", // Bildpfad ggf. anpassen
+    image: "/images/cocktails/shirley_temple.jpg",
     alcoholic: false,
     ingredients: ["150ml Ginger Ale", "15ml Grenadine", "15ml Limettensaft"],
     recipe: [
@@ -218,8 +205,8 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "grenadine", amount: 15 },
       { ingredientId: "lime-juice", amount: 15 },
     ],
-    isActive: true,
   },
+  // Zusätzliche Cocktails
   {
     id: "long-island-iced-tea",
     name: "Long Island Iced Tea",
@@ -242,7 +229,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 30 },
       // Cola wird manuell hinzugefügt
     ],
-    isActive: true,
   },
   {
     id: "bahama-mama",
@@ -266,13 +252,12 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "lime-juice", amount: 20 },
       { ingredientId: "grenadine", amount: 20 },
     ],
-    isActive: true,
   },
   {
-    id: "swimmingpool", // Beachte: Es gab auch "swimming-pool" weiter unten. Konsistente ID verwenden.
+    id: "swimmingpool",
     name: "Swimmingpool",
     description: "Blauer, tropischer Cocktail mit Vodka und Ananassaft",
-    image: "/images/cocktails/swimmingpool.jpg", // oder swimming_pool.jpg
+    image: "/images/cocktails/swimmingpool.jpg",
     alcoholic: true,
     ingredients: ["60ml Vodka", "30ml Blue Curacao", "180ml Ananassaft", "40ml Cream of Coconut (selbst hinzufügen)"],
     recipe: [
@@ -281,7 +266,6 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "pineapple-juice", amount: 180 },
       // Cream of Coconut manuell hinzufügen
     ],
-    isActive: true,
   },
   {
     id: "tequila-sunrise",
@@ -295,23 +279,21 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "orange-juice", amount: 220 },
       { ingredientId: "grenadine", amount: 20 },
     ],
-    isActive: true,
   },
   {
     id: "touch-down",
     name: "Touch Down",
-    description: "Fruchtiger Cocktail mit Vodka, Triple Sec und Maracujasaft", // Ursprünglich Brauner Rum, jetzt Vodka wie in deiner letzten Korrektur
+    description: "Fruchtiger Cocktail mit Vodka, Triple Sec und Maracujasaft",
     image: "/images/cocktails/touch_down.jpg",
     alcoholic: true,
     ingredients: ["40ml Vodka", "40ml Triple Sec", "140ml Maracujasaft", "10ml Limettensaft", "20ml Grenadine"],
     recipe: [
-      { ingredientId: "vodka", amount: 40 }, // Geändert von dark-rum zu vodka
+      { ingredientId: "vodka", amount: 40 },
       { ingredientId: "triple-sec", amount: 40 },
       { ingredientId: "passion-fruit-juice", amount: 140 },
       { ingredientId: "lime-juice", amount: 10 },
       { ingredientId: "grenadine", amount: 20 },
     ],
-    isActive: true,
   },
   {
     id: "zombie",
@@ -337,10 +319,9 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "passion-fruit-juice", amount: 50 },
       { ingredientId: "grenadine", amount: 20 },
     ],
-    isActive: true,
   },
   {
-    id: "mai-tai", // Bereits oben, aber hier zur Vollständigkeit der Liste aus der Historie
+    id: "mai-tai",
     name: "Mai Tai",
     description: "Klassischer polynesischer Cocktail mit dunklem Rum, Orangenlikör und Mandelsirup",
     image: "/images/cocktails/mai_tai.jpg",
@@ -348,12 +329,11 @@ export const cocktails: Cocktail[] = [
     ingredients: ["60ml Dunkler Rum", "15ml Orangenlikör", "15ml Mandelsirup", "20ml Limettensaft", "50ml Ananassaft"],
     recipe: [
       { ingredientId: "dark-rum", amount: 60 },
-      { ingredientId: "triple-sec", amount: 15 }, // Annahme: Orangenlikör = Triple Sec
+      { ingredientId: "triple-sec", amount: 15 },
       { ingredientId: "almond-syrup", amount: 15 },
       { ingredientId: "lime-juice", amount: 20 },
       { ingredientId: "pineapple-juice", amount: 50 },
     ],
-    isActive: true,
   },
   {
     id: "malibu-sunset",
@@ -368,23 +348,20 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "orange-juice", amount: 60 },
       { ingredientId: "grenadine", amount: 15 },
     ],
-    isActive: true,
   },
-  // Der zweite "Swimming Pool" mit Bindestrich-ID wird hier weggelassen, um Duplikate zu vermeiden.
-  // {
-  //   id: "swimming-pool", // ID-Konflikt mit "swimmingpool" oben
-  //   name: "Swimming Pool",
-  //   description: "Blauer Cocktail mit Vodka, Blue Curacao und Ananas",
-  //   image: "/images/cocktails/swimming_pool.jpg",
-  //   alcoholic: true,
-  //   ingredients: ["50ml Vodka", "25ml Blue Curacao", "100ml Ananassaft", "50ml Kokosmilch", "15ml Limettensaft"],
-  //   recipe: [
-  //     { ingredientId: "vodka", amount: 50 },
-  //     { ingredientId: "blue-curacao", amount: 25 },
-  //     { ingredientId: "pineapple-juice", amount: 100 },
-  //     { ingredientId: "coconut-milk", amount: 50 },
-  //     { ingredientId: "lime-juice", amount: 15 },
-  //   ],
-  //   isActive: true,
-  // },
+  {
+    id: "swimming-pool",
+    name: "Swimming Pool",
+    description: "Blauer Cocktail mit Vodka, Blue Curacao und Ananas",
+    image: "/images/cocktails/swimming_pool.jpg",
+    alcoholic: true,
+    ingredients: ["50ml Vodka", "25ml Blue Curacao", "100ml Ananassaft", "50ml Kokosmilch", "15ml Limettensaft"],
+    recipe: [
+      { ingredientId: "vodka", amount: 50 },
+      { ingredientId: "blue-curacao", amount: 25 },
+      { ingredientId: "pineapple-juice", amount: 100 },
+      { ingredientId: "coconut-milk", amount: 50 },
+      { ingredientId: "lime-juice", amount: 15 },
+    ],
+  },
 ]
