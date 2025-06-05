@@ -15,9 +15,10 @@ import VirtualKeyboard from "./virtual-keyboard"
 
 interface PumpCalibrationProps {
   pumpConfig: PumpConfig[]
+  onConfigUpdate?: () => Promise<void>
 }
 
-export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalibrationProps) {
+export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpdate }: PumpCalibrationProps) {
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialConfig)
   const [saving, setSaving] = useState(false)
   const [calibrating, setCalibrating] = useState<number | null>(null)
@@ -56,6 +57,11 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
       await savePumpConfig(pumpConfig)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
+
+      // Benachrichtige die Hauptkomponente über die Aktualisierung
+      if (onConfigUpdate) {
+        await onConfigUpdate()
+      }
     } catch (error) {
       console.error("Fehler beim Speichern der Pumpenkonfiguration:", error)
     } finally {
@@ -142,6 +148,11 @@ export default function PumpCalibration({ pumpConfig: initialConfig }: PumpCalib
       // Zeige Erfolgsmeldung
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
+
+      // Benachrichtige die Hauptkomponente über die Aktualisierung
+      if (onConfigUpdate) {
+        await onConfigUpdate()
+      }
     } catch (error) {
       console.error("Fehler beim Speichern der Kalibrierung:", error)
     } finally {
