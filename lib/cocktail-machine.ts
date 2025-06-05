@@ -1,4 +1,4 @@
-"use server"
+"use server" // DIES MUSS DIE ALLERERSTE ZEILE SEIN!
 
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
@@ -7,8 +7,9 @@ import fs from "fs"
 import path from "path"
 import { setPinHigh } from "@/lib/gpio-controller"
 
-// Neue Funktion zum Aktivieren einer Pumpe für das Entlüften (Fix für Export-Problem)
+// Funktion zum Aktivieren einer Pumpe für das Entlüften
 export async function activatePumpForPriming(pumpId: number, durationMs: number) {
+  console.log(`[SERVER ACTION] activatePumpForPriming aufgerufen für Pumpe ${pumpId} für ${durationMs}ms`)
   try {
     // Finde die Pumpe in der Konfiguration
     const pumpConfig = await getPumpConfig()
@@ -18,7 +19,7 @@ export async function activatePumpForPriming(pumpId: number, durationMs: number)
       throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
     }
 
-    console.log(`Entlüfte Pumpe ${pumpId} (${pump.ingredient}) an Pin ${pump.pin} für ${durationMs}ms`)
+    console.log(`Entlüfte Pumpe ${pump.id} (${pump.ingredient}) an Pin ${pump.pin} für ${durationMs}ms`)
 
     // Aktiviere die Pumpe
     await activatePump(pump.pin, durationMs)
@@ -135,7 +136,7 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
 
   // Finde die Pumpe für diese Zutat - Lade die aktuellste Konfiguration
   const pumpConfig = await getPumpConfig()
-  const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
+  const pump = pumpConfig.find((p) => p.id === ingredientId)
 
   if (!pump) {
     throw new Error(`Keine Pumpe für Zutat ${ingredientId} konfiguriert!`)
@@ -200,7 +201,7 @@ export async function calibratePump(pumpId: number, durationMs: number) {
       throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
     }
 
-    console.log(`Kalibriere Pumpe ${pumpId} an Pin ${pump.pin} für ${durationMs}ms`)
+    console.log(`Kalibriere Pumpe ${pump.id} an Pin ${pump.pin} für ${durationMs}ms`)
 
     // Aktiviere die Pumpe für die angegebene Zeit
     await activatePump(pump.pin, durationMs)
@@ -223,7 +224,7 @@ export async function cleanPump(pumpId: number, durationMs: number) {
       throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
     }
 
-    console.log(`Reinige Pumpe ${pumpId} an Pin ${pump.pin} für ${durationMs}ms`)
+    console.log(`Reinige Pumpe ${pump.id} an Pin ${pump.pin} für ${durationMs}ms`)
 
     // Aktiviere die Pumpe für die angegebene Zeit
     await activatePump(pump.pin, durationMs)
