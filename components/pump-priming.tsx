@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Droplets, AlertTriangle } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
 import { ingredients } from "@/data/ingredients"
-import { activatePumpForPriming } from "@/lib/cocktail-machine" // Sicherstellen, dass der Import korrekt ist
+import { activatePumpForPriming } from "@/lib/cocktail-machine" // Dieser Import ist jetzt korrekt, da die Funktion existiert
 
 interface PumpPrimingProps {
   pumpConfig: PumpConfig[]
@@ -32,7 +32,7 @@ export default function PumpPriming({ pumpConfig }: PumpPrimingProps) {
 
     try {
       // Aktiviere die Pumpe für 1 Sekunde
-      await activatePumpForPriming(pumpId, 1000)
+      await activatePumpForPriming(pumpId, 1000) // Hier wird die Funktion aufgerufen
     } catch (error) {
       console.error(`Fehler beim Entlüften der Pumpe ${pumpId}:`, error)
       setError(error instanceof Error ? error.message : "Unbekannter Fehler")
