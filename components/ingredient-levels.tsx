@@ -18,10 +18,9 @@ import { updateIngredientLevel } from "@/lib/ingredient-level-service"
 
 interface IngredientLevelsProps {
   pumpConfig: PumpConfig[]
-  onLevelsUpdated?: () => void // Neuer Callback für Aktualisierungen
 }
 
-export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: IngredientLevelsProps) {
+export default function IngredientLevels({ pumpConfig }: IngredientLevelsProps) {
   const [levels, setLevels] = useState<IngredientLevel[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -125,11 +124,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
-
-      // Benachrichtige die übergeordnete Komponente über die Aktualisierung
-      if (onLevelsUpdated) {
-        onLevelsUpdated()
-      }
     } catch (error) {
       console.error("Fehler beim Nachfüllen:", error)
     } finally {
@@ -161,11 +155,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
       setLevels(updatedLevels)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
-
-      // Benachrichtige die übergeordnete Komponente über die Aktualisierung
-      if (onLevelsUpdated) {
-        onLevelsUpdated()
-      }
     } catch (error) {
       console.error("Fehler beim Nachfüllen aller Zutaten:", error)
     } finally {
@@ -322,7 +311,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                               type="text"
                               placeholder="Neue Gesamtmenge in ml"
                               value={refillAmounts[level.ingredientId] || ""}
-                              className="bg-white border-[hsl(var(--cocktail-card-border))] text-center text-lg text-black"
+                              className="bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] text-center text-lg text-white"
                               readOnly
                               onClick={() => handleInputFocus(level.ingredientId)}
                             />
@@ -419,7 +408,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                 value={activeInput ? refillAmounts[activeInput] || "" : ""}
                 onChange={(e) => activeInput && handleRefillAmountChange(activeInput, e.target.value)}
                 placeholder="Menge in ml"
-                className="text-xl h-12 text-center text-black bg-white"
+                className="text-xl h-12 text-center text-white"
                 autoFocus
                 readOnly
               />

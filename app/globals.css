@@ -86,30 +86,11 @@
   scrollbar-width: none; /* Firefox */
 }
 
-/* Ersetzen durch: */
-/* Schwarze Scrollbalken für alle Elemente */
-::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-
-::-webkit-scrollbar-track {
-  background: #000000;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 6px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555555;
-}
-
-/* Firefox Scrollbar-Styling */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #333333 #000000;
+/* Verstecke Scrollbars aber behalte Funktionalität */
+.overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
 }
 
 /* Anpassungen für Touch-Geräte */
