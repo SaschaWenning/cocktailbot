@@ -1,4 +1,4 @@
-"use server" // DIES MUSS DIE ALLERERSTE ZEILE SEIN!
+"use server" // DIES MUSS DIE ALLERERSTE ZEILE SEIN! KEINE LEERZEICHEN ODER LEERZEILEN DARÜBER!
 
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
@@ -7,7 +7,7 @@ import fs from "fs"
 import path from "path"
 import { setPinHigh } from "@/lib/gpio-controller"
 
-// NEU HINZUGEFÜGTE FUNKTION: activatePumpForPriming
+// Server Action: Funktion zum Aktivieren einer Pumpe für das Entlüften
 export async function activatePumpForPriming(pumpId: number, durationMs: number) {
   console.log(`[SERVER ACTION] activatePumpForPriming aufgerufen für Pumpe ${pumpId} für ${durationMs}ms`)
   try {
