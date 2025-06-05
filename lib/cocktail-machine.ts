@@ -7,9 +7,8 @@ import fs from "fs"
 import path from "path"
 import { setPinHigh } from "@/lib/gpio-controller"
 
-// Funktion zum Aktivieren einer Pumpe für das Entlüften
-// Expliziter Export als const, um die Erkennung als Server Action zu verbessern
-export const activatePumpForPriming = async (pumpId: number, durationMs: number) => {
+// NEU HINZUGEFÜGTE FUNKTION: activatePumpForPriming
+export async function activatePumpForPriming(pumpId: number, durationMs: number) {
   console.log(`[SERVER ACTION] activatePumpForPriming aufgerufen für Pumpe ${pumpId} für ${durationMs}ms`)
   try {
     // Finde die Pumpe in der Konfiguration
