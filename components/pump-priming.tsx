@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Droplets, AlertTriangle } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
 import { ingredients } from "@/data/ingredients"
-import { activatePumpForPriming } from "@/lib/cocktail-machine"
+import { activatePumpForPriming } from "@/lib/cocktail-machine" // Sicherstellen, dass der Import korrekt ist
 
 interface PumpPrimingProps {
   pumpConfig: PumpConfig[]
