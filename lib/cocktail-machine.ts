@@ -8,7 +8,8 @@ import path from "path"
 import { setPinHigh } from "@/lib/gpio-controller"
 
 // Funktion zum Aktivieren einer Pumpe für das Entlüften
-export async function activatePumpForPriming(pumpId: number, durationMs: number) {
+// Expliziter Export als const, um die Erkennung als Server Action zu verbessern
+export const activatePumpForPriming = async (pumpId: number, durationMs: number) => {
   console.log(`[SERVER ACTION] activatePumpForPriming aufgerufen für Pumpe ${pumpId} für ${durationMs}ms`)
   try {
     // Finde die Pumpe in der Konfiguration
@@ -136,7 +137,7 @@ export async function makeSingleShot(ingredientId: string, amount = 40) {
 
   // Finde die Pumpe für diese Zutat - Lade die aktuellste Konfiguration
   const pumpConfig = await getPumpConfig()
-  const pump = pumpConfig.find((p) => p.id === ingredientId)
+  const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
 
   if (!pump) {
     throw new Error(`Keine Pumpe für Zutat ${ingredientId} konfiguriert!`)
@@ -178,7 +179,7 @@ export async function testPump(pumpId: number) {
       throw new Error(`Pumpe mit ID ${pumpId} nicht gefunden`)
     }
 
-    console.log(`Teste Pumpe ${pumpId} an Pin ${pump.pin}`)
+    console.log(`Teste Pumpe ${pump.id} an Pin ${pump.pin}`)
 
     // Aktiviere die Pumpe für 1 Sekunde
     await activatePump(pump.pin, 1000)
