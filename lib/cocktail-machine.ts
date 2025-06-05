@@ -431,18 +431,18 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
       {
         id: "touch-down",
         name: "Touch Down",
-        description: "Fruchtiger Cocktail mit Vodka, Triple Sec und Maracujasaft",
+        description: "Fruchtiger Cocktail mit Braunem Rum, Triple Sec und Maracujasaft",
         image: "/images/cocktails/touch_down.jpg", // Aktualisierter Bildpfad
         alcoholic: true,
         ingredients: [
-          "40ml Vodka", // Geändert von 60ml Brauner Rum
+          "60ml Brauner Rum",
           "40ml Triple Sec",
           "140ml Maracujasaft",
           "10ml Limettensaft",
           "20ml Grenadine",
         ],
         recipe: [
-          { ingredientId: "vodka", amount: 40 }, // Geändert von dark-rum
+          { ingredientId: "dark-rum", amount: 60 },
           { ingredientId: "triple-sec", amount: 40 },
           { ingredientId: "passion-fruit-juice", amount: 140 },
           { ingredientId: "lime-juice", amount: 10 },
@@ -549,30 +549,6 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
           { ingredientId: "orange-juice", amount: 150 },
           { ingredientId: "pineapple-juice", amount: 50 },
           { ingredientId: "grenadine", amount: 30 },
-        ],
-      },
-      // Mai Tai hinzugefügt
-      {
-        id: "mai-tai",
-        name: "Mai Tai",
-        description: "Klassischer Tiki-Cocktail mit Rum, Orangenlikör und Limette",
-        image: "/images/cocktails/mai_tai.jpg", // Korrekter Pfad
-        alcoholic: true,
-        ingredients: [
-          "40ml Brauner Rum",
-          "20ml Weißer Rum",
-          "15ml Triple Sec",
-          "15ml Limettensaft",
-          "10ml Mandelsirup",
-          "10ml Grenadine",
-        ],
-        recipe: [
-          { ingredientId: "dark-rum", amount: 40 },
-          { ingredientId: "white-rum", amount: 20 },
-          { ingredientId: "triple-sec", amount: 15 },
-          { ingredientId: "lime-juice", amount: 15 },
-          { ingredientId: "almond-syrup", amount: 10 },
-          { ingredientId: "grenadine", amount: 10 },
         ],
       },
     ]
