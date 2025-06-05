@@ -7,7 +7,7 @@ import fs from "fs"
 import path from "path"
 import { setPinHigh } from "@/lib/gpio-controller"
 
-// Neue Funktion zum Aktivieren einer Pumpe für das Entlüften
+// Neue Funktion zum Aktivieren einer Pumpe für das Entlüften (Fix für Export-Problem)
 export async function activatePumpForPriming(pumpId: number, durationMs: number) {
   try {
     // Finde die Pumpe in der Konfiguration
@@ -20,7 +20,7 @@ export async function activatePumpForPriming(pumpId: number, durationMs: number)
 
     console.log(`Entlüfte Pumpe ${pumpId} (${pump.ingredient}) an Pin ${pump.pin} für ${durationMs}ms`)
 
-    // Aktiviere die Pumpe für die angegebene Zeit
+    // Aktiviere die Pumpe
     await activatePump(pump.pin, durationMs)
 
     return { success: true }

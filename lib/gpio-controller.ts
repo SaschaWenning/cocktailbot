@@ -3,7 +3,6 @@
 
 import { exec } from "child_process"
 import { promisify } from "util"
-import path from "path"
 
 const execPromise = promisify(exec)
 
@@ -18,8 +17,7 @@ export async function setPinHigh(pin: number, durationMs: number) {
 
   try {
     // Führe das Python-Skript direkt aus
-    const pythonScriptPath = path.join(process.cwd(), "scripts", "gpio_controller.py")
-    const command = `python3 ${pythonScriptPath} activate ${pin} ${durationMs}`
+    const command = `python3 /home/pi/cocktailbot/pump_control.py activate ${pin} ${durationMs}`
     console.log(`Führe Befehl aus: ${command}`)
 
     const { stdout, stderr } = await execPromise(command)
@@ -35,11 +33,6 @@ export async function setPinHigh(pin: number, durationMs: number) {
     return true
   } catch (error) {
     console.error(`Fehler beim Aktivieren des Pins ${pin}:`, error)
-    if (error instanceof Error) {
-      console.error(`Fehlerdetails: ${error.message}`)
-      if ("stdout" in error) console.error(`Python stdout: ${error.stdout}`)
-      if ("stderr" in error) console.error(`Python stderr: ${error.stderr}`)
-    }
     throw error
   }
 }
