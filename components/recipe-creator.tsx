@@ -12,6 +12,7 @@ import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Plus, Minus, FolderOpen } from "lucide-react"
 import VirtualKeyboard from "./virtual-keyboard"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs" // Import Tabs components
 
 interface RecipeCreatorProps {
   isOpen: boolean
@@ -19,46 +20,59 @@ interface RecipeCreatorProps {
   onSave: (newCocktail: Cocktail) => void
 }
 
-// Verfügbare Bilder im Projekt (muss hier definiert sein, da es eine Client-Komponente ist)
-const AVAILABLE_IMAGES = [
-  { path: "/images/cocktails/bahama_mama.jpg", name: "Bahama Mama" },
-  { path: "/images/cocktails/big_john.jpg", name: "Big John" },
-  { path: "/images/cocktails/long_island_iced_tea.jpg", name: "Long Island Iced Tea" },
-  { path: "/images/cocktails/mai_tai.jpg", name: "Mai Tai" },
-  { path: "/images/cocktails/malibu_ananas.jpg", name: "Malibu Ananas" },
-  { path: "/images/cocktails/malibu_colada.jpg", name: "Malibu Colada" },
-  { path: "/images/cocktails/malibu_sunrise.jpg", name: "Malibu Sunrise" },
-  { path: "/images/cocktails/malibu_sunset.jpg", name: "Malibu Sunset" },
-  { path: "/images/cocktails/mojito.jpg", name: "Mojito" },
-  { path: "/images/cocktails/passion_colada.jpg", name: "Passion Colada" },
-  { path: "/images/cocktails/peaches_cream.jpg", name: "Peaches & Cream" },
-  { path: "/images/cocktails/planters_punch.jpg", name: "Planters Punch" },
-  { path: "/images/cocktails/sex_on_the_beach.jpg", name: "Sex on the Beach" },
-  { path: "/images/cocktails/solero.jpg", name: "Solero" },
-  { path: "/images/cocktails/swimming_pool.jpg", name: "Swimming Pool" },
-  { path: "/images/cocktails/tequila_sunrise.jpg", name: "Tequila Sunrise" },
-  { path: "/images/cocktails/touch_down.jpg", name: "Touch Down" },
-  { path: "/images/cocktails/zombie.jpg", name: "Zombie" },
-]
+// Alle verfügbaren Bilder im Projekt, gruppiert nach Kategorien
+const ALL_AVAILABLE_IMAGES = {
+  cocktails: [
+    { path: "/images/cocktails/bahama_mama.jpg", name: "Bahama Mama" },
+    { path: "/images/cocktails/big_john.jpg", name: "Big John" },
+    { path: "/images/cocktails/long_island_iced_tea.jpg", name: "Long Island Iced Tea" },
+    { path: "/images/cocktails/mai_tai.jpg", name: "Mai Tai" },
+    { path: "/images/cocktails/malibu_ananas.jpg", name: "Malibu Ananas" },
+    { path: "/images/cocktails/malibu_colada.jpg", name: "Malibu Colada" },
+    { path: "/images/cocktails/malibu_sunrise.jpg", name: "Malibu Sunrise" },
+    { path: "/images/cocktails/malibu_sunset.jpg", name: "Malibu Sunset" },
+    { path: "/images/cocktails/mojito.jpg", name: "Mojito" },
+    { path: "/images/cocktails/passion_colada.jpg", name: "Passion Colada" },
+    { path: "/images/cocktails/peaches_cream.jpg", name: "Peaches & Cream" },
+    { path: "/images/cocktails/planters_punch.jpg", name: "Planters Punch" },
+    { path: "/images/cocktails/sex_on_the_beach.jpg", name: "Sex on the Beach" },
+    { path: "/images/cocktails/solero.jpg", name: "Solero" },
+    { path: "/images/cocktails/swimming_pool.jpg", name: "Swimming Pool" },
+    { path: "/images/cocktails/swimmingpool.jpg", name: "Swimmingpool" }, // Duplicate, keep for now
+    { path: "/images/cocktails/tequila_sunrise.jpg", name: "Tequila Sunrise" },
+    { path: "/images/cocktails/touch_down.jpg", name: "Touch Down" },
+    { path: "/images/cocktails/touchdown.jpg", name: "Touchdown" }, // Duplicate, keep for now
+    { path: "/images/cocktails/zombie.jpg", name: "Zombie" },
+  ],
+  backgrounds: [
+    { path: "/bursting-berries.png", name: "Bursting Berries" },
+    { path: "/citrus-swirl-sunset.png", name: "Citrus Swirl Sunset" },
+    { path: "/palm-glow.png", name: "Palm Glow" },
+    { path: "/refreshing-citrus-cooler.png", name: "Refreshing Citrus Cooler" },
+    { path: "/tropical-blend.png", name: "Tropical Blend" },
+    { path: "/vibrant-passion-fizz.png", name: "Vibrant Passion Fizz" },
+  ],
+}
 
 export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreatorProps) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
   const [imageUrl, setImageUrl] = useState("")
-  const [alcoholic, setAlcoholic] = useState(true) // Standardmäßig alkoholisch
+  const [alcoholic, setAlcoholic] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [activeInput, setActiveInput] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState("")
+  const [keyboardLayout, setKeyboardLayout] = useState<"alphanumeric" | "numeric">("alphanumeric")
   const [errors, setErrors] = useState<{
     name?: string
     imageUrl?: string
   }>({})
   const [showImageBrowser, setShowImageBrowser] = useState(false)
+  const [currentImageCategory, setCurrentImageCategory] = useState("cocktails") // Standardkategorie
 
   useEffect(() => {
-    // Füge eine Standardzutat hinzu, wenn das Rezept leer ist
     if (recipe.length === 0) {
       addIngredient()
     }
@@ -67,6 +81,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   const handleInputFocus = (inputType: string, currentValue = "") => {
     setActiveInput(inputType)
     setInputValue(currentValue)
+    if (inputType.startsWith("amount-")) {
+      setKeyboardLayout("numeric")
+    } else {
+      setKeyboardLayout("alphanumeric")
+    }
     setShowKeyboard(true)
   }
 
@@ -75,7 +94,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       if (activeInput?.startsWith("amount-")) {
         // Nur Zahlen und einen Dezimalpunkt erlauben
         if (key === "." && prev.includes(".")) return prev
-        if (isNaN(Number(key)) && key !== ".") return prev
+        if (key === "00" && prev === "") return "0" // Verhindert "00" am Anfang
+        if (isNaN(Number(key)) && key !== "." && key !== "00") return prev
       }
       return prev + key
     })
@@ -137,7 +157,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     if (availableIngredients.length > 0) {
       setRecipe([...recipe, { ingredientId: availableIngredients[0].id, amount: 30 }])
     } else {
-      // Optional: Fehlermeldung, wenn keine Zutaten mehr verfügbar sind
       console.warn("Alle Zutaten sind bereits im Rezept enthalten.")
     }
   }
@@ -150,9 +169,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   }
 
   const isValidUrl = (url: string) => {
-    if (!url) return true // Leere URL ist erlaubt
+    if (!url) return true
 
-    // Wenn es ein lokaler Pfad ist, akzeptieren wir ihn
     if (url.startsWith("/")) return true
 
     try {
@@ -183,7 +201,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
 
     setSaving(true)
     try {
-      // Generiere eine eindeutige ID für den neuen Cocktail
       const newCocktailId = `custom-${Date.now()}`
 
       const newCocktail: Cocktail = {
@@ -396,39 +413,81 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
 
       {/* Bild-Browser Dialog */}
       <Dialog open={showImageBrowser} onOpenChange={setShowImageBrowser}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Bild auswählen</DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="h-[60vh] pr-4">
-            <div className="grid grid-cols-2 gap-4 p-2">
-              {AVAILABLE_IMAGES.map((image) => (
-                <div
-                  key={image.path}
-                  className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
-                    imageUrl === image.path ? "border-[hsl(var(--cocktail-primary))]" : "border-transparent"
-                  }`}
-                  onClick={() => handleSelectImage(image.path)}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                    <img
-                      src={image.path || "/placeholder.svg"}
-                      alt={image.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback bei Bildfehler
-                        e.currentTarget.src = "/placeholder.svg?height=200&width=200"
-                      }}
-                    />
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center">
-                    {image.name}
-                  </div>
+          <Tabs value={currentImageCategory} onValueChange={setCurrentImageCategory} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-[hsl(var(--cocktail-card-bg))] text-white">
+              <TabsTrigger
+                value="cocktails"
+                className="data-[state=active]:bg-[hsl(var(--cocktail-primary))] data-[state=active]:text-black"
+              >
+                Cocktails
+              </TabsTrigger>
+              <TabsTrigger
+                value="backgrounds"
+                className="data-[state=active]:bg-[hsl(var(--cocktail-primary))] data-[state=active]:text-black"
+              >
+                Hintergründe
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="cocktails">
+              <ScrollArea className="h-[60vh] pr-4">
+                <div className="grid grid-cols-2 gap-4 p-2">
+                  {ALL_AVAILABLE_IMAGES.cocktails.map((image) => (
+                    <div
+                      key={image.path}
+                      className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
+                        imageUrl === image.path ? "border-[hsl(var(--cocktail-primary))]" : "border-transparent"
+                      }`}
+                      onClick={() => handleSelectImage(image.path)}
+                    >
+                      <img
+                        src={image.path || "/placeholder.svg"}
+                        alt={image.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg?height=200&width=200"
+                        }}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center text-white">
+                        {image.name}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+              </ScrollArea>
+            </TabsContent>
+            <TabsContent value="backgrounds">
+              <ScrollArea className="h-[60vh] pr-4">
+                <div className="grid grid-cols-2 gap-4 p-2">
+                  {ALL_AVAILABLE_IMAGES.backgrounds.map((image) => (
+                    <div
+                      key={image.path}
+                      className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
+                        imageUrl === image.path ? "border-[hsl(var(--cocktail-primary))]" : "border-transparent"
+                      }`}
+                      onClick={() => handleSelectImage(image.path)}
+                    >
+                      <img
+                        src={image.path || "/placeholder.svg"}
+                        alt={image.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg?height=200&width=200"
+                        }}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center text-white">
+                        {image.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
             <Button
@@ -450,7 +509,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       </Dialog>
 
       {showKeyboard && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
+        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-[999]">
           <div className="w-full max-w-2xl p-4">
             <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
               <Label className="text-white mb-2 block">
@@ -479,7 +538,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               onBackspace={handleKeyboardBackspace}
               onClear={handleKeyboardClear}
               onConfirm={handleKeyboardConfirm}
-              allowDecimal={activeInput?.startsWith("amount-")} // Nur für Mengen Dezimalpunkt erlauben
+              onCancel={handleKeyboardCancel}
+              layout={keyboardLayout}
             />
           </div>
         </div>
