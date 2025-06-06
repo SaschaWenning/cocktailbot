@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Plus, Minus, FolderOpen } from "lucide-react"
+import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X } from "lucide-react"
 import VirtualKeyboard from "./virtual-keyboard"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs" // Import Tabs components
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import Image from "next/image"
 
 interface RecipeCreatorProps {
   isOpen: boolean
@@ -38,10 +39,10 @@ const ALL_AVAILABLE_IMAGES = {
     { path: "/images/cocktails/sex_on_the_beach.jpg", name: "Sex on the Beach" },
     { path: "/images/cocktails/solero.jpg", name: "Solero" },
     { path: "/images/cocktails/swimming_pool.jpg", name: "Swimming Pool" },
-    { path: "/images/cocktails/swimmingpool.jpg", name: "Swimmingpool" }, // Duplicate, keep for now
+    { path: "/images/cocktails/swimmingpool.jpg", name: "Swimmingpool" },
     { path: "/images/cocktails/tequila_sunrise.jpg", name: "Tequila Sunrise" },
     { path: "/images/cocktails/touch_down.jpg", name: "Touch Down" },
-    { path: "/images/cocktails/touchdown.jpg", name: "Touchdown" }, // Duplicate, keep for now
+    { path: "/images/cocktails/touchdown.jpg", name: "Touchdown" },
     { path: "/images/cocktails/zombie.jpg", name: "Zombie" },
   ],
   backgrounds: [
@@ -70,13 +71,21 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     imageUrl?: string
   }>({})
   const [showImageBrowser, setShowImageBrowser] = useState(false)
-  const [currentImageCategory, setCurrentImageCategory] = useState("cocktails") // Standardkategorie
+  const [currentImageCategory, setCurrentImageCategory] = useState("cocktails")
+  const [selectedImageForPreview, setSelectedImageForPreview] = useState<string | null>(null) // Für die Vorschau im Browser
 
   useEffect(() => {
     if (recipe.length === 0) {
       addIngredient()
     }
   }, [recipe])
+
+  // Setzt das Vorschaubild, wenn der Bildbrowser geöffnet wird
+  useEffect(() => {
+    if (showImageBrowser) {
+      setSelectedImageForPreview(imageUrl || null)
+    }
+  }, [showImageBrowser, imageUrl])
 
   const handleInputFocus = (inputType: string, currentValue = "") => {
     setActiveInput(inputType)
@@ -92,9 +101,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   const handleKeyboardInput = (key: string) => {
     setInputValue((prev) => {
       if (activeInput?.startsWith("amount-")) {
-        // Nur Zahlen und einen Dezimalpunkt erlauben
         if (key === "." && prev.includes(".")) return prev
-        if (key === "00" && prev === "") return "0" // Verhindert "00" am Anfang
+        if (key === "00" && prev === "") return "0"
         if (isNaN(Number(key)) && key !== "." && key !== "00") return prev
       }
       return prev + key
@@ -207,7 +215,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         id: newCocktailId,
         name: name.trim(),
         description: description.trim(),
-        image: imageUrl || "/placeholder.svg?height=200&width=400", // Standardbild, wenn keines angegeben
+        image: imageUrl || "/placeholder.svg?height=200&width=400",
         alcoholic: alcoholic,
         recipe: recipe,
         ingredients: recipe.map((item) => {
@@ -234,8 +242,17 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   }
 
   const handleSelectImage = (path: string) => {
-    setImageUrl(path)
+    setSelectedImageForPreview(path) // Update preview immediately
+  }
+
+  const confirmImageSelection = () => {
+    setImageUrl(selectedImageForPreview || "")
     setShowImageBrowser(false)
+  }
+
+  const clearImage = () => {
+    setImageUrl("")
+    setSelectedImageForPreview(null)
   }
 
   return (
@@ -297,6 +314,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 >
                   <FolderOpen className="h-4 w-4" />
                 </Button>
+                {imageUrl && (
+                  <Button type="button" variant="destructive" size="icon" onClick={clearImage} className="h-10 w-10">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
               {errors.imageUrl && <p className="text-red-400 text-xs">{errors.imageUrl}</p>}
               <p className="text-xs text-gray-300">
@@ -413,81 +435,110 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
 
       {/* Bild-Browser Dialog */}
       <Dialog open={showImageBrowser} onOpenChange={setShowImageBrowser}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-lg">
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Bild auswählen</DialogTitle>
           </DialogHeader>
 
-          <Tabs value={currentImageCategory} onValueChange={setCurrentImageCategory} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-[hsl(var(--cocktail-card-bg))] text-white">
-              <TabsTrigger
-                value="cocktails"
-                className="data-[state=active]:bg-[hsl(var(--cocktail-primary))] data-[state=active]:text-black"
-              >
-                Cocktails
-              </TabsTrigger>
-              <TabsTrigger
-                value="backgrounds"
-                className="data-[state=active]:bg-[hsl(var(--cocktail-primary))] data-[state=active]:text-black"
-              >
-                Hintergründe
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="cocktails">
-              <ScrollArea className="h-[60vh] pr-4">
-                <div className="grid grid-cols-2 gap-4 p-2">
-                  {ALL_AVAILABLE_IMAGES.cocktails.map((image) => (
-                    <div
-                      key={image.path}
-                      className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
-                        imageUrl === image.path ? "border-[hsl(var(--cocktail-primary))]" : "border-transparent"
-                      }`}
-                      onClick={() => handleSelectImage(image.path)}
-                    >
-                      <img
-                        src={image.path || "/placeholder.svg"}
-                        alt={image.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg?height=200&width=200"
-                        }}
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center text-white">
-                        {image.name}
-                      </div>
+          <div className="grid grid-cols-3 gap-4 h-[60vh]">
+            {/* Linke Spalte: Ordner/Kategorien und Bildliste */}
+            <div className="col-span-2 flex flex-col">
+              <Tabs value={currentImageCategory} onValueChange={setCurrentImageCategory} className="w-full mb-4">
+                <TabsList className="grid w-full grid-cols-2 bg-[hsl(var(--cocktail-card-bg))] text-white">
+                  <TabsTrigger
+                    value="cocktails"
+                    className="data-[state=active]:bg-[hsl(var(--cocktail-primary))] data-[state=active]:text-black"
+                  >
+                    Cocktails
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="backgrounds"
+                    className="data-[state=active]:bg-[hsl(var(--cocktail-primary))] data-[state=active]:text-black"
+                  >
+                    Hintergründe
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="cocktails" className="mt-2">
+                  <ScrollArea className="h-[calc(60vh-60px)] pr-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {ALL_AVAILABLE_IMAGES.cocktails.map((image) => (
+                        <div
+                          key={image.path}
+                          className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
+                            selectedImageForPreview === image.path
+                              ? "border-[hsl(var(--cocktail-primary))]"
+                              : "border-transparent"
+                          }`}
+                          onClick={() => handleSelectImage(image.path)}
+                        >
+                          <img
+                            src={image.path || "/placeholder.svg"}
+                            alt={image.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg?height=100&width=100"
+                            }}
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center text-white">
+                            {image.name}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-            <TabsContent value="backgrounds">
-              <ScrollArea className="h-[60vh] pr-4">
-                <div className="grid grid-cols-2 gap-4 p-2">
-                  {ALL_AVAILABLE_IMAGES.backgrounds.map((image) => (
-                    <div
-                      key={image.path}
-                      className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
-                        imageUrl === image.path ? "border-[hsl(var(--cocktail-primary))]" : "border-transparent"
-                      }`}
-                      onClick={() => handleSelectImage(image.path)}
-                    >
-                      <img
-                        src={image.path || "/placeholder.svg"}
-                        alt={image.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg?height=200&width=200"
-                        }}
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center text-white">
-                        {image.name}
-                      </div>
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="backgrounds" className="mt-2">
+                  <ScrollArea className="h-[calc(60vh-60px)] pr-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {ALL_AVAILABLE_IMAGES.backgrounds.map((image) => (
+                        <div
+                          key={image.path}
+                          className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
+                            selectedImageForPreview === image.path
+                              ? "border-[hsl(var(--cocktail-primary))]"
+                              : "border-transparent"
+                          }`}
+                          onClick={() => handleSelectImage(image.path)}
+                        >
+                          <img
+                            src={image.path || "/placeholder.svg"}
+                            alt={image.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg?height=100&width=100"
+                            }}
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center text-white">
+                            {image.name}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Rechte Spalte: Vorschaubild */}
+            <div className="col-span-1 flex flex-col items-center justify-center bg-[hsl(var(--cocktail-card-bg))] rounded-md p-4">
+              <h3 className="text-lg font-semibold mb-4 text-white">Vorschau</h3>
+              <div className="relative w-full aspect-square border border-[hsl(var(--cocktail-card-border))] rounded-md overflow-hidden">
+                <Image
+                  src={selectedImageForPreview || "/placeholder.svg?height=400&width=400&query=No image selected"}
+                  alt="Vorschau"
+                  fill
+                  className="object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder.svg?height=400&width=400"
+                  }}
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                />
+              </div>
+              <p className="text-sm text-center mt-2 text-gray-300">
+                {selectedImageForPreview ? selectedImageForPreview.split("/").pop() : "Kein Bild ausgewählt"}
+              </p>
+            </div>
+          </div>
 
           <DialogFooter>
             <Button
@@ -499,18 +550,18 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               Abbrechen
             </Button>
             <Button
-              onClick={() => setShowImageBrowser(false)}
+              onClick={confirmImageSelection}
               className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
             >
-              Auswählen
+              Bild auswählen
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {showKeyboard && (
-        <div className="fixed inset-0 bg-black/70 flex items-end justify-center z-[999]">
-          <div className="w-full max-w-2xl p-4">
+        <div className="fixed inset-0 bg-black/90 flex items-end justify-center z-[9999] pointer-events-auto">
+          <div className="w-full max-w-2xl p-4 flex flex-col">
             <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
               <Label className="text-white mb-2 block">
                 {activeInput === "name" && "Name eingeben"}

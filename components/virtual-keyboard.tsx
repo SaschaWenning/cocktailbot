@@ -8,8 +8,8 @@ interface VirtualKeyboardProps {
   onBackspace: () => void
   onClear: () => void
   onConfirm: () => void
-  onCancel: () => void
-  layout: "alphanumeric" | "numeric" // 'alphanumeric' oder 'numeric'
+  onCancel: () => void // Hinzugefügt für Abbrechen-Button
+  layout: "alphanumeric" | "numeric"
 }
 
 export default function VirtualKeyboard({
@@ -17,7 +17,7 @@ export default function VirtualKeyboard({
   onBackspace,
   onClear,
   onConfirm,
-  onCancel,
+  onCancel, // Übergeben
   layout,
 }: VirtualKeyboardProps) {
   const alphanumericKeys = [
@@ -32,7 +32,7 @@ export default function VirtualKeyboard({
     ["1", "2", "3"],
     ["4", "5", "6"],
     ["7", "8", "9"],
-    [".", "0", "00"], // Hinzugefügt für Dezimalzahlen und schnelle Eingabe
+    [".", "0", "00"],
   ]
 
   const currentKeys = layout === "numeric" ? numericKeys : alphanumericKeys
