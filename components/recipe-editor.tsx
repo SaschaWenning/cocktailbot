@@ -62,23 +62,27 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
       // Normalize image path
       let imagePath = cocktail.image || ""
+
+      // Wenn es ein Platzhalter ist, setze leeren String
       if (imagePath.startsWith("/placeholder")) {
         setImageUrl("")
-      } else {
-        // Remove any URL parameters and ensure proper formatting
-        imagePath = imagePath.split("?")[0]
-        if (imagePath && !imagePath.startsWith("http")) {
-          if (!imagePath.startsWith("/")) {
-            imagePath = `/${imagePath}`
-          }
-        }
-        setImageUrl(imagePath)
+        return
       }
 
-      setDescription(cocktail.description)
+      // Stelle sicher, dass der Pfad mit / beginnt
+      if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
+        imagePath = `/${imagePath}`
+      }
+
+      // Entferne URL-Parameter
+      imagePath = imagePath.split("?")[0]
+
+      setImageUrl(imagePath)
 
       // For debugging
       console.log(`Editor loaded for ${cocktail.name} with image path: ${imagePath}`)
+
+      setDescription(cocktail.description)
     }
   }, [cocktail])
 

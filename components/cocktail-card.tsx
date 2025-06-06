@@ -1,147 +1,140 @@
 "use client"
 
-import Image from "next/image"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { Cocktail } from "@/types/cocktail"
-import { useState, useEffect } from "react"
-import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Trash2, Edit } from "lucide-react"
+import type { Cocktail } from "@/types/cocktail"
 
 interface CocktailCardProps {
   cocktail: Cocktail
-  selected?: boolean
   onClick: () => void
   onDelete?: (id: string) => void
+  onEdit?: (id: string) => void
 }
 
-export default function CocktailCard({ cocktail, selected = false, onClick, onDelete }: CocktailCardProps) {
+export default function CocktailCard({ cocktail, onClick, onDelete, onEdit }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
   const [imageSrc, setImageSrc] = useState<string>("")
 
-  // Generiere ein Platzhalterbild mit dem Namen des Cocktails
-  const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
-
+  // Reset image error when cocktail changes
   useEffect(() => {
-    // Reset imageError when cocktail changes
     setImageError(false)
 
-    // Normalize image path
-    let src = cocktail.image || ""
+    // Normalisiere den Bildpfad
+    let normalizedPath = cocktail.image || ""
 
-    // For debugging
-    console.log(`Original image path for card ${cocktail.name}: ${src}`)
-
-    // Ensure proper path formatting
-    if (src && !src.startsWith("http")) {
-      if (!src.startsWith("/")) {
-        src = `/${src}`
-      }
-
-      // Remove any URL parameters
-      src = src.split("?")[0]
+    // Wenn es ein Platzhalter ist, behalte ihn
+    if (normalizedPath.startsWith("/placeholder")) {
+      setImageSrc(normalizedPath)
+      return
     }
 
-    console.log(`Normalized image path for card ${cocktail.name}: ${src}`)
-    setImageSrc(src)
+    // Stelle sicher, dass der Pfad mit / beginnt
+    if (normalizedPath && !normalizedPath.startsWith("/") && !normalizedPath.startsWith("http")) {
+      normalizedPath = `/${normalizedPath}`
+    }
+
+    // Entferne URL-Parameter
+    normalizedPath = normalizedPath.split("?")[0]
+
+    // Wenn der Pfad mit /images beginnt, versuche ihn direkt zu verwenden
+    if (normalizedPath.startsWith("/images")) {
+      setImageSrc(normalizedPath)
+    }
+    // Wenn der Pfad mit einem absoluten Pfad beginnt (z.B. /home/pi/...)
+    else if (normalizedPath.startsWith("/") && normalizedPath.includes("/", 1)) {
+      // Verwende die Image-API
+      setImageSrc(`/api/image?path=${encodeURIComponent(normalizedPath)}`)
+    }
+    // Sonst verwende den Pfad direkt
+    else {
+      setImageSrc(normalizedPath)
+    }
+
+    console.log(`CocktailCard: Normalisierter Bildpfad für ${cocktail.name}: ${normalizedPath} -> ${imageSrc}`)
   }, [cocktail])
 
-  // Funktion zum Umschalten auf das Platzhalterbild bei Fehlern
   const handleImageError = () => {
-    console.log(`Bild konnte nicht geladen werden: ${imageSrc}`)
+    console.log(`CocktailCard: Bildfehler für ${cocktail.name}: ${imageSrc}`)
     setImageError(true)
   }
 
-  // Verwende Platzhalterbild wenn ein Fehler auftritt oder kein Bild vorhanden ist
-  const finalImageSrc = imageError || !imageSrc ? placeholderImage : imageSrc
+  const placeholderImage = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+  const finalImageSrc = imageError ? placeholderImage : imageSrc || placeholderImage
 
-  if (selected) {
-    return (
-      <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
-        <div className="flex flex-col md:flex-row">
-          {/* Bild-Container (links auf größeren Bildschirmen) */}
-          <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
-            <Image
-              src={finalImageSrc || "/placeholder.svg"}
-              alt={cocktail.name}
-              fill
-              className="object-cover"
-              onError={handleImageError}
-              sizes="(max-width: 768px) 100vw, 33vw"
-              priority
-            />
-          </div>
-
-          {/* Inhalt-Container (rechts auf größeren Bildschirmen) */}
-          <div className="flex-1 p-4">
-            <div className="flex justify-between items-start mb-3">
-              <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
-              <Badge
-                variant={cocktail.alcoholic ? "default" : "default"}
-                className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
-              >
-                {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
-              </Badge>
-            </div>
-
-            <p className="text-sm text-[hsl(var(--cocktail-text-muted))] mb-4">{cocktail.description}</p>
-
-            <div>
-              <h4 className="text-base font-semibold mb-2">Zutaten:</h4>
-              <ul className="text-sm space-y-1 text-[hsl(var(--cocktail-text))]">
-                {cocktail.ingredients.map((ingredient, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>{ingredient}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </Card>
-    )
-  }
-
-  // Standard-Ansicht für nicht ausgewählte Cocktails (unverändert)
   return (
-    <Card
-      className="overflow-hidden transition-all cursor-pointer hover:shadow-md bg-black border-[hsl(var(--cocktail-card-border))]"
-      onClick={onClick}
-    >
-      <div className="relative aspect-square w-full">
-        <Image
+    <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer bg-black border-[hsl(var(--cocktail-card-border))] hover:border-[hsl(var(--cocktail-primary))]/50">
+      <div className="relative aspect-square overflow-hidden" onClick={onClick}>
+        <img
           src={finalImageSrc || "/placeholder.svg"}
           alt={cocktail.name}
-          fill
-          className="object-cover"
-          onError={handleImageError}
-          sizes="(max-width: 768px) 100vw, 50vw"
-          priority={false}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
         />
-      </div>
-      <CardContent className="p-3">
-        <div className="flex justify-between items-start">
-          <h3 className="font-bold text-base text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
-          <div className="flex items-center gap-1">
-            <Badge
-              variant={cocktail.alcoholic ? "default" : "default"}
-              className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+        {/* Badge */}
+        <Badge className="absolute top-3 right-3 bg-[hsl(var(--cocktail-primary))] text-black font-medium shadow-lg">
+          {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
+        </Badge>
+
+        {/* Action Buttons - erscheinen beim Hover */}
+        <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+          {onEdit && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 w-8 p-0 bg-white/90 hover:bg-white text-black shadow-lg"
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit(cocktail.id)
+              }}
             >
-              {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
-            </Badge>
-            {cocktail.id.startsWith("custom-") && onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-[hsl(var(--cocktail-error))]"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(cocktail.id)
-                }}
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8 w-8 p-0 shadow-lg"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(cocktail.id)
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <CardContent className="p-4" onClick={onClick}>
+        <div className="space-y-2">
+          <h3 className="font-bold text-lg text-[hsl(var(--cocktail-text))] line-clamp-1 group-hover:text-[hsl(var(--cocktail-primary))] transition-colors duration-200">
+            {cocktail.name}
+          </h3>
+          <p className="text-sm text-[hsl(var(--cocktail-text-muted))] line-clamp-2 leading-relaxed">
+            {cocktail.description}
+          </p>
+
+          {/* Zutaten-Vorschau */}
+          <div className="flex flex-wrap gap-1 mt-2">
+            {cocktail.recipe.slice(0, 3).map((item, index) => (
+              <span
+                key={index}
+                className="text-xs bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text-muted))] px-2 py-1 rounded-full border border-[hsl(var(--cocktail-card-border))]"
               >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                {item.amount}ml
+              </span>
+            ))}
+            {cocktail.recipe.length > 3 && (
+              <span className="text-xs text-[hsl(var(--cocktail-text-muted))] px-2 py-1">
+                +{cocktail.recipe.length - 3} weitere
+              </span>
             )}
           </div>
         </div>

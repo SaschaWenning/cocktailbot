@@ -304,46 +304,66 @@ export default function Home() {
     return ingredient ? ingredient.name : id
   }
 
+  // Tab-Wechsel Handler - schließt automatisch die Cocktail-Detailansicht
+  const handleTabChange = (newTab: string) => {
+    setSelectedCocktail(null) // Schließe die Cocktail-Detailansicht
+    setActiveTab(newTab)
+  }
+
   // Neue Komponente für die Cocktail-Detailansicht
   function CocktailDetail({ cocktail }: { cocktail: Cocktail }) {
     const [localImageError, setLocalImageError] = useState(false)
+    const [imageSrc, setImageSrc] = useState<string>("")
 
     // Reset image error when cocktail changes
     useEffect(() => {
       setLocalImageError(false)
-    }, [cocktail.id])
 
-    const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+      // Normalisiere den Bildpfad
+      let normalizedPath = cocktail.image || ""
 
-    // Normalize image path
-    let imageSrc = cocktail.image || ""
-
-    // For debugging
-    console.log(`Original image path for ${cocktail.name}: ${imageSrc}`)
-
-    // Ensure proper path formatting
-    if (imageSrc && !imageSrc.startsWith("http")) {
-      if (!imageSrc.startsWith("/")) {
-        imageSrc = `/${imageSrc}`
+      // Wenn es ein Platzhalter ist, behalte ihn
+      if (normalizedPath.startsWith("/placeholder")) {
+        setImageSrc(normalizedPath)
+        return
       }
 
-      // Remove any URL parameters
-      imageSrc = imageSrc.split("?")[0]
-    }
+      // Stelle sicher, dass der Pfad mit / beginnt
+      if (normalizedPath && !normalizedPath.startsWith("/") && !normalizedPath.startsWith("http")) {
+        normalizedPath = `/${normalizedPath}`
+      }
 
-    console.log(`Normalized image path for ${cocktail.name}: ${imageSrc}`)
+      // Entferne URL-Parameter
+      normalizedPath = normalizedPath.split("?")[0]
+
+      // Wenn der Pfad mit /images beginnt, versuche ihn direkt zu verwenden
+      if (normalizedPath.startsWith("/images")) {
+        setImageSrc(normalizedPath)
+      }
+      // Wenn der Pfad mit einem absoluten Pfad beginnt (z.B. /home/pi/...)
+      else if (normalizedPath.startsWith("/") && normalizedPath.includes("/", 1)) {
+        // Verwende die Image-API
+        setImageSrc(`/api/image?path=${encodeURIComponent(normalizedPath)}`)
+      }
+      // Sonst verwende den Pfad direkt
+      else {
+        setImageSrc(normalizedPath)
+      }
+
+      console.log(`CocktailDetail: Normalisierter Bildpfad für ${cocktail.name}: ${normalizedPath} -> ${imageSrc}`)
+    }, [cocktail.id, cocktail.image, cocktail.name])
 
     const handleImageError = () => {
-      console.log(`Image load error for ${cocktail.name}: ${imageSrc}`)
+      console.log(`CocktailDetail: Bildfehler für ${cocktail.name}: ${imageSrc}`)
       setLocalImageError(true)
     }
 
-    const finalImageSrc = localImageError ? placeholderImage : imageSrc
+    const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+    const finalImageSrc = localImageError ? placeholderImage : imageSrc || placeholderImage
     const availableSizes = [200, 300, 400]
-    const isCustomRecipe = cocktail.id.startsWith("custom-")
 
     return (
-      <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))]">
+      <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))] shadow-2xl">
         <div className="flex flex-col md:flex-row">
           <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
             <Image
@@ -355,26 +375,29 @@ export default function Home() {
               sizes="(max-width: 768px) 100vw, 33vw"
               priority
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
-          <div className="flex-1 p-4 flex flex-col">
-            <div className="flex justify-between items-start mb-3">
-              <h3 className="font-bold text-xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
+          <div className="flex-1 p-6 flex flex-col">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bold text-2xl text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
               <Badge
                 variant={cocktail.alcoholic ? "default" : "default"}
-                className="text-xs bg-[hsl(var(--cocktail-primary))] text-black"
+                className="text-sm bg-[hsl(var(--cocktail-primary))] text-black px-3 py-1"
               >
-                {cocktail.alcoholic ? "Alk" : "Alkoholfrei"}
+                {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
               </Badge>
             </div>
-            <div className="flex flex-col md:flex-row gap-4 flex-1">
+            <div className="flex flex-col md:flex-row gap-6 flex-1">
               <div className="md:w-1/2">
-                <p className="text-sm text-[hsl(var(--cocktail-text-muted))] mb-4">{cocktail.description}</p>
+                <p className="text-base text-[hsl(var(--cocktail-text-muted))] mb-6 leading-relaxed">
+                  {cocktail.description}
+                </p>
                 <div>
-                  <h4 className="text-base font-semibold mb-2">Zutaten:</h4>
-                  <ul className="text-sm space-y-1 text-[hsl(var(--cocktail-text))]">
+                  <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
+                  <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
                     {cocktail.ingredients.map((ingredient, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="mr-1">•</span>
+                      <li key={index} className="flex items-start bg-[hsl(var(--cocktail-card-bg))]/50 p-2 rounded-lg">
+                        <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
                         <span>{ingredient}</span>
                       </li>
                     ))}
@@ -382,79 +405,77 @@ export default function Home() {
                 </div>
               </div>
               <div className="md:w-1/2 flex flex-col">
-                <div className="space-y-2 mb-4">
-                  <h4 className="text-base mb-2 text-[hsl(var(--cocktail-text))]">Cocktailgröße wählen:</h4>
-                  <div className="flex gap-4">
+                <div className="space-y-4 mb-6">
+                  <h4 className="text-lg mb-3 text-[hsl(var(--cocktail-text))]">Cocktailgröße wählen:</h4>
+                  <div className="grid grid-cols-3 gap-3">
                     {availableSizes.map((size) => (
                       <button
                         key={size}
                         type="button"
                         onClick={() => setSelectedSize(size)}
-                        className={`text-sm py-1 px-2 rounded bg-[hsl(var(--cocktail-card-bg))] ${
+                        className={`py-3 px-4 rounded-lg transition-all duration-200 font-medium ${
                           selectedSize === size
-                            ? "font-semibold border-b-2 border-[hsl(var(--cocktail-primary))] text-[hsl(var(--cocktail-primary))]"
-                            : "text-[hsl(var(--cocktail-text))] hover:text-[hsl(var(--cocktail-primary))]"
+                            ? "bg-[hsl(var(--cocktail-primary))] text-black shadow-lg scale-105"
+                            : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
                         }`}
                       >
                         {size}ml
                       </button>
                     ))}
                   </div>
-                  <div className="text-xs text-[hsl(var(--cocktail-text-muted))]">
+                  <div className="text-sm text-[hsl(var(--cocktail-text-muted))] bg-[hsl(var(--cocktail-card-bg))]/30 p-2 rounded">
                     Originalrezept: ca. {getCurrentVolume()}ml
                   </div>
                 </div>
                 {!checkIngredientsAvailable() && (
-                  <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30 mb-4">
+                  <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30 mb-6">
                     <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-                    <AlertDescription className="text-[hsl(var(--cocktail-error))] text-xs">
+                    <AlertDescription className="text-[hsl(var(--cocktail-error))] text-sm">
                       Nicht genügend Zutaten vorhanden! Bitte fülle die Zutaten nach.
                     </AlertDescription>
                   </Alert>
                 )}
-                <div className="flex flex-col gap-2 mt-auto">
+                <div className="flex flex-col gap-3 mt-auto">
                   <Button
                     onClick={handleMakeCocktail}
                     disabled={!checkIngredientsAvailable()}
-                    className="w-full bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
+                    className="w-full py-3 text-lg bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                   >
-                    Cocktail zubereiten
+                    Cocktail zubereiten ({selectedSize}ml)
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setSelectedCocktail(null)}
-                    className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                    className="w-full py-2 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
                   >
-                    Abbrechen
+                    Zurück zur Übersicht
                   </Button>
                 </div>
-                <div className="flex justify-between mt-4">
+                <div className="flex justify-between mt-4 gap-3">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex items-center gap-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                    className="flex items-center gap-2 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleEditClick(cocktail.id)
                     }}
                   >
-                    <Edit className="h-4 w-4 mr-1" />
+                    <Edit className="h-4 w-4" />
                     Bearbeiten
                   </Button>
-                  {isCustomRecipe && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="flex items-center gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteClick(cocktail.id)
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Löschen
-                    </Button>
-                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex items-center gap-2 shadow-lg"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteClick(cocktail.id)
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Löschen
+                  </Button>
                 </div>
               </div>
             </div>
@@ -475,17 +496,17 @@ export default function Home() {
     onPageChange: (page: number) => void
   }) {
     return (
-      <div className="flex justify-center items-center gap-2 mt-4">
+      <div className="flex justify-center items-center gap-3 mt-8">
         <Button
           variant="outline"
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-primary))] text-black border-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))]"
+          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-primary))] text-black border-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <span className="text-sm font-medium text-[hsl(var(--cocktail-text))]">
+        <span className="text-sm font-medium text-[hsl(var(--cocktail-text))] bg-[hsl(var(--cocktail-card-bg))] px-4 py-2 rounded-lg border border-[hsl(var(--cocktail-card-border))]">
           Seite {currentPage} von {totalPages}
         </span>
         <Button
@@ -493,7 +514,7 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-primary))] text-black border-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))]"
+          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-primary))] text-black border-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
@@ -510,10 +531,10 @@ export default function Home() {
 
       if (isMaking) {
         return (
-          <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
-            <div className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
-              <Progress value={progress} className="h-2" />
+          <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))] shadow-2xl">
+            <div className="p-8 space-y-6">
+              <h2 className="text-2xl font-semibold text-center">{statusMessage}</h2>
+              <Progress value={progress} className="h-3 rounded-full" />
 
               {errorMessage && (
                 <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
@@ -524,8 +545,8 @@ export default function Home() {
 
               {showSuccess && (
                 <div className="flex justify-center">
-                  <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-3">
-                    <Check className="h-8 w-8 text-[hsl(var(--cocktail-success))]" />
+                  <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-4 shadow-lg">
+                    <Check className="h-12 w-12 text-[hsl(var(--cocktail-success))]" />
                   </div>
                 </div>
               )}
@@ -541,27 +562,28 @@ export default function Home() {
     switch (activeTab) {
       case "cocktails":
         return (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Cocktails mit Alkohol</h2>
+              <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Cocktails mit Alkohol</h2>
               <Button
                 variant="outline"
-                size="sm"
+                size="lg"
                 onClick={() => setShowRecipeCreator(true)}
-                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
               >
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="h-5 w-5 mr-2" />
                 Neues Rezept
               </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {currentPageCocktails.map((cocktail) => (
                 <CocktailCard
                   key={cocktail.id}
                   cocktail={cocktail}
                   onClick={() => setSelectedCocktail(cocktail.id)}
-                  onDelete={cocktail.id.startsWith("custom-") ? handleDeleteClick : undefined}
+                  onDelete={handleDeleteClick} // Alle Cocktails können gelöscht werden
+                  onEdit={handleEditClick}
                 />
               ))}
             </div>
@@ -573,26 +595,27 @@ export default function Home() {
         )
       case "virgin":
         return (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">Alkoholfreie Cocktails</h2>
+              <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Alkoholfreie Cocktails</h2>
               <Button
                 variant="outline"
-                size="sm"
+                size="lg"
                 onClick={() => setShowRecipeCreator(true)}
-                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
               >
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="h-5 w-5 mr-2" />
                 Neues Rezept
               </Button>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {currentPageVirginCocktails.map((cocktail) => (
                 <CocktailCard
                   key={cocktail.id}
                   cocktail={cocktail}
                   onClick={() => setSelectedCocktail(cocktail.id)}
-                  onDelete={cocktail.id.startsWith("custom-") ? handleDeleteClick : undefined}
+                  onDelete={handleDeleteClick} // Alle Cocktails können gelöscht werden
+                  onEdit={handleEditClick}
                 />
               ))}
             </div>
@@ -620,20 +643,22 @@ export default function Home() {
         return <PumpCleaning pumpConfig={pumpConfig} />
       case "calibration":
         return isCalibrationLocked ? (
-          <div className="text-center py-8">
-            <Lock className="h-12 w-12 mx-auto mb-4 text-[hsl(var(--cocktail-warning))]" />
-            <h2 className="text-xl font-semibold mb-2 text-[hsl(var(--cocktail-text))]">
-              Kalibrierung ist passwortgeschützt
-            </h2>
-            <p className="text-[hsl(var(--cocktail-text-muted))] mb-4">
-              Bitte gib das Passwort ein, um die Pumpenkalibrierung zu bearbeiten.
-            </p>
-            <Button
-              onClick={handleCalibrationClick}
-              className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
-            >
-              Passwort eingeben
-            </Button>
+          <div className="text-center py-12">
+            <div className="bg-[hsl(var(--cocktail-card-bg))] rounded-2xl p-8 max-w-md mx-auto shadow-2xl border border-[hsl(var(--cocktail-card-border))]">
+              <Lock className="h-16 w-16 mx-auto mb-6 text-[hsl(var(--cocktail-warning))]" />
+              <h2 className="text-2xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">
+                Kalibrierung ist passwortgeschützt
+              </h2>
+              <p className="text-[hsl(var(--cocktail-text-muted))] mb-6 leading-relaxed">
+                Bitte gib das Passwort ein, um die Pumpenkalibrierung zu bearbeiten.
+              </p>
+              <Button
+                onClick={handleCalibrationClick}
+                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-3 px-6 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                Passwort eingeben
+              </Button>
+            </div>
           </div>
         ) : (
           <PumpCalibration pumpConfig={pumpConfig} onConfigUpdate={loadPumpConfig} />
@@ -644,70 +669,71 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-6xl">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold text-center text-[hsl(var(--cocktail-text))]">CocktailBot</h1>
+    <div className="container mx-auto p-6 max-w-7xl">
+      <header className="mb-8">
+        <h1 className="text-4xl font-bold text-center text-[hsl(var(--cocktail-text))] mb-2">CocktailBot</h1>
+        <p className="text-center text-[hsl(var(--cocktail-text-muted))]">Dein persönlicher Cocktail-Assistent</p>
       </header>
 
-      <div className="mb-6">
+      <div className="mb-8">
         <nav className="tabs-list">
-          <div className="flex overflow-x-auto space-x-2 pb-2">
+          <div className="flex overflow-x-auto space-x-3 pb-2">
             <Button
-              onClick={() => setActiveTab("cocktails")}
-              className={`flex-1 ${
+              onClick={() => handleTabChange("cocktails")}
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "cocktails"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
               Cocktails
             </Button>
             <Button
-              onClick={() => setActiveTab("virgin")}
-              className={`flex-1 ${
+              onClick={() => handleTabChange("virgin")}
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "virgin"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
               Alkoholfrei
             </Button>
             <Button
-              onClick={() => setActiveTab("shots")}
-              className={`flex-1 ${
+              onClick={() => handleTabChange("shots")}
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "shots"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
               Shots
             </Button>
             <Button
-              onClick={() => setActiveTab("levels")}
-              className={`flex-1 ${
+              onClick={() => handleTabChange("levels")}
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "levels"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
               Füllstände
             </Button>
             <Button
-              onClick={() => setActiveTab("cleaning")}
-              className={`flex-1 ${
+              onClick={() => handleTabChange("cleaning")}
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "cleaning"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
               Reinigung
             </Button>
             <Button
-              onClick={() => setActiveTab("calibration")}
-              className={`flex-1 ${
+              onClick={() => handleTabChange("calibration")}
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "calibration"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
               Kalibrierung
@@ -716,7 +742,7 @@ export default function Home() {
         </nav>
       </div>
 
-      <main>{renderContent()}</main>
+      <main className="min-h-[60vh]">{renderContent()}</main>
 
       {/* Modals */}
       <PasswordModal
