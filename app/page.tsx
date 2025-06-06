@@ -75,6 +75,17 @@ export default function Home() {
   const currentPageCocktails = getCurrentPageCocktails(alcoholicCocktails, currentPage)
   const currentPageVirginCocktails = getCurrentPageCocktails(virginCocktails, virginCurrentPage)
 
+  // Berechne alle verfügbaren Zutaten aus den Cocktail-Rezepten
+  const getAvailableIngredientsFromCocktails = () => {
+    const allIngredients = new Set<string>()
+    cocktailsData.forEach((cocktail) => {
+      cocktail.recipe.forEach((item) => {
+        allIngredients.add(item.ingredientId)
+      })
+    })
+    return Array.from(allIngredients)
+  }
+
   // Lade Füllstände, Pumpenkonfiguration und Cocktails beim ersten Rendern
   useEffect(() => {
     const loadData = async () => {
@@ -623,6 +634,7 @@ export default function Home() {
             pumpConfig={pumpConfig}
             ingredientLevels={ingredientLevels}
             onShotComplete={loadIngredientLevels}
+            availableIngredients={getAvailableIngredientsFromCocktails()}
           />
         )
       case "levels":
