@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Loader2, Folder, File, ImageIcon, ArrowLeft, Home, HardDrive } from "lucide-react"
-import Image from "next/image"
 
 interface FileItem {
   name: string
@@ -35,6 +34,8 @@ export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrow
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
+  const [imageLoading, setImageLoading] = useState(false)
 
   // Lade Dateisystem-Daten
   const loadDirectory = async (path: string) => {
@@ -49,12 +50,28 @@ export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrow
       const data: FileBrowserData = await response.json()
       setBrowserData(data)
       setCurrentPath(data.currentPath)
-      setSelectedImage(null) // Reset selection when changing directory
+      setSelectedImage(null)
+      setImagePreviewUrl(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler")
       setBrowserData(null)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Lade Bildvorschau
+  const loadImagePreview = async (imagePath: string) => {
+    setImageLoading(true)
+    try {
+      // Erstelle URL für die Bildvorschau über unsere API
+      const previewUrl = `/api/image?path=${encodeURIComponent(imagePath)}`
+      setImagePreviewUrl(previewUrl)
+    } catch (err) {
+      console.error("Fehler beim Laden der Bildvorschau:", err)
+      setImagePreviewUrl(null)
+    } finally {
+      setImageLoading(false)
     }
   }
 
@@ -71,6 +88,7 @@ export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrow
 
   const handleImageClick = (imagePath: string) => {
     setSelectedImage(imagePath)
+    loadImagePreview(imagePath)
   }
 
   const handleSelectImage = () => {
@@ -215,16 +233,25 @@ export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrow
                 {selectedImage ? (
                   <>
                     <div className="relative w-full aspect-square border border-[hsl(var(--cocktail-card-border))] rounded-md overflow-hidden mb-2">
-                      <Image
-                        src={selectedImage || "/placeholder.svg"}
-                        alt="Vorschau"
-                        fill
-                        className="object-contain"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg?height=200&width=200"
-                        }}
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                      />
+                      {imageLoading ? (
+                        <div className="flex items-center justify-center w-full h-full">
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                      ) : imagePreviewUrl ? (
+                        <img
+                          src={imagePreviewUrl || "/placeholder.svg"}
+                          alt="Vorschau"
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            console.error("Fehler beim Laden des Bildes:", selectedImage)
+                            e.currentTarget.src = "/placeholder.svg?height=200&width=200"
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full text-gray-400">
+                          <ImageIcon className="h-12 w-12" />
+                        </div>
+                      )}
                     </div>
                     <p className="text-xs text-center text-gray-300">{selectedImage.split("/").pop()}</p>
                     <p className="text-xs text-center text-gray-400 mt-1">{selectedImage}</p>

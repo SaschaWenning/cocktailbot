@@ -1,74 +1,98 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readdir, stat } from "fs/promises"
-import { join } from "path"
+import fs from "fs"
+import path from "path"
+
+interface FileItem {
+  name: string
+  path: string
+  isDirectory: boolean
+  isFile: boolean
+  size: number
+  modified: string
+  isImage: boolean
+}
+
+interface FileBrowserData {
+  currentPath: string
+  parentPath: string | null
+  items: FileItem[]
+}
+
+const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg"]
+
+function isImageFile(filename: string): boolean {
+  const ext = path.extname(filename).toLowerCase()
+  return IMAGE_EXTENSIONS.includes(ext)
+}
+
+function isPathSafe(requestedPath: string): boolean {
+  // Verhindere Directory Traversal Angriffe
+  const normalizedPath = path.normalize(requestedPath)
+  return !normalizedPath.includes("..")
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const path = searchParams.get("path") || "/"
+    const requestedPath = searchParams.get("path") || "/"
 
-    // Sicherheitscheck: Nur bestimmte Pfade erlauben
-    const allowedBasePaths = [
-      "/",
-      "/home",
-      "/media",
-      "/mnt",
-      "/opt",
-      "/var/www",
-      process.cwd(), // Das aktuelle Projektverzeichnis
-    ]
-
-    // Normalisiere den Pfad
-    const normalizedPath = path === "/" ? "/" : path
-
-    try {
-      const items = await readdir(normalizedPath)
-      const itemsWithStats = await Promise.all(
-        items.map(async (item) => {
-          try {
-            const itemPath = join(normalizedPath, item)
-            const stats = await stat(itemPath)
-
-            return {
-              name: item,
-              path: itemPath,
-              isDirectory: stats.isDirectory(),
-              isFile: stats.isFile(),
-              size: stats.size,
-              modified: stats.mtime.toISOString(),
-              // Prüfe ob es ein Bild ist
-              isImage: stats.isFile() && /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(item),
-            }
-          } catch (error) {
-            // Wenn wir keine Berechtigung haben, überspringe das Element
-            return null
-          }
-        }),
-      )
-
-      // Filtere null-Werte heraus und sortiere: Ordner zuerst, dann Dateien
-      const validItems = itemsWithStats
-        .filter((item) => item !== null)
-        .sort((a, b) => {
-          if (a!.isDirectory && !b!.isDirectory) return -1
-          if (!a!.isDirectory && b!.isDirectory) return 1
-          return a!.name.localeCompare(b!.name)
-        })
-
-      // Füge Parent-Directory hinzu, wenn wir nicht im Root sind
-      const result = {
-        currentPath: normalizedPath,
-        parentPath: normalizedPath === "/" ? null : join(normalizedPath, ".."),
-        items: validItems,
-      }
-
-      return NextResponse.json(result)
-    } catch (error) {
-      console.error("Error reading directory:", error)
-      return NextResponse.json({ error: "Zugriff verweigert oder Ordner nicht gefunden" }, { status: 403 })
+    if (!isPathSafe(requestedPath)) {
+      return NextResponse.json({ error: "Ungültiger Pfad" }, { status: 400 })
     }
+
+    // Überprüfe ob der Pfad existiert
+    if (!fs.existsSync(requestedPath)) {
+      return NextResponse.json({ error: "Pfad nicht gefunden" }, { status: 404 })
+    }
+
+    const stats = fs.statSync(requestedPath)
+
+    if (!stats.isDirectory()) {
+      return NextResponse.json({ error: "Pfad ist kein Verzeichnis" }, { status: 400 })
+    }
+
+    // Lese Verzeichnisinhalt
+    const items = fs.readdirSync(requestedPath)
+    const fileItems: FileItem[] = []
+
+    for (const item of items) {
+      try {
+        const itemPath = path.join(requestedPath, item)
+        const itemStats = fs.statSync(itemPath)
+
+        fileItems.push({
+          name: item,
+          path: itemPath,
+          isDirectory: itemStats.isDirectory(),
+          isFile: itemStats.isFile(),
+          size: itemStats.size,
+          modified: itemStats.mtime.toISOString(),
+          isImage: itemStats.isFile() && isImageFile(item),
+        })
+      } catch (error) {
+        // Überspringe Dateien, die nicht gelesen werden können
+        console.warn(`Kann Datei nicht lesen: ${item}`, error)
+      }
+    }
+
+    // Sortiere: Verzeichnisse zuerst, dann Dateien
+    fileItems.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1
+      if (!a.isDirectory && b.isDirectory) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+    const parentPath = requestedPath === "/" ? null : path.dirname(requestedPath)
+
+    const response: FileBrowserData = {
+      currentPath: requestedPath,
+      parentPath,
+      items: fileItems,
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
-    console.error("Filesystem API error:", error)
-    return NextResponse.json({ error: "Interner Server-Fehler" }, { status: 500 })
+    console.error("Filesystem API Error:", error)
+    return NextResponse.json({ error: "Fehler beim Lesen des Verzeichnisses" }, { status: 500 })
   }
 }

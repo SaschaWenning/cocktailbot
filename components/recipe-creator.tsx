@@ -10,7 +10,7 @@ import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X } from "lucide-react"
-import VirtualKeyboard from "./virtual-keyboard"
+import SimpleKeyboard from "./simple-keyboard"
 import FileBrowser from "./file-browser"
 
 interface RecipeCreatorProps {
@@ -26,15 +26,19 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   const [imageUrl, setImageUrl] = useState("")
   const [alcoholic, setAlcoholic] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [showKeyboard, setShowKeyboard] = useState(false)
-  const [activeInput, setActiveInput] = useState<string | null>(null)
-  const [inputValue, setInputValue] = useState("")
-  const [keyboardLayout, setKeyboardLayout] = useState<"alphanumeric" | "numeric">("alphanumeric")
   const [errors, setErrors] = useState<{
     name?: string
     imageUrl?: string
   }>({})
   const [showFileBrowser, setShowFileBrowser] = useState(false)
+
+  // Tastatur-States
+  const [showKeyboard, setShowKeyboard] = useState(false)
+  const [keyboardTitle, setKeyboardTitle] = useState("")
+  const [keyboardValue, setKeyboardValue] = useState("")
+  const [keyboardLayout, setKeyboardLayout] = useState<"alphanumeric" | "numeric">("alphanumeric")
+  const [keyboardPlaceholder, setKeyboardPlaceholder] = useState("")
+  const [keyboardCallback, setKeyboardCallback] = useState<((value: string) => void) | null>(null)
 
   useEffect(() => {
     if (recipe.length === 0) {
@@ -42,64 +46,54 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     }
   }, [recipe])
 
-  const handleInputFocus = (inputType: string, currentValue = "") => {
-    setActiveInput(inputType)
-    setInputValue(currentValue)
-    if (inputType.startsWith("amount-")) {
-      setKeyboardLayout("numeric")
-    } else {
-      setKeyboardLayout("alphanumeric")
-    }
+  const openKeyboard = (
+    title: string,
+    currentValue: string,
+    layout: "alphanumeric" | "numeric",
+    placeholder: string,
+    callback: (value: string) => void,
+  ) => {
+    setKeyboardTitle(title)
+    setKeyboardValue(currentValue)
+    setKeyboardLayout(layout)
+    setKeyboardPlaceholder(placeholder)
+    setKeyboardCallback(() => callback)
     setShowKeyboard(true)
   }
 
-  const handleKeyboardInput = (key: string) => {
-    setInputValue((prev) => {
-      if (activeInput?.startsWith("amount-")) {
-        if (key === "." && prev.includes(".")) return prev
-        if (key === "00" && prev === "") return "0"
-        if (isNaN(Number(key)) && key !== "." && key !== "00") return prev
-      }
-      return prev + key
-    })
-  }
-
-  const handleKeyboardBackspace = () => {
-    setInputValue((prev) => prev.slice(0, -1))
-  }
-
-  const handleKeyboardClear = () => {
-    setInputValue("")
-  }
-
   const handleKeyboardConfirm = () => {
-    if (!activeInput) return
-
-    if (activeInput === "name") {
-      setName(inputValue)
-    } else if (activeInput === "description") {
-      setDescription(inputValue)
-    } else if (activeInput === "imageUrl") {
-      setImageUrl(inputValue)
-    } else if (activeInput.startsWith("amount-")) {
-      const index = Number.parseInt(activeInput.replace("amount-", ""))
-      const amount = Number.parseFloat(inputValue)
-      if (!isNaN(amount) && amount >= 0) {
-        handleAmountChange(index, amount)
-      }
+    if (keyboardCallback) {
+      keyboardCallback(keyboardValue)
     }
-
-    // NUR die Tastatur schließen, NICHT das Haupt-Dialog
     setShowKeyboard(false)
-    setActiveInput(null)
-    setInputValue("")
+    setKeyboardCallback(null)
   }
 
   const handleKeyboardCancel = () => {
-    // NUR die Tastatur schließen, NICHT das Haupt-Dialog
     setShowKeyboard(false)
-    setActiveInput(null)
-    setInputValue("")
+    setKeyboardCallback(null)
+  }
+
+  const handleNameInput = () => {
+    openKeyboard("Name eingeben", name, "alphanumeric", "Name des Cocktails", setName)
+  }
+
+  const handleDescriptionInput = () => {
+    openKeyboard("Beschreibung eingeben", description, "alphanumeric", "Beschreibe deinen Cocktail...", setDescription)
+  }
+
+  const handleImageUrlInput = () => {
+    openKeyboard("Bild-Pfad eingeben", imageUrl, "alphanumeric", "/pfad/zum/bild.jpg", setImageUrl)
+  }
+
+  const handleAmountInput = (index: number) => {
+    const currentAmount = recipe[index]?.amount?.toString() || ""
+    openKeyboard("Menge eingeben (ml)", currentAmount, "numeric", "Menge in ml", (value: string) => {
+      const amount = Number.parseFloat(value)
+      if (!isNaN(amount) && amount >= 0) {
+        handleAmountChange(index, amount)
+      }
+    })
   }
 
   const handleAmountChange = (index: number, amount: number) => {
@@ -208,7 +202,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   // Verhindere das Schließen des Haupt-Dialogs, wenn die Tastatur oder der Dateibrowser geöffnet ist
   const handleMainDialogOpenChange = (open: boolean) => {
     if (!open && (showKeyboard || showFileBrowser)) {
-      // Verhindere das Schließen, wenn Tastatur oder Dateibrowser offen ist
       return
     }
     if (!open) {
@@ -232,7 +225,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               <Input
                 id="name"
                 value={name}
-                onClick={() => handleInputFocus("name", name)}
+                onClick={handleNameInput}
                 readOnly
                 className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer ${errors.name ? "border-red-500" : ""}`}
                 placeholder="Name des Cocktails"
@@ -247,7 +240,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               <Input
                 id="description"
                 value={description}
-                onClick={() => handleInputFocus("description", description)}
+                onClick={handleDescriptionInput}
                 readOnly
                 className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
                 placeholder="Beschreibe deinen Cocktail..."
@@ -263,7 +256,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 <Input
                   id="imageUrl"
                   value={imageUrl}
-                  onClick={() => handleInputFocus("imageUrl", imageUrl)}
+                  onClick={handleImageUrlInput}
                   readOnly
                   className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1 ${errors.imageUrl ? "border-red-500" : ""}`}
                   placeholder="/pfad/zum/bild.jpg"
@@ -349,7 +342,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   <Input
                     type="text"
                     value={item.amount}
-                    onClick={() => handleInputFocus(`amount-${index}`, item.amount.toString())}
+                    onClick={() => handleAmountInput(index)}
                     readOnly
                     className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
                   />
@@ -401,43 +394,17 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         onSelectImage={handleSelectImageFromBrowser}
       />
 
-      {/* Virtuelle Tastatur */}
-      {showKeyboard && (
-        <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[9999]">
-          <div className="w-full max-w-lg p-4 flex flex-col">
-            <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
-              <Label className="text-white mb-2 block">
-                {activeInput === "name" && "Name eingeben"}
-                {activeInput === "description" && "Beschreibung eingeben"}
-                {activeInput === "imageUrl" && "Bild-Pfad eingeben"}
-                {activeInput?.startsWith("amount-") && "Menge eingeben (ml)"}
-              </Label>
-              <Input
-                value={inputValue}
-                readOnly
-                className="bg-white border-[hsl(var(--cocktail-card-border))] text-black text-center text-lg"
-                placeholder={
-                  activeInput === "name"
-                    ? "Name des Cocktails"
-                    : activeInput === "description"
-                      ? "Beschreibung..."
-                      : activeInput === "imageUrl"
-                        ? "/pfad/zum/bild.jpg"
-                        : "Menge in ml"
-                }
-              />
-            </div>
-            <VirtualKeyboard
-              onKeyPress={handleKeyboardInput}
-              onBackspace={handleKeyboardBackspace}
-              onClear={handleKeyboardClear}
-              onConfirm={handleKeyboardConfirm}
-              onCancel={handleKeyboardCancel}
-              layout={keyboardLayout}
-            />
-          </div>
-        </div>
-      )}
+      {/* Einfache Tastatur */}
+      <SimpleKeyboard
+        isOpen={showKeyboard}
+        title={keyboardTitle}
+        value={keyboardValue}
+        onValueChange={setKeyboardValue}
+        onConfirm={handleKeyboardConfirm}
+        onCancel={handleKeyboardCancel}
+        layout={keyboardLayout}
+        placeholder={keyboardPlaceholder}
+      />
     </>
   )
 }
