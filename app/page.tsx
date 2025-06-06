@@ -578,13 +578,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {currentPageCocktails.map((cocktail) => (
-                <CocktailCard
-                  key={cocktail.id}
-                  cocktail={cocktail}
-                  onClick={() => setSelectedCocktail(cocktail.id)}
-                  onDelete={handleDeleteClick} // Alle Cocktails können gelöscht werden
-                  onEdit={handleEditClick}
-                />
+                <CocktailCard key={cocktail.id} cocktail={cocktail} onClick={() => setSelectedCocktail(cocktail.id)} />
               ))}
             </div>
 
@@ -610,13 +604,7 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {currentPageVirginCocktails.map((cocktail) => (
-                <CocktailCard
-                  key={cocktail.id}
-                  cocktail={cocktail}
-                  onClick={() => setSelectedCocktail(cocktail.id)}
-                  onDelete={handleDeleteClick} // Alle Cocktails können gelöscht werden
-                  onEdit={handleEditClick}
-                />
+                <CocktailCard key={cocktail.id} cocktail={cocktail} onClick={() => setSelectedCocktail(cocktail.id)} />
               ))}
             </div>
 
