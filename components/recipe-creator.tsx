@@ -10,7 +10,7 @@ import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X } from "lucide-react"
-import SimpleKeyboard from "./simple-keyboard"
+import BasicKeyboard from "./basic-keyboard"
 import FileBrowser from "./file-browser"
 
 interface RecipeCreatorProps {
@@ -33,12 +33,9 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   const [showFileBrowser, setShowFileBrowser] = useState(false)
 
   // Tastatur-States
-  const [showKeyboard, setShowKeyboard] = useState(false)
-  const [keyboardTitle, setKeyboardTitle] = useState("")
-  const [keyboardValue, setKeyboardValue] = useState("")
-  const [keyboardLayout, setKeyboardLayout] = useState<"alphanumeric" | "numeric">("alphanumeric")
-  const [keyboardPlaceholder, setKeyboardPlaceholder] = useState("")
-  const [keyboardCallback, setKeyboardCallback] = useState<((value: string) => void) | null>(null)
+  const [keyboardMode, setKeyboardMode] = useState<"none" | "name" | "description" | "imageUrl" | string>("none")
+  const [keyboardInitialValue, setKeyboardInitialValue] = useState("")
+  const [keyboardIsNumeric, setKeyboardIsNumeric] = useState(false)
 
   useEffect(() => {
     if (recipe.length === 0) {
@@ -46,54 +43,36 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     }
   }, [recipe])
 
+  // Tastatur-Handler
   const openKeyboard = (
-    title: string,
-    currentValue: string,
-    layout: "alphanumeric" | "numeric",
-    placeholder: string,
-    callback: (value: string) => void,
+    mode: "name" | "description" | "imageUrl" | string,
+    initialValue: string,
+    isNumeric = false,
   ) => {
-    setKeyboardTitle(title)
-    setKeyboardValue(currentValue)
-    setKeyboardLayout(layout)
-    setKeyboardPlaceholder(placeholder)
-    setKeyboardCallback(() => callback)
-    setShowKeyboard(true)
+    setKeyboardMode(mode)
+    setKeyboardInitialValue(initialValue)
+    setKeyboardIsNumeric(isNumeric)
   }
 
-  const handleKeyboardConfirm = () => {
-    if (keyboardCallback) {
-      keyboardCallback(keyboardValue)
-    }
-    setShowKeyboard(false)
-    setKeyboardCallback(null)
-  }
-
-  const handleKeyboardCancel = () => {
-    setShowKeyboard(false)
-    setKeyboardCallback(null)
-  }
-
-  const handleNameInput = () => {
-    openKeyboard("Name eingeben", name, "alphanumeric", "Name des Cocktails", setName)
-  }
-
-  const handleDescriptionInput = () => {
-    openKeyboard("Beschreibung eingeben", description, "alphanumeric", "Beschreibe deinen Cocktail...", setDescription)
-  }
-
-  const handleImageUrlInput = () => {
-    openKeyboard("Bild-Pfad eingeben", imageUrl, "alphanumeric", "/pfad/zum/bild.jpg", setImageUrl)
-  }
-
-  const handleAmountInput = (index: number) => {
-    const currentAmount = recipe[index]?.amount?.toString() || ""
-    openKeyboard("Menge eingeben (ml)", currentAmount, "numeric", "Menge in ml", (value: string) => {
+  const handleKeyboardSubmit = (value: string) => {
+    if (keyboardMode === "name") {
+      setName(value)
+    } else if (keyboardMode === "description") {
+      setDescription(value)
+    } else if (keyboardMode === "imageUrl") {
+      setImageUrl(value)
+    } else if (keyboardMode.startsWith("amount-")) {
+      const index = Number.parseInt(keyboardMode.replace("amount-", ""), 10)
       const amount = Number.parseFloat(value)
       if (!isNaN(amount) && amount >= 0) {
         handleAmountChange(index, amount)
       }
-    })
+    }
+    setKeyboardMode("none")
+  }
+
+  const handleKeyboardCancel = () => {
+    setKeyboardMode("none")
   }
 
   const handleAmountChange = (index: number, amount: number) => {
@@ -201,7 +180,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
 
   // Verhindere das Schließen des Haupt-Dialogs, wenn die Tastatur oder der Dateibrowser geöffnet ist
   const handleMainDialogOpenChange = (open: boolean) => {
-    if (!open && (showKeyboard || showFileBrowser)) {
+    if (!open && (keyboardMode !== "none" || showFileBrowser)) {
       return
     }
     if (!open) {
@@ -225,7 +204,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               <Input
                 id="name"
                 value={name}
-                onClick={handleNameInput}
+                onClick={() => openKeyboard("name", name)}
                 readOnly
                 className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer ${errors.name ? "border-red-500" : ""}`}
                 placeholder="Name des Cocktails"
@@ -240,7 +219,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               <Input
                 id="description"
                 value={description}
-                onClick={handleDescriptionInput}
+                onClick={() => openKeyboard("description", description)}
                 readOnly
                 className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
                 placeholder="Beschreibe deinen Cocktail..."
@@ -256,7 +235,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 <Input
                   id="imageUrl"
                   value={imageUrl}
-                  onClick={handleImageUrlInput}
+                  onClick={() => openKeyboard("imageUrl", imageUrl)}
                   readOnly
                   className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1 ${errors.imageUrl ? "border-red-500" : ""}`}
                   placeholder="/pfad/zum/bild.jpg"
@@ -342,7 +321,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   <Input
                     type="text"
                     value={item.amount}
-                    onClick={() => handleAmountInput(index)}
+                    onClick={() => openKeyboard(`amount-${index}`, item.amount.toString(), true)}
                     readOnly
                     className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
                   />
@@ -395,16 +374,14 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       />
 
       {/* Einfache Tastatur */}
-      <SimpleKeyboard
-        isOpen={showKeyboard}
-        title={keyboardTitle}
-        value={keyboardValue}
-        onValueChange={setKeyboardValue}
-        onConfirm={handleKeyboardConfirm}
-        onCancel={handleKeyboardCancel}
-        layout={keyboardLayout}
-        placeholder={keyboardPlaceholder}
-      />
+      {keyboardMode !== "none" && (
+        <BasicKeyboard
+          initialValue={keyboardInitialValue}
+          onSubmit={handleKeyboardSubmit}
+          onCancel={handleKeyboardCancel}
+          isNumeric={keyboardIsNumeric}
+        />
+      )}
     </>
   )
 }
