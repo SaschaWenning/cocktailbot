@@ -15,9 +15,15 @@ interface ShotSelectorProps {
   pumpConfig: PumpConfig[]
   ingredientLevels: IngredientLevel[]
   onShotComplete: () => Promise<void>
+  availableIngredients?: string[] // Neue Prop für verfügbare Zutaten aus Cocktails
 }
 
-export default function ShotSelector({ pumpConfig, ingredientLevels, onShotComplete }: ShotSelectorProps) {
+export default function ShotSelector({
+  pumpConfig,
+  ingredientLevels,
+  onShotComplete,
+  availableIngredients = [],
+}: ShotSelectorProps) {
   const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null)
   const [isMaking, setIsMaking] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -26,20 +32,31 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [shotSize, setShotSize] = useState<number>(40) // Standard: 40ml
 
-  // Filtere nur die Zutaten, die an Pumpen angeschlossen sind
-  const availableIngredients = pumpConfig.map((pump) => {
-    const ingredient = ingredients.find((i) => i.id === pump.ingredient)
-    return {
-      id: pump.ingredient,
-      name: ingredient?.name || pump.ingredient,
-      alcoholic: ingredient?.alcoholic || false,
-      pumpId: pump.id,
-    }
-  })
+  // Erstelle eine Liste aller verfügbaren Zutaten
+  // Kombiniere Pumpen-Zutaten mit Zutaten aus Cocktail-Rezepten
+  const getAllAvailableIngredients = () => {
+    const pumpIngredients = pumpConfig.map((pump) => pump.ingredient)
+    const allIngredientIds = [...new Set([...pumpIngredients, ...availableIngredients])]
+
+    return allIngredientIds.map((ingredientId) => {
+      const ingredient = ingredients.find((i) => i.id === ingredientId)
+      const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
+
+      return {
+        id: ingredientId,
+        name: ingredient?.name || ingredientId,
+        alcoholic: ingredient?.alcoholic || false,
+        pumpId: pump?.id || null,
+        hasPump: !!pump,
+      }
+    })
+  }
+
+  const allAvailableIngredients = getAllAvailableIngredients()
 
   // Gruppiere Zutaten nach alkoholisch und nicht-alkoholisch
-  const alcoholicIngredients = availableIngredients.filter((i) => i.alcoholic)
-  const nonAlcoholicIngredients = availableIngredients.filter((i) => !i.alcoholic)
+  const alcoholicIngredients = allAvailableIngredients.filter((i) => i.alcoholic)
+  const nonAlcoholicIngredients = allAvailableIngredients.filter((i) => !i.alcoholic)
 
   const handleSelectShot = (ingredientId: string) => {
     setSelectedIngredient(ingredientId)
@@ -51,18 +68,32 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
   const checkIngredientAvailable = (ingredientId: string) => {
     const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
+    const ingredient = allAvailableIngredients.find((i) => i.id === ingredientId)
+
+    // Prüfe ob eine Pumpe konfiguriert ist
+    if (!ingredient?.hasPump) {
+      return false
+    }
+
+    // Prüfe Füllstand
     return level && level.currentAmount >= shotSize
   }
 
   const handleMakeShot = async () => {
     if (!selectedIngredient) return
 
+    const ingredient = allAvailableIngredients.find((i) => i.id === selectedIngredient)
+    if (!ingredient?.hasPump) {
+      setErrorMessage("Keine Pumpe für diese Zutat konfiguriert")
+      return
+    }
+
     setIsMaking(true)
     setProgress(0)
     setStatusMessage("Bereite Shot vor...")
     setErrorMessage(null)
 
-    let intervalId: NodeJS.Timeout // Declare intervalId here
+    let intervalId: NodeJS.Timeout
 
     try {
       // Simuliere den Fortschritt
@@ -75,12 +106,6 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
           return prev + 10
         })
       }, 200)
-
-      // Finde die Pumpe für die ausgewählte Zutat
-      const pump = pumpConfig.find((p) => p.ingredient === selectedIngredient)
-      if (!pump) {
-        throw new Error("Keine Pumpe für diese Zutat konfiguriert")
-      }
 
       // Bereite den Shot zu
       await makeSingleShot(selectedIngredient, shotSize)
@@ -137,6 +162,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
 
   if (selectedIngredient) {
     const ingredient = ingredients.find((i) => i.id === selectedIngredient)
+    const availableIngredient = allAvailableIngredients.find((i) => i.id === selectedIngredient)
     const isAvailable = checkIngredientAvailable(selectedIngredient)
 
     return (
@@ -172,7 +198,17 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
                 </div>
               </div>
 
-              {!isAvailable && (
+              {!availableIngredient?.hasPump && (
+                <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
+                  <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
+                  <AlertDescription className="text-[hsl(var(--cocktail-error))]">
+                    Keine Pumpe für {ingredient?.name || selectedIngredient} konfiguriert! Bitte konfiguriere eine Pumpe
+                    in der Kalibrierung.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {availableIngredient?.hasPump && !isAvailable && (
                 <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
                   <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
                   <AlertDescription className="text-[hsl(var(--cocktail-error))]">
@@ -193,7 +229,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
                 <Button
                   className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
                   onClick={handleMakeShot}
-                  disabled={!isAvailable}
+                  disabled={!isAvailable || !availableIngredient?.hasPump}
                 >
                   Shot zubereiten
                 </Button>
@@ -210,19 +246,32 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
       <div>
         <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alkoholische Shots</h2>
         <div className="grid grid-cols-4 gap-3">
-          {alcoholicIngredients.map((ingredient) => (
-            <Button
-              key={ingredient.id}
-              variant="outline"
-              className={`h-auto py-2 px-2 justify-center text-center bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
-              onClick={() => handleSelectShot(ingredient.id)}
-              disabled={!checkIngredientAvailable(ingredient.id)}
-            >
-              <div className="flex flex-col items-center">
-                <span className="font-medium text-sm">{ingredient.name}</span>
-              </div>
-            </Button>
-          ))}
+          {alcoholicIngredients.map((ingredient) => {
+            const isAvailable = checkIngredientAvailable(ingredient.id)
+            const hasPump = ingredient.hasPump
+
+            return (
+              <Button
+                key={ingredient.id}
+                variant="outline"
+                className={`h-auto py-2 px-2 justify-center text-center transition-all duration-200 ${
+                  hasPump && isAvailable
+                    ? "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] hover:scale-105"
+                    : "bg-[hsl(var(--cocktail-card-bg))]/50 text-[hsl(var(--cocktail-text))]/50 border-[hsl(var(--cocktail-card-border))]/50 cursor-not-allowed"
+                }`}
+                onClick={() => handleSelectShot(ingredient.id)}
+                disabled={!hasPump || !isAvailable}
+              >
+                <div className="flex flex-col items-center">
+                  <span className="font-medium text-sm">{ingredient.name}</span>
+                  {!hasPump && <span className="text-xs text-[hsl(var(--cocktail-error))] mt-1">Keine Pumpe</span>}
+                  {hasPump && !isAvailable && (
+                    <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Leer</span>
+                  )}
+                </div>
+              </Button>
+            )
+          })}
         </div>
       </div>
 
@@ -230,19 +279,32 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
         <div>
           <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alkoholfreie Shots</h2>
           <div className="grid grid-cols-4 gap-3">
-            {nonAlcoholicIngredients.map((ingredient) => (
-              <Button
-                key={ingredient.id}
-                variant="outline"
-                className={`h-auto py-2 px-2 justify-center text-center bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] ${!checkIngredientAvailable(ingredient.id) ? "opacity-50" : ""}`}
-                onClick={() => handleSelectShot(ingredient.id)}
-                disabled={!checkIngredientAvailable(ingredient.id)}
-              >
-                <div className="flex flex-col items-center">
-                  <span className="font-medium text-sm">{ingredient.name}</span>
-                </div>
-              </Button>
-            ))}
+            {nonAlcoholicIngredients.map((ingredient) => {
+              const isAvailable = checkIngredientAvailable(ingredient.id)
+              const hasPump = ingredient.hasPump
+
+              return (
+                <Button
+                  key={ingredient.id}
+                  variant="outline"
+                  className={`h-auto py-2 px-2 justify-center text-center transition-all duration-200 ${
+                    hasPump && isAvailable
+                      ? "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] hover:scale-105"
+                      : "bg-[hsl(var(--cocktail-card-bg))]/50 text-[hsl(var(--cocktail-text))]/50 border-[hsl(var(--cocktail-card-border))]/50 cursor-not-allowed"
+                  }`}
+                  onClick={() => handleSelectShot(ingredient.id)}
+                  disabled={!hasPump || !isAvailable}
+                >
+                  <div className="flex flex-col items-center">
+                    <span className="font-medium text-sm">{ingredient.name}</span>
+                    {!hasPump && <span className="text-xs text-[hsl(var(--cocktail-error))] mt-1">Keine Pumpe</span>}
+                    {hasPump && !isAvailable && (
+                      <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Leer</span>
+                    )}
+                  </div>
+                </Button>
+              )
+            })}
           </div>
         </div>
       )}

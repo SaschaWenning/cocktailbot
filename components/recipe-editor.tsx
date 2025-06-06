@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Trash2, Plus, Minus, FolderOpen } from "lucide-react"
+import { Loader2, ImageIcon, Trash2, Plus, Minus, FolderOpen, ArrowLeft } from "lucide-react"
 import VirtualKeyboard from "./virtual-keyboard"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -44,54 +44,62 @@ const AVAILABLE_IMAGES = [
 ]
 
 export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequestDelete }: RecipeEditorProps) {
-  const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
-  const [imageUrl, setImageUrl] = useState("")
+  const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [alcoholic, setAlcoholic] = useState(true)
+  const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
   const [saving, setSaving] = useState(false)
-  const [showKeyboard, setShowKeyboard] = useState(false)
+
+  // View states - genau wie beim RecipeCreator
+  const [currentView, setCurrentView] = useState<"form" | "keyboard" | "imageBrowser">("form")
   const [activeInput, setActiveInput] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState("")
-  const [errors, setErrors] = useState<{
-    imageUrl?: string
-  }>({})
-  const [showImageBrowser, setShowImageBrowser] = useState(false)
 
+  // Lade die Cocktail-Daten beim Öffnen
   useEffect(() => {
-    if (cocktail) {
+    if (cocktail && isOpen) {
+      setName(cocktail.name)
+      setDescription(cocktail.description)
+      setAlcoholic(cocktail.alcoholic)
       setRecipe([...cocktail.recipe])
 
       // Normalize image path
       let imagePath = cocktail.image || ""
-
-      // Wenn es ein Platzhalter ist, setze leeren String
       if (imagePath.startsWith("/placeholder")) {
         setImageUrl("")
-        return
+      } else {
+        // Stelle sicher, dass der Pfad mit / beginnt
+        if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
+          imagePath = `/${imagePath}`
+        }
+        // Entferne URL-Parameter
+        imagePath = imagePath.split("?")[0]
+        setImageUrl(imagePath)
       }
 
-      // Stelle sicher, dass der Pfad mit / beginnt
-      if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
-        imagePath = `/${imagePath}`
-      }
+      // Reset view
+      setCurrentView("form")
+      setActiveInput(null)
+      setInputValue("")
 
-      // Entferne URL-Parameter
-      imagePath = imagePath.split("?")[0]
-
-      setImageUrl(imagePath)
-
-      // For debugging
-      console.log(`Editor loaded for ${cocktail.name} with image path: ${imagePath}`)
-
-      setDescription(cocktail.description)
+      console.log(`Editor loaded for ${cocktail.name}:`, {
+        name: cocktail.name,
+        description: cocktail.description,
+        image: imagePath,
+        alcoholic: cocktail.alcoholic,
+        recipe: cocktail.recipe,
+      })
     }
-  }, [cocktail])
+  }, [cocktail, isOpen])
 
   if (!cocktail) return null
 
+  // Keyboard handlers - genau wie beim RecipeCreator
   const handleInputFocus = (inputType: string, currentValue = "") => {
     setActiveInput(inputType)
     setInputValue(currentValue)
-    setShowKeyboard(true)
+    setCurrentView("keyboard")
   }
 
   const handleKeyboardInput = (value: string) => {
@@ -101,34 +109,40 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const handleKeyboardConfirm = () => {
     if (!activeInput) return
 
-    if (activeInput === "description") {
-      setDescription(inputValue)
-    } else if (activeInput === "imageUrl") {
-      setImageUrl(inputValue)
-    } else if (activeInput.startsWith("amount-")) {
-      const index = Number.parseInt(activeInput.replace("amount-", ""))
-      const amount = Number.parseFloat(inputValue)
-      if (!isNaN(amount) && amount >= 0) {
-        handleAmountChange(index, inputValue)
-      }
+    switch (activeInput) {
+      case "name":
+        setName(inputValue)
+        break
+      case "description":
+        setDescription(inputValue)
+        break
+      case "imageUrl":
+        setImageUrl(inputValue)
+        break
+      default:
+        if (activeInput.startsWith("amount-")) {
+          const index = Number.parseInt(activeInput.replace("amount-", ""))
+          const amount = Number.parseFloat(inputValue)
+          if (!isNaN(amount) && amount >= 0) {
+            handleAmountChange(index, amount)
+          }
+        }
+        break
     }
 
-    setShowKeyboard(false)
+    setCurrentView("form")
     setActiveInput(null)
     setInputValue("")
   }
 
   const handleKeyboardCancel = () => {
-    setShowKeyboard(false)
+    setCurrentView("form")
     setActiveInput(null)
     setInputValue("")
   }
 
-  const handleAmountChange = (index: number, value: string) => {
-    const amount = Number.parseFloat(value)
-
-    if (isNaN(amount) || amount < 0) return
-
+  // Recipe handlers
+  const handleAmountChange = (index: number, amount: number) => {
     const updatedRecipe = [...recipe]
     updatedRecipe[index] = { ...updatedRecipe[index], amount }
     setRecipe(updatedRecipe)
@@ -157,45 +171,25 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     }
   }
 
-  const isValidUrl = (url: string) => {
-    if (!url) return true // Leere URL ist erlaubt
-
-    // Wenn es ein lokaler Pfad ist, akzeptieren wir ihn
-    if (url.startsWith("/")) return true
-
-    try {
-      new URL(url)
-      return true
-    } catch (e) {
-      return false
-    }
+  // Image browser handlers
+  const handleSelectImage = (path: string) => {
+    setImageUrl(path)
+    setCurrentView("form")
   }
 
-  const validateForm = () => {
-    const newErrors: { imageUrl?: string } = {}
-
-    if (imageUrl && !isValidUrl(imageUrl)) {
-      newErrors.imageUrl = "Bitte gib eine gültige URL ein"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
+  // Save handler
   const handleSave = async () => {
-    if (!cocktail || !validateForm()) return
+    if (!cocktail || !name.trim() || recipe.length === 0) return
 
     setSaving(true)
     try {
-      // Berechne das Gesamtvolumen des Rezepts
-      const totalVolume = recipe.reduce((sum, item) => sum + item.amount, 0)
-
-      const updatedCocktail = {
+      const updatedCocktail: Cocktail = {
         ...cocktail,
-        description: description,
+        name: name.trim(),
+        description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
+        alcoholic,
         recipe: recipe,
-        // Aktualisiere auch die Zutaten-Textliste
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
           return `${item.amount}ml ${ingredient?.name || item.ingredientId}`
@@ -222,237 +216,287 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     return ingredient ? ingredient.name : id
   }
 
-  const handleSelectImage = (path: string) => {
-    setImageUrl(path)
-    setShowImageBrowser(false)
-  }
+  // Form View - genau wie beim RecipeCreator
+  const renderFormView = () => (
+    <div className="space-y-6 my-4 max-h-[70vh] overflow-y-auto pr-2">
+      {/* Name */}
+      <div className="space-y-2">
+        <Label htmlFor="name" className="text-white">
+          Name des Cocktails
+        </Label>
+        <Input
+          id="name"
+          value={name}
+          onClick={() => handleInputFocus("name", name)}
+          readOnly
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+          placeholder="z.B. Mein Cocktail"
+        />
+      </div>
 
-  // Prüfe, ob es sich um ein benutzerdefiniertes Rezept handelt
-  const isCustomRecipe = cocktail.id.startsWith("custom-")
+      {/* Beschreibung */}
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-white">
+          Beschreibung
+        </Label>
+        <Input
+          id="description"
+          value={description}
+          onClick={() => handleInputFocus("description", description)}
+          readOnly
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+          placeholder="Beschreibe deinen Cocktail..."
+        />
+      </div>
 
-  return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md z-[60]">
-          <DialogHeader>
-            <DialogTitle>Rezept bearbeiten: {cocktail.name}</DialogTitle>
-          </DialogHeader>
+      {/* Alkoholisch */}
+      <div className="space-y-2">
+        <Label className="text-white">Typ</Label>
+        <Select
+          value={alcoholic ? "alcoholic" : "virgin"}
+          onValueChange={(value) => setAlcoholic(value === "alcoholic")}
+        >
+          <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
+            <SelectItem value="alcoholic" className="text-black hover:bg-gray-100 cursor-pointer">
+              Mit Alkohol
+            </SelectItem>
+            <SelectItem value="virgin" className="text-black hover:bg-gray-100 cursor-pointer">
+              Alkoholfrei
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-          {!showKeyboard && !showImageBrowser && (
-            <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-white">
-                  Beschreibung
-                </Label>
-                <Input
-                  id="description"
-                  value={description}
-                  onClick={() => handleInputFocus("description", description)}
-                  readOnly
-                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
-                  placeholder="Beschreibe deinen Cocktail..."
-                />
-              </div>
+      {/* Bild */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2 text-white">
+          <ImageIcon className="h-4 w-4" />
+          Bild (optional)
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            value={imageUrl}
+            onClick={() => handleInputFocus("imageUrl", imageUrl)}
+            readOnly
+            className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1"
+            placeholder="Bild-URL oder aus Galerie wählen"
+          />
+          <Button
+            type="button"
+            onClick={() => setCurrentView("imageBrowser")}
+            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+          >
+            <FolderOpen className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="imageUrl" className="flex items-center gap-2 text-white">
-                  <ImageIcon className="h-4 w-4" />
-                  Bild-URL (optional)
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="imageUrl"
-                    value={imageUrl}
-                    onClick={() => handleInputFocus("imageUrl", imageUrl)}
-                    readOnly
-                    className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1 ${errors.imageUrl ? "border-red-500" : ""}`}
-                    placeholder="https://beispiel.com/mein-cocktail.jpg"
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => setShowImageBrowser(true)}
-                    className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-                  >
-                    <FolderOpen className="h-4 w-4" />
-                  </Button>
-                </div>
-                {errors.imageUrl && <p className="text-red-400 text-xs">{errors.imageUrl}</p>}
-                <p className="text-xs text-gray-300">
-                  Wähle ein Bild aus oder gib die URL zu einem Bild ein. Leer lassen für ein Platzhalterbild.
-                </p>
-              </div>
+      {/* Zutaten */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <Label className="text-white">Zutaten</Label>
+          <Button
+            type="button"
+            size="sm"
+            onClick={addIngredient}
+            className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+            disabled={recipe.length >= ingredients.length}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Zutat hinzufügen
+          </Button>
+        </div>
 
-              <div className="pt-2">
-                <div className="flex justify-between items-center mb-2">
-                  <Label className="text-white">Zutaten</Label>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={addIngredient}
-                    className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-                    disabled={recipe.length >= ingredients.length}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Zutat hinzufügen
-                  </Button>
-                </div>
-              </div>
-
-              {recipe.map((item, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-12 gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]"
-                >
-                  <div className="col-span-6">
-                    <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
-                      <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))] max-h-48 overflow-y-auto z-[70]">
-                        {ingredients.map((ingredient) => (
-                          <SelectItem
-                            key={ingredient.id}
-                            value={ingredient.id}
-                            className="text-black hover:bg-gray-100 cursor-pointer"
-                          >
-                            {ingredient.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-3">
-                    <Input
-                      type="text"
-                      value={item.amount}
-                      onClick={() => handleInputFocus(`amount-${index}`, item.amount.toString())}
-                      readOnly
-                      className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
-                    />
-                  </div>
-                  <div className="col-span-2 text-sm text-white">ml</div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => removeIngredient(index)}
-                      disabled={recipe.length <= 1}
-                      className="h-8 w-8 p-0"
+        {recipe.map((item, index) => (
+          <div
+            key={index}
+            className="grid grid-cols-12 gap-2 items-center p-3 bg-[hsl(var(--cocktail-card-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]"
+          >
+            <div className="col-span-6">
+              <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
+                <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))] max-h-48 overflow-y-auto">
+                  {ingredients.map((ingredient) => (
+                    <SelectItem
+                      key={ingredient.id}
+                      value={ingredient.id}
+                      className="text-black hover:bg-gray-100 cursor-pointer"
                     >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                      {ingredient.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-
-          {showKeyboard && (
-            <div className="space-y-4 my-4">
-              <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4">
-                <Label className="text-white mb-2 block">
-                  {activeInput === "description" && "Beschreibung eingeben"}
-                  {activeInput === "imageUrl" && "Bild-URL eingeben"}
-                  {activeInput?.startsWith("amount-") && "Menge eingeben (ml)"}
-                </Label>
-                <Input
-                  value={inputValue}
-                  readOnly
-                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black text-center text-lg"
-                  placeholder={
-                    activeInput === "description"
-                      ? "Beschreibung..."
-                      : activeInput === "imageUrl"
-                        ? "https://..."
-                        : "Menge in ml"
-                  }
-                />
-              </div>
-              <VirtualKeyboard
-                onInput={handleKeyboardInput}
-                onConfirm={handleKeyboardConfirm}
-                onCancel={handleKeyboardCancel}
-                currentValue={inputValue}
-                inputType={activeInput?.startsWith("amount-") ? "numeric" : "text"}
+            <div className="col-span-3">
+              <Input
+                type="text"
+                value={item.amount}
+                onClick={() => handleInputFocus(`amount-${index}`, item.amount.toString())}
+                readOnly
+                className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
               />
             </div>
-          )}
-
-          {showImageBrowser && (
-            <div className="space-y-4 my-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Bild auswählen</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowImageBrowser(false)}
-                  className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
-                >
-                  Zurück
-                </Button>
-              </div>
-              <ScrollArea className="h-[50vh] pr-4">
-                <div className="grid grid-cols-2 gap-4 p-2">
-                  {AVAILABLE_IMAGES.map((image) => (
-                    <div
-                      key={image.path}
-                      className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 transition-all hover:scale-105 ${
-                        imageUrl === image.path ? "border-[hsl(var(--cocktail-primary))]" : "border-transparent"
-                      }`}
-                      onClick={() => handleSelectImage(image.path)}
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                        <img
-                          src={image.path || "/placeholder.svg"}
-                          alt={image.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Fallback bei Bildfehler
-                            e.currentTarget.src = "/placeholder.svg?height=200&width=200"
-                          }}
-                        />
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center">
-                        {image.name}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-
-          {!showKeyboard && !showImageBrowser && (
-            <DialogFooter className="flex justify-between items-center">
-              <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Löschen
+            <div className="col-span-2 text-sm text-white">ml</div>
+            <div className="col-span-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={() => removeIngredient(index)}
+                disabled={recipe.length <= 1}
+                className="h-8 w-8 p-0"
+              >
+                <Minus className="h-4 w-4" />
               </Button>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onClose}
-                  className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-                >
-                  Abbrechen
-                </Button>
-                <Button onClick={handleSave} disabled={saving} className="bg-[#00ff00] text-black hover:bg-[#00cc00]">
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Speichern...
-                    </>
-                  ) : (
-                    "Speichern"
-                  )}
-                </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  // Keyboard View - genau wie beim RecipeCreator
+  const renderKeyboardView = () => (
+    <div className="space-y-4 my-4">
+      <div className="flex items-center gap-3 mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleKeyboardCancel}
+          className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h3 className="text-lg font-semibold text-white">
+          {activeInput === "name" && "Name eingeben"}
+          {activeInput === "description" && "Beschreibung eingeben"}
+          {activeInput === "imageUrl" && "Bild-URL eingeben"}
+          {activeInput?.startsWith("amount-") && "Menge eingeben (ml)"}
+        </h3>
+      </div>
+
+      <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4">
+        <Input
+          value={inputValue}
+          readOnly
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black text-center text-lg"
+          placeholder={
+            activeInput === "name"
+              ? "Cocktail-Name..."
+              : activeInput === "description"
+                ? "Beschreibung..."
+                : activeInput === "imageUrl"
+                  ? "https://..."
+                  : "Menge in ml"
+          }
+        />
+      </div>
+
+      <VirtualKeyboard
+        onInput={handleKeyboardInput}
+        onConfirm={handleKeyboardConfirm}
+        onCancel={handleKeyboardCancel}
+        currentValue={inputValue}
+        inputType={activeInput?.startsWith("amount-") ? "numeric" : "text"}
+      />
+    </div>
+  )
+
+  // Image Browser View - genau wie beim RecipeCreator
+  const renderImageBrowserView = () => (
+    <div className="space-y-4 my-4">
+      <div className="flex items-center gap-3 mb-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentView("form")}
+          className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h3 className="text-lg font-semibold text-white">Bild auswählen</h3>
+      </div>
+
+      <ScrollArea className="h-[60vh] pr-4">
+        <div className="grid grid-cols-2 gap-4">
+          {AVAILABLE_IMAGES.map((image) => (
+            <div
+              key={image.path}
+              className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                imageUrl === image.path
+                  ? "border-[hsl(var(--cocktail-primary))] ring-2 ring-[hsl(var(--cocktail-primary))]/50"
+                  : "border-transparent hover:border-[hsl(var(--cocktail-card-border))]"
+              }`}
+              onClick={() => handleSelectImage(image.path)}
+            >
+              <img
+                src={image.path || "/placeholder.svg"}
+                alt={image.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg?height=200&width=200"
+                }}
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2 text-xs text-center text-white">
+                {image.name}
               </div>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  )
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md max-h-[90vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>Rezept bearbeiten: {cocktail.name}</DialogTitle>
+        </DialogHeader>
+
+        {currentView === "form" && renderFormView()}
+        {currentView === "keyboard" && renderKeyboardView()}
+        {currentView === "imageBrowser" && renderImageBrowserView()}
+
+        {currentView === "form" && (
+          <DialogFooter className="flex justify-between items-center">
+            <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Löschen
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving || !name.trim() || recipe.length === 0}
+                className="bg-[#00ff00] text-black hover:bg-[#00cc00]"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Speichern...
+                  </>
+                ) : (
+                  "Speichern"
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
