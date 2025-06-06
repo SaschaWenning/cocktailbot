@@ -7,8 +7,34 @@ import { initialIngredientLevels } from "@/data/ingredient-levels"
 // In einer echten Anwendung würden wir diese Daten in einer Datenbank speichern
 let ingredientLevels = [...initialIngredientLevels]
 
-// Füllstände abrufen
+// Füllstände abrufen und automatisch neue Zutaten initialisieren
 export async function getIngredientLevels(): Promise<IngredientLevel[]> {
+  // Hole alle Cocktails und extrahiere verwendete Zutaten
+  const { getAllCocktails } = await import("@/lib/cocktail-machine")
+  const cocktails = await getAllCocktails()
+
+  const usedIngredients = new Set<string>()
+  cocktails.forEach((cocktail) => {
+    cocktail.recipe.forEach((item) => {
+      usedIngredients.add(item.ingredientId)
+    })
+  })
+
+  // Initialisiere fehlende Zutaten
+  for (const ingredientId of usedIngredients) {
+    const existingIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
+
+    if (existingIndex === -1) {
+      const newLevel: IngredientLevel = {
+        ingredientId,
+        currentAmount: 700, // Standard-Startmenge
+        capacity: 1000, // Standard-Kapazität
+        lastRefill: new Date(),
+      }
+      ingredientLevels.push(newLevel)
+    }
+  }
+
   return ingredientLevels
 }
 
