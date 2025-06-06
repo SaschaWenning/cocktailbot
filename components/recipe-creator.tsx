@@ -11,56 +11,13 @@ import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X } from "lucide-react"
 import VirtualKeyboard from "./virtual-keyboard"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import Image from "next/image"
+import FileBrowser from "./file-browser"
 
 interface RecipeCreatorProps {
   isOpen: boolean
   onClose: () => void
   onSave: (newCocktail: Cocktail) => void
 }
-
-// Alle verfügbaren Bilder im Projekt, gruppiert nach Kategorien
-const ALL_AVAILABLE_IMAGES = [
-  {
-    id: "cocktails",
-    name: "Cocktails",
-    files: [
-      { path: "/images/cocktails/bahama_mama.jpg", name: "bahama_mama.jpg" },
-      { path: "/images/cocktails/big_john.jpg", name: "big_john.jpg" },
-      { path: "/images/cocktails/long_island_iced_tea.jpg", name: "long_island_iced_tea.jpg" },
-      { path: "/images/cocktails/mai_tai.jpg", name: "mai_tai.jpg" },
-      { path: "/images/cocktails/malibu_ananas.jpg", name: "malibu_ananas.jpg" },
-      { path: "/images/cocktails/malibu_colada.jpg", name: "malibu_colada.jpg" },
-      { path: "/images/cocktails/malibu_sunrise.jpg", name: "malibu_sunrise.jpg" },
-      { path: "/images/cocktails/malibu_sunset.jpg", name: "malibu_sunset.jpg" },
-      { path: "/images/cocktails/mojito.jpg", name: "mojito.jpg" },
-      { path: "/images/cocktails/passion_colada.jpg", name: "passion_colada.jpg" },
-      { path: "/images/cocktails/peaches_cream.jpg", name: "peaches_cream.jpg" },
-      { path: "/images/cocktails/planters_punch.jpg", name: "planters_punch.jpg" },
-      { path: "/images/cocktails/sex_on_the_beach.jpg", name: "sex_on_the_beach.jpg" },
-      { path: "/images/cocktails/solero.jpg", name: "solero.jpg" },
-      { path: "/images/cocktails/swimming_pool.jpg", name: "swimming_pool.jpg" },
-      { path: "/images/cocktails/swimmingpool.jpg", name: "swimmingpool.jpg" },
-      { path: "/images/cocktails/tequila_sunrise.jpg", name: "tequila_sunrise.jpg" },
-      { path: "/images/cocktails/touch_down.jpg", name: "touch_down.jpg" },
-      { path: "/images/cocktails/touchdown.jpg", name: "touchdown.jpg" },
-      { path: "/images/cocktails/zombie.jpg", name: "zombie.jpg" },
-    ],
-  },
-  {
-    id: "backgrounds",
-    name: "Hintergründe",
-    files: [
-      { path: "/bursting-berries.png", name: "bursting-berries.png" },
-      { path: "/citrus-swirl-sunset.png", name: "citrus-swirl-sunset.png" },
-      { path: "/palm-glow.png", name: "palm-glow.png" },
-      { path: "/refreshing-citrus-cooler.png", name: "refreshing-citrus-cooler.png" },
-      { path: "/tropical-blend.png", name: "tropical-blend.png" },
-      { path: "/vibrant-passion-fizz.png", name: "vibrant-passion-fizz.png" },
-    ],
-  },
-]
 
 export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreatorProps) {
   const [name, setName] = useState("")
@@ -77,21 +34,13 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     name?: string
     imageUrl?: string
   }>({})
-  const [showImageBrowser, setShowImageBrowser] = useState(false)
-  const [currentImageCategory, setCurrentImageCategory] = useState(ALL_AVAILABLE_IMAGES[0].id) // Standardkategorie
-  const [selectedImageForPreview, setSelectedImageForPreview] = useState<string | null>(null)
+  const [showFileBrowser, setShowFileBrowser] = useState(false)
 
   useEffect(() => {
     if (recipe.length === 0) {
       addIngredient()
     }
   }, [recipe])
-
-  useEffect(() => {
-    if (showImageBrowser) {
-      setSelectedImageForPreview(imageUrl || null)
-    }
-  }, [showImageBrowser, imageUrl])
 
   const handleInputFocus = (inputType: string, currentValue = "") => {
     setActiveInput(inputType)
@@ -140,13 +89,15 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       }
     }
 
-    setShowKeyboard(false) // Nur die Tastatur schließen
+    // NUR die Tastatur schließen, NICHT das Haupt-Dialog
+    setShowKeyboard(false)
     setActiveInput(null)
     setInputValue("")
   }
 
   const handleKeyboardCancel = () => {
-    setShowKeyboard(false) // Nur die Tastatur schließen
+    // NUR die Tastatur schließen, NICHT das Haupt-Dialog
+    setShowKeyboard(false)
     setActiveInput(null)
     setInputValue("")
   }
@@ -184,9 +135,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
 
   const isValidUrl = (url: string) => {
     if (!url) return true
-
     if (url.startsWith("/")) return true
-
     try {
       new URL(url)
       return true
@@ -247,25 +196,29 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     }
   }
 
-  const handleSelectImage = (path: string) => {
-    setSelectedImageForPreview(path)
-  }
-
-  const confirmImageSelection = () => {
-    setImageUrl(selectedImageForPreview || "")
-    setShowImageBrowser(false)
+  const handleSelectImageFromBrowser = (imagePath: string) => {
+    setImageUrl(imagePath)
+    setShowFileBrowser(false)
   }
 
   const clearImage = () => {
     setImageUrl("")
-    setSelectedImageForPreview(null)
   }
 
-  const currentCategoryFiles = ALL_AVAILABLE_IMAGES.find((cat) => cat.id === currentImageCategory)?.files || []
+  // Verhindere das Schließen des Haupt-Dialogs, wenn die Tastatur oder der Dateibrowser geöffnet ist
+  const handleMainDialogOpenChange = (open: boolean) => {
+    if (!open && (showKeyboard || showFileBrowser)) {
+      // Verhindere das Schließen, wenn Tastatur oder Dateibrowser offen ist
+      return
+    }
+    if (!open) {
+      onClose()
+    }
+  }
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={handleMainDialogOpenChange}>
         <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Neues Rezept erstellen</DialogTitle>
@@ -304,7 +257,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
             <div className="space-y-2">
               <Label htmlFor="imageUrl" className="flex items-center gap-2 text-white">
                 <ImageIcon className="h-4 w-4" />
-                Bild-URL (optional)
+                Bild-Pfad (optional)
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -313,11 +266,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   onClick={() => handleInputFocus("imageUrl", imageUrl)}
                   readOnly
                   className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1 ${errors.imageUrl ? "border-red-500" : ""}`}
-                  placeholder="https://beispiel.com/mein-cocktail.jpg"
+                  placeholder="/pfad/zum/bild.jpg"
                 />
                 <Button
                   type="button"
-                  onClick={() => setShowImageBrowser(true)}
+                  onClick={() => setShowFileBrowser(true)}
                   className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
                 >
                   <FolderOpen className="h-4 w-4" />
@@ -330,7 +283,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               </div>
               {errors.imageUrl && <p className="text-red-400 text-xs">{errors.imageUrl}</p>}
               <p className="text-xs text-gray-300">
-                Wähle ein Bild aus oder gib die URL zu einem Bild ein. Leer lassen für ein Platzhalterbild.
+                Wähle ein Bild aus dem Dateisystem aus oder gib den Pfad manuell ein.
               </p>
             </div>
 
@@ -441,112 +394,22 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         </DialogContent>
       </Dialog>
 
-      {/* Bild-Browser Dialog */}
-      <Dialog open={showImageBrowser} onOpenChange={setShowImageBrowser}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-5xl">
-          <DialogHeader>
-            <DialogTitle>Bild auswählen</DialogTitle>
-          </DialogHeader>
+      {/* Dateibrowser */}
+      <FileBrowser
+        isOpen={showFileBrowser}
+        onClose={() => setShowFileBrowser(false)}
+        onSelectImage={handleSelectImageFromBrowser}
+      />
 
-          <div className="grid grid-cols-[1fr_2fr] gap-4 h-[60vh]">
-            {/* Linke Spalte: Ordner/Kategorien und Bildliste */}
-            <div className="flex flex-col border-r border-[hsl(var(--cocktail-card-border))] pr-4">
-              <h3 className="text-lg font-semibold mb-2 text-white">Ordner</h3>
-              <ScrollArea className="h-full">
-                <div className="space-y-1">
-                  {ALL_AVAILABLE_IMAGES.map((category) => (
-                    <Button
-                      key={category.id}
-                      variant="ghost"
-                      onClick={() => {
-                        setCurrentImageCategory(category.id)
-                        setSelectedImageForPreview(null) // Reset preview when changing folder
-                      }}
-                      className={`w-full justify-start text-left ${
-                        currentImageCategory === category.id
-                          ? "bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-                          : "text-white hover:bg-[hsl(var(--cocktail-card-border))]"
-                      }`}
-                    >
-                      <FolderOpen className="h-4 w-4 mr-2" />
-                      {category.name}
-                    </Button>
-                  ))}
-                </div>
-              </ScrollArea>
-
-              <h3 className="text-lg font-semibold mt-4 mb-2 text-white">Dateien</h3>
-              <ScrollArea className="h-full">
-                <div className="space-y-1">
-                  {currentCategoryFiles.map((image) => (
-                    <Button
-                      key={image.path}
-                      variant="ghost"
-                      onClick={() => handleSelectImage(image.path)}
-                      className={`w-full justify-start text-left text-sm ${
-                        selectedImageForPreview === image.path
-                          ? "bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-primary))]"
-                          : "text-white hover:bg-[hsl(var(--cocktail-card-border))]"
-                      }`}
-                    >
-                      {image.name}
-                    </Button>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-
-            {/* Rechte Spalte: Vorschaubild */}
-            <div className="flex flex-col items-center justify-center bg-[hsl(var(--cocktail-card-bg))] rounded-md p-4">
-              <h3 className="text-lg font-semibold mb-4 text-white">Vorschau</h3>
-              <div className="relative w-full aspect-video border border-[hsl(var(--cocktail-card-border))] rounded-md overflow-hidden">
-                <Image
-                  src={selectedImageForPreview || "/placeholder.svg?height=400&width=600&query=No image selected"}
-                  alt="Vorschau"
-                  fill
-                  className="object-contain" // Use object-contain to fit image within bounds
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder.svg?height=400&width=600"
-                  }}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-              <p className="text-sm text-center mt-2 text-gray-300">
-                {selectedImageForPreview ? selectedImageForPreview.split("/").pop() : "Kein Bild ausgewählt"}
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowImageBrowser(false)}
-              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              onClick={confirmImageSelection}
-              disabled={!selectedImageForPreview} // Disable if no image is selected
-              className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-            >
-              Bild auswählen
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      {/* Virtuelle Tastatur */}
       {showKeyboard && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[9999] pointer-events-auto">
+        <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[9999]">
           <div className="w-full max-w-lg p-4 flex flex-col">
-            {" "}
-            {/* Adjusted max-w for keyboard */}
             <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
               <Label className="text-white mb-2 block">
                 {activeInput === "name" && "Name eingeben"}
                 {activeInput === "description" && "Beschreibung eingeben"}
-                {activeInput === "imageUrl" && "Bild-URL eingeben"}
+                {activeInput === "imageUrl" && "Bild-Pfad eingeben"}
                 {activeInput?.startsWith("amount-") && "Menge eingeben (ml)"}
               </Label>
               <Input
@@ -559,7 +422,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                     : activeInput === "description"
                       ? "Beschreibung..."
                       : activeInput === "imageUrl"
-                        ? "https://..."
+                        ? "/pfad/zum/bild.jpg"
                         : "Menge in ml"
                 }
               />
