@@ -25,6 +25,7 @@ import RecipeEditor from "@/components/recipe-editor"
 import RecipeCreator from "@/components/recipe-creator"
 import DeleteConfirmation from "@/components/delete-confirmation"
 import { Progress } from "@/components/ui/progress"
+import ImageEditor from "@/components/image-editor"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -51,6 +52,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
   const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
+  const [showImageEditor, setShowImageEditor] = useState(false)
 
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
@@ -140,10 +142,9 @@ export default function Home() {
     }
   }
 
-  const handleEditClick = (cocktailId: string) => {
+  const handleImageEditClick = (cocktailId: string) => {
     setCocktailToEdit(cocktailId)
-    setPasswordAction("edit")
-    setShowPasswordModal(true)
+    setShowImageEditor(true)
   }
 
   const handleDeleteClick = (cocktailId: string) => {
@@ -169,12 +170,29 @@ export default function Home() {
     }
   }
 
+  const handleImageSave = async (updatedCocktail: Cocktail) => {
+    try {
+      await saveRecipe(updatedCocktail)
+
+      // Aktualisiere die lokale Liste
+      setCocktailsData((prev) => prev.map((c) => (c.id === updatedCocktail.id ? updatedCocktail : c)))
+
+      // Aktualisiere auch die Füllstände für neue Zutaten
+      await loadIngredientLevels()
+    } catch (error) {
+      console.error("Fehler beim Speichern des Bildes:", error)
+    }
+  }
+
   const handleRecipeSave = async (updatedCocktail: Cocktail) => {
     try {
       await saveRecipe(updatedCocktail)
 
       // Aktualisiere die lokale Liste
       setCocktailsData((prev) => prev.map((c) => (c.id === updatedCocktail.id ? updatedCocktail : c)))
+
+      // Aktualisiere auch die Füllstände für neue Zutaten
+      await loadIngredientLevels()
     } catch (error) {
       console.error("Fehler beim Speichern des Rezepts:", error)
     }
@@ -186,6 +204,9 @@ export default function Home() {
 
       // Füge den neuen Cocktail zur lokalen Liste hinzu
       setCocktailsData((prev) => [...prev, newCocktail])
+
+      // Aktualisiere auch die Füllstände für neue Zutaten
+      await loadIngredientLevels()
     } catch (error) {
       console.error("Fehler beim Speichern des neuen Rezepts:", error)
     }
@@ -469,11 +490,11 @@ export default function Home() {
                     className="flex items-center gap-2 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleEditClick(cocktail.id)
+                      handleImageEditClick(cocktail.id)
                     }}
                   >
                     <Edit className="h-4 w-4" />
-                    Bearbeiten
+                    Bild ändern
                   </Button>
                   <Button
                     variant="destructive"
@@ -770,6 +791,13 @@ export default function Home() {
         onClose={() => setShowDeleteConfirmation(false)}
         onConfirm={handleDeleteConfirm}
         cocktailName={cocktailToDelete?.name || ""}
+      />
+
+      <ImageEditor
+        isOpen={showImageEditor}
+        onClose={() => setShowImageEditor(false)}
+        cocktail={cocktailToEdit ? cocktailsData.find((c) => c.id === cocktailToEdit) || null : null}
+        onSave={handleImageSave}
       />
     </div>
   )
