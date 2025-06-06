@@ -25,7 +25,6 @@ import RecipeEditor from "@/components/recipe-editor"
 import RecipeCreator from "@/components/recipe-creator"
 import DeleteConfirmation from "@/components/delete-confirmation"
 import { Progress } from "@/components/ui/progress"
-import PumpPriming from "@/components/pump-priming"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -617,8 +616,6 @@ export default function Home() {
         )
       case "levels":
         return <IngredientLevels pumpConfig={pumpConfig} onLevelsUpdated={loadIngredientLevels} />
-      case "priming":
-        return <PumpPriming pumpConfig={pumpConfig} />
       case "cleaning":
         return <PumpCleaning pumpConfig={pumpConfig} />
       case "calibration":
@@ -694,16 +691,6 @@ export default function Home() {
               }`}
             >
               Füllstände
-            </Button>
-            <Button
-              onClick={() => setActiveTab("priming")}
-              className={`flex-1 ${
-                activeTab === "priming"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
-              }`}
-            >
-              Entlüften
             </Button>
             <Button
               onClick={() => setActiveTab("cleaning")}
