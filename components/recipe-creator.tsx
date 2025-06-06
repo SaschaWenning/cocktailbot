@@ -12,7 +12,6 @@ import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X } from "lucide-react"
 import VirtualKeyboard from "./virtual-keyboard"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import Image from "next/image"
 
 interface RecipeCreatorProps {
@@ -22,38 +21,46 @@ interface RecipeCreatorProps {
 }
 
 // Alle verfügbaren Bilder im Projekt, gruppiert nach Kategorien
-const ALL_AVAILABLE_IMAGES = {
-  cocktails: [
-    { path: "/images/cocktails/bahama_mama.jpg", name: "Bahama Mama" },
-    { path: "/images/cocktails/big_john.jpg", name: "Big John" },
-    { path: "/images/cocktails/long_island_iced_tea.jpg", name: "Long Island Iced Tea" },
-    { path: "/images/cocktails/mai_tai.jpg", name: "Mai Tai" },
-    { path: "/images/cocktails/malibu_ananas.jpg", name: "Malibu Ananas" },
-    { path: "/images/cocktails/malibu_colada.jpg", name: "Malibu Colada" },
-    { path: "/images/cocktails/malibu_sunrise.jpg", name: "Malibu Sunrise" },
-    { path: "/images/cocktails/malibu_sunset.jpg", name: "Malibu Sunset" },
-    { path: "/images/cocktails/mojito.jpg", name: "Mojito" },
-    { path: "/images/cocktails/passion_colada.jpg", name: "Passion Colada" },
-    { path: "/images/cocktails/peaches_cream.jpg", name: "Peaches & Cream" },
-    { path: "/images/cocktails/planters_punch.jpg", name: "Planters Punch" },
-    { path: "/images/cocktails/sex_on_the_beach.jpg", name: "Sex on the Beach" },
-    { path: "/images/cocktails/solero.jpg", name: "Solero" },
-    { path: "/images/cocktails/swimming_pool.jpg", name: "Swimming Pool" },
-    { path: "/images/cocktails/swimmingpool.jpg", name: "Swimmingpool" },
-    { path: "/images/cocktails/tequila_sunrise.jpg", name: "Tequila Sunrise" },
-    { path: "/images/cocktails/touch_down.jpg", name: "Touch Down" },
-    { path: "/images/cocktails/touchdown.jpg", name: "Touchdown" },
-    { path: "/images/cocktails/zombie.jpg", name: "Zombie" },
-  ],
-  backgrounds: [
-    { path: "/bursting-berries.png", name: "Bursting Berries" },
-    { path: "/citrus-swirl-sunset.png", name: "Citrus Swirl Sunset" },
-    { path: "/palm-glow.png", name: "Palm Glow" },
-    { path: "/refreshing-citrus-cooler.png", name: "Refreshing Citrus Cooler" },
-    { path: "/tropical-blend.png", name: "Tropical Blend" },
-    { path: "/vibrant-passion-fizz.png", name: "Vibrant Passion Fizz" },
-  ],
-}
+const ALL_AVAILABLE_IMAGES = [
+  {
+    id: "cocktails",
+    name: "Cocktails",
+    files: [
+      { path: "/images/cocktails/bahama_mama.jpg", name: "bahama_mama.jpg" },
+      { path: "/images/cocktails/big_john.jpg", name: "big_john.jpg" },
+      { path: "/images/cocktails/long_island_iced_tea.jpg", name: "long_island_iced_tea.jpg" },
+      { path: "/images/cocktails/mai_tai.jpg", name: "mai_tai.jpg" },
+      { path: "/images/cocktails/malibu_ananas.jpg", name: "malibu_ananas.jpg" },
+      { path: "/images/cocktails/malibu_colada.jpg", name: "malibu_colada.jpg" },
+      { path: "/images/cocktails/malibu_sunrise.jpg", name: "malibu_sunrise.jpg" },
+      { path: "/images/cocktails/malibu_sunset.jpg", name: "malibu_sunset.jpg" },
+      { path: "/images/cocktails/mojito.jpg", name: "mojito.jpg" },
+      { path: "/images/cocktails/passion_colada.jpg", name: "passion_colada.jpg" },
+      { path: "/images/cocktails/peaches_cream.jpg", name: "peaches_cream.jpg" },
+      { path: "/images/cocktails/planters_punch.jpg", name: "planters_punch.jpg" },
+      { path: "/images/cocktails/sex_on_the_beach.jpg", name: "sex_on_the_beach.jpg" },
+      { path: "/images/cocktails/solero.jpg", name: "solero.jpg" },
+      { path: "/images/cocktails/swimming_pool.jpg", name: "swimming_pool.jpg" },
+      { path: "/images/cocktails/swimmingpool.jpg", name: "swimmingpool.jpg" },
+      { path: "/images/cocktails/tequila_sunrise.jpg", name: "tequila_sunrise.jpg" },
+      { path: "/images/cocktails/touch_down.jpg", name: "touch_down.jpg" },
+      { path: "/images/cocktails/touchdown.jpg", name: "touchdown.jpg" },
+      { path: "/images/cocktails/zombie.jpg", name: "zombie.jpg" },
+    ],
+  },
+  {
+    id: "backgrounds",
+    name: "Hintergründe",
+    files: [
+      { path: "/bursting-berries.png", name: "bursting-berries.png" },
+      { path: "/citrus-swirl-sunset.png", name: "citrus-swirl-sunset.png" },
+      { path: "/palm-glow.png", name: "palm-glow.png" },
+      { path: "/refreshing-citrus-cooler.png", name: "refreshing-citrus-cooler.png" },
+      { path: "/tropical-blend.png", name: "tropical-blend.png" },
+      { path: "/vibrant-passion-fizz.png", name: "vibrant-passion-fizz.png" },
+    ],
+  },
+]
 
 export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreatorProps) {
   const [name, setName] = useState("")
@@ -71,8 +78,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     imageUrl?: string
   }>({})
   const [showImageBrowser, setShowImageBrowser] = useState(false)
-  const [currentImageCategory, setCurrentImageCategory] = useState("cocktails")
-  const [selectedImageForPreview, setSelectedImageForPreview] = useState<string | null>(null) // Für die Vorschau im Browser
+  const [currentImageCategory, setCurrentImageCategory] = useState(ALL_AVAILABLE_IMAGES[0].id) // Standardkategorie
+  const [selectedImageForPreview, setSelectedImageForPreview] = useState<string | null>(null)
 
   useEffect(() => {
     if (recipe.length === 0) {
@@ -80,7 +87,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     }
   }, [recipe])
 
-  // Setzt das Vorschaubild, wenn der Bildbrowser geöffnet wird
   useEffect(() => {
     if (showImageBrowser) {
       setSelectedImageForPreview(imageUrl || null)
@@ -134,13 +140,13 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       }
     }
 
-    setShowKeyboard(false)
+    setShowKeyboard(false) // Nur die Tastatur schließen
     setActiveInput(null)
     setInputValue("")
   }
 
   const handleKeyboardCancel = () => {
-    setShowKeyboard(false)
+    setShowKeyboard(false) // Nur die Tastatur schließen
     setActiveInput(null)
     setInputValue("")
   }
@@ -242,7 +248,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   }
 
   const handleSelectImage = (path: string) => {
-    setSelectedImageForPreview(path) // Update preview immediately
+    setSelectedImageForPreview(path)
   }
 
   const confirmImageSelection = () => {
@@ -254,6 +260,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     setImageUrl("")
     setSelectedImageForPreview(null)
   }
+
+  const currentCategoryFiles = ALL_AVAILABLE_IMAGES.find((cat) => cat.id === currentImageCategory)?.files || []
 
   return (
     <>
@@ -435,103 +443,72 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
 
       {/* Bild-Browser Dialog */}
       <Dialog open={showImageBrowser} onOpenChange={setShowImageBrowser}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-4xl">
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Bild auswählen</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-3 gap-4 h-[60vh]">
+          <div className="grid grid-cols-[1fr_2fr] gap-4 h-[60vh]">
             {/* Linke Spalte: Ordner/Kategorien und Bildliste */}
-            <div className="col-span-2 flex flex-col">
-              <Tabs value={currentImageCategory} onValueChange={setCurrentImageCategory} className="w-full mb-4">
-                <TabsList className="grid w-full grid-cols-2 bg-[hsl(var(--cocktail-card-bg))] text-white">
-                  <TabsTrigger
-                    value="cocktails"
-                    className="data-[state=active]:bg-[hsl(var(--cocktail-primary))] data-[state=active]:text-black"
-                  >
-                    Cocktails
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="backgrounds"
-                    className="data-[state=active]:bg-[hsl(var(--cocktail-primary))] data-[state=active]:text-black"
-                  >
-                    Hintergründe
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="cocktails" className="mt-2">
-                  <ScrollArea className="h-[calc(60vh-60px)] pr-4">
-                    <div className="grid grid-cols-3 gap-2">
-                      {ALL_AVAILABLE_IMAGES.cocktails.map((image) => (
-                        <div
-                          key={image.path}
-                          className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
-                            selectedImageForPreview === image.path
-                              ? "border-[hsl(var(--cocktail-primary))]"
-                              : "border-transparent"
-                          }`}
-                          onClick={() => handleSelectImage(image.path)}
-                        >
-                          <img
-                            src={image.path || "/placeholder.svg"}
-                            alt={image.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg?height=100&width=100"
-                            }}
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center text-white">
-                            {image.name}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-                <TabsContent value="backgrounds" className="mt-2">
-                  <ScrollArea className="h-[calc(60vh-60px)] pr-4">
-                    <div className="grid grid-cols-3 gap-2">
-                      {ALL_AVAILABLE_IMAGES.backgrounds.map((image) => (
-                        <div
-                          key={image.path}
-                          className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${
-                            selectedImageForPreview === image.path
-                              ? "border-[hsl(var(--cocktail-primary))]"
-                              : "border-transparent"
-                          }`}
-                          onClick={() => handleSelectImage(image.path)}
-                        >
-                          <img
-                            src={image.path || "/placeholder.svg"}
-                            alt={image.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg?height=100&width=100"
-                            }}
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-1 text-xs text-center text-white">
-                            {image.name}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
+            <div className="flex flex-col border-r border-[hsl(var(--cocktail-card-border))] pr-4">
+              <h3 className="text-lg font-semibold mb-2 text-white">Ordner</h3>
+              <ScrollArea className="h-full">
+                <div className="space-y-1">
+                  {ALL_AVAILABLE_IMAGES.map((category) => (
+                    <Button
+                      key={category.id}
+                      variant="ghost"
+                      onClick={() => {
+                        setCurrentImageCategory(category.id)
+                        setSelectedImageForPreview(null) // Reset preview when changing folder
+                      }}
+                      className={`w-full justify-start text-left ${
+                        currentImageCategory === category.id
+                          ? "bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+                          : "text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                      }`}
+                    >
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      {category.name}
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+
+              <h3 className="text-lg font-semibold mt-4 mb-2 text-white">Dateien</h3>
+              <ScrollArea className="h-full">
+                <div className="space-y-1">
+                  {currentCategoryFiles.map((image) => (
+                    <Button
+                      key={image.path}
+                      variant="ghost"
+                      onClick={() => handleSelectImage(image.path)}
+                      className={`w-full justify-start text-left text-sm ${
+                        selectedImageForPreview === image.path
+                          ? "bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-primary))]"
+                          : "text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                      }`}
+                    >
+                      {image.name}
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
 
             {/* Rechte Spalte: Vorschaubild */}
-            <div className="col-span-1 flex flex-col items-center justify-center bg-[hsl(var(--cocktail-card-bg))] rounded-md p-4">
+            <div className="flex flex-col items-center justify-center bg-[hsl(var(--cocktail-card-bg))] rounded-md p-4">
               <h3 className="text-lg font-semibold mb-4 text-white">Vorschau</h3>
-              <div className="relative w-full aspect-square border border-[hsl(var(--cocktail-card-border))] rounded-md overflow-hidden">
+              <div className="relative w-full aspect-video border border-[hsl(var(--cocktail-card-border))] rounded-md overflow-hidden">
                 <Image
-                  src={selectedImageForPreview || "/placeholder.svg?height=400&width=400&query=No image selected"}
+                  src={selectedImageForPreview || "/placeholder.svg?height=400&width=600&query=No image selected"}
                   alt="Vorschau"
                   fill
-                  className="object-cover"
+                  className="object-contain" // Use object-contain to fit image within bounds
                   onError={(e) => {
-                    e.currentTarget.src = "/placeholder.svg?height=400&width=400"
+                    e.currentTarget.src = "/placeholder.svg?height=400&width=600"
                   }}
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  sizes="(max-width: 768px) 100vw, 50vw"
                 />
               </div>
               <p className="text-sm text-center mt-2 text-gray-300">
@@ -551,6 +528,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
             </Button>
             <Button
               onClick={confirmImageSelection}
+              disabled={!selectedImageForPreview} // Disable if no image is selected
               className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
             >
               Bild auswählen
@@ -560,8 +538,10 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       </Dialog>
 
       {showKeyboard && (
-        <div className="fixed inset-0 bg-black/90 flex items-end justify-center z-[9999] pointer-events-auto">
-          <div className="w-full max-w-2xl p-4 flex flex-col">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[9999] pointer-events-auto">
+          <div className="w-full max-w-lg p-4 flex flex-col">
+            {" "}
+            {/* Adjusted max-w for keyboard */}
             <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 mb-4">
               <Label className="text-white mb-2 block">
                 {activeInput === "name" && "Name eingeben"}

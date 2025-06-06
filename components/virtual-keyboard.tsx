@@ -8,7 +8,7 @@ interface VirtualKeyboardProps {
   onBackspace: () => void
   onClear: () => void
   onConfirm: () => void
-  onCancel: () => void // Hinzugefügt für Abbrechen-Button
+  onCancel: () => void
   layout: "alphanumeric" | "numeric"
 }
 
@@ -17,7 +17,7 @@ export default function VirtualKeyboard({
   onBackspace,
   onClear,
   onConfirm,
-  onCancel, // Übergeben
+  onCancel,
   layout,
 }: VirtualKeyboardProps) {
   const alphanumericKeys = [
@@ -38,15 +38,17 @@ export default function VirtualKeyboard({
   const currentKeys = layout === "numeric" ? numericKeys : alphanumericKeys
 
   return (
-    <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4 shadow-lg">
-      <div className="space-y-2">
+    <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg w-full">
+      <div className="space-y-1">
+        {" "}
+        {/* Reduced gap */}
         {currentKeys.map((row, rowIndex) => (
           <div key={rowIndex} className="flex justify-center gap-1">
             {row.map((key) => (
               <Button
                 key={key}
                 onClick={() => onKeyPress(key)}
-                className="flex-1 h-12 text-lg bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+                className="flex-1 h-10 text-base bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))]" // Smaller height and font
               >
                 {key}
               </Button>
@@ -54,18 +56,20 @@ export default function VirtualKeyboard({
           </div>
         ))}
       </div>
-      <div className="flex justify-center gap-1 mt-4">
-        <Button onClick={onBackspace} className="flex-1 h-12 text-lg bg-red-600 text-white hover:bg-red-700">
-          <ArrowLeft className="h-6 w-6" />
+      <div className="flex justify-center gap-1 mt-2">
+        {" "}
+        {/* Reduced margin-top */}
+        <Button onClick={onBackspace} className="flex-1 h-10 text-base bg-red-600 text-white hover:bg-red-700">
+          <ArrowLeft className="h-5 w-5" /> {/* Smaller icon */}
         </Button>
-        <Button onClick={onClear} className="flex-1 h-12 text-lg bg-yellow-600 text-white hover:bg-yellow-700">
-          <X className="h-6 w-6" />
+        <Button onClick={onClear} className="flex-1 h-10 text-base bg-yellow-600 text-white hover:bg-yellow-700">
+          <X className="h-5 w-5" />
         </Button>
-        <Button onClick={onCancel} className="flex-1 h-12 text-lg bg-gray-600 text-white hover:bg-gray-700">
+        <Button onClick={onCancel} className="flex-1 h-10 text-base bg-gray-600 text-white hover:bg-gray-700">
           Abbrechen
         </Button>
-        <Button onClick={onConfirm} className="flex-1 h-12 text-lg bg-green-600 text-white hover:bg-green-700">
-          <Check className="h-6 w-6" />
+        <Button onClick={onConfirm} className="flex-1 h-10 text-base bg-green-600 text-white hover:bg-green-700">
+          <Check className="h-5 w-5" />
         </Button>
       </div>
     </div>
