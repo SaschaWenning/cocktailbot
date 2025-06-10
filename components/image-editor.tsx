@@ -32,7 +32,6 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
         if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
           imagePath = `/${imagePath}`
         }
-        imagePath = imagePath.split("?")[0]
         setImageUrl(imagePath)
       }
     }

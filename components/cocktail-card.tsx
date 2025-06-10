@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Cocktail } from "@/types/cocktail"
@@ -12,48 +12,28 @@ interface CocktailCardProps {
 
 export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
-  const [imageSrc, setImageSrc] = useState<string>("")
-  const [imageLoadStatus, setImageLoadStatus] = useState<"loading" | "success" | "error">("loading")
 
-  // Reset image error when cocktail changes
-  useEffect(() => {
-    setImageError(false)
-    setImageLoadStatus("loading")
+  // Einfache Bildpfad-Verarbeitung
+  let imagePath = cocktail.image || ""
 
-    let imagePath = cocktail.image || ""
+  // Wenn es ein Platzhalter ist oder kein Bild, verwende Platzhalter
+  if (!imagePath || imagePath.startsWith("/placeholder")) {
+    imagePath = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+  }
 
-    // Wenn kein Bild oder Platzhalter, verwende Platzhalter
-    if (!imagePath || imagePath.startsWith("/placeholder")) {
-      const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-      setImageSrc(placeholder)
-      setImageLoadStatus("success")
-      return
-    }
-
-    // Normalisiere den Pfad
-    if (!imagePath.startsWith("/") && !imagePath.startsWith("http")) {
-      imagePath = `/${imagePath}`
-    }
-
-    // Verwende den Pfad direkt
-    setImageSrc(imagePath)
-  }, [cocktail])
-
-  const handleImageLoad = () => {
-    console.log(`✅ [${cocktail.name}] Image loaded successfully:`, imageSrc)
-    setImageLoadStatus("success")
+  // Stelle sicher, dass der Pfad mit / beginnt
+  if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
+    imagePath = `/${imagePath}`
   }
 
   const handleImageError = () => {
-    console.log(`❌ [${cocktail.name}] Image failed to load:`, imageSrc)
+    console.error(`Bild konnte nicht geladen werden: ${imagePath}`)
     setImageError(true)
-    setImageLoadStatus("error")
   }
 
-  const placeholderImage = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-  const finalImageSrc = imageError ? placeholderImage : imageSrc || placeholderImage
-
-  console.log(`🎯 [${cocktail.name}] Final display source:`, finalImageSrc)
+  const finalImageSrc = imageError
+    ? `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+    : imagePath
 
   return (
     <Card
@@ -64,7 +44,6 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
         {/* Debug-Info (nur in Development) */}
         {process.env.NODE_ENV === "development" && (
           <div className="absolute top-0 left-0 bg-black/80 text-white text-xs p-1 z-10 max-w-full">
-            <div>Status: {imageLoadStatus}</div>
             <div className="truncate">Src: {finalImageSrc}</div>
           </div>
         )}
@@ -73,21 +52,8 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
           src={finalImageSrc || "/placeholder.svg"}
           alt={cocktail.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          onLoad={handleImageLoad}
           onError={handleImageError}
         />
-
-        {/* Loading Indicator */}
-        {imageLoadStatus === "loading" && (
-          <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-            <div className="text-white text-sm">Lädt...</div>
-          </div>
-        )}
-
-        {/* Error Indicator */}
-        {imageLoadStatus === "error" && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">Bild-Fehler</div>
-        )}
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
