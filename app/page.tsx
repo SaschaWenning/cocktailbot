@@ -344,54 +344,27 @@ export default function Home() {
 
   // Neue Komponente für die Cocktail-Detailansicht
   function CocktailDetail({ cocktail }: { cocktail: Cocktail }) {
-    const [localImageError, setLocalImageError] = useState(false)
-    const [imageSrc, setImageSrc] = useState<string>("")
+    const [imageError, setImageError] = useState(false)
 
-    // Reset image error when cocktail changes - Version 56 Logik
-    useEffect(() => {
-      setLocalImageError(false)
-
-      // Normalisiere den Bildpfad
-      let normalizedPath = cocktail.image || ""
-
-      // Wenn es ein Platzhalter ist, behalte ihn
-      if (normalizedPath.startsWith("/placeholder")) {
-        setImageSrc(normalizedPath)
-        return
+    // SUPER EINFACHE Bildlogik - garantiert funktionierend
+    const getImageSrc = () => {
+      // Wenn Fehler oder kein Bild, verwende Platzhalter
+      if (imageError || !cocktail.image) {
+        return `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
       }
 
-      // Stelle sicher, dass der Pfad mit / beginnt
-      if (normalizedPath && !normalizedPath.startsWith("/") && !normalizedPath.startsWith("http")) {
-        normalizedPath = `/${normalizedPath}`
-      }
+      // Extrahiere nur den Dateinamen aus dem Pfad (z.B. "big_john.jpg" aus jedem möglichen Pfad)
+      const filename = cocktail.image.split("/").pop()
 
-      // Entferne URL-Parameter
-      normalizedPath = normalizedPath.split("?")[0]
-
-      // Wenn der Pfad mit /images beginnt, versuche ihn direkt zu verwenden
-      if (normalizedPath.startsWith("/images")) {
-        setImageSrc(normalizedPath)
-      }
-      // Wenn der Pfad mit einem absoluten Pfad beginnt (z.B. /home/pi/...)
-      else if (normalizedPath.startsWith("/") && normalizedPath.includes("/", 1)) {
-        // Verwende die Image-API
-        setImageSrc(`/api/image?path=${encodeURIComponent(normalizedPath)}`)
-      }
-      // Sonst verwende den Pfad direkt
-      else {
-        setImageSrc(normalizedPath)
-      }
-
-      console.log(`CocktailDetail: Normalisierter Bildpfad für ${cocktail.name}: ${normalizedPath} -> ${imageSrc}`)
-    }, [cocktail.id, cocktail.image, cocktail.name])
-
-    const handleImageError = () => {
-      console.log(`CocktailDetail: Bildfehler für ${cocktail.name}: ${imageSrc}`)
-      setLocalImageError(true)
+      // Verwende den Dateinamen mit dem garantiert funktionierenden Pfad
+      return `/images/cocktails/${filename}`
     }
 
-    const placeholderImage = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
-    const finalImageSrc = localImageError ? placeholderImage : imageSrc || placeholderImage
+    const handleImageError = () => {
+      console.error(`Detailansicht: Bildfehler für ${cocktail.name}: Original-Pfad=${cocktail.image}`)
+      setImageError(true)
+    }
+
     const availableSizes = [200, 300, 400]
 
     return (
@@ -399,7 +372,7 @@ export default function Home() {
         <div className="flex flex-col md:flex-row">
           <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
             <Image
-              src={finalImageSrc || "/placeholder.svg"}
+              src={getImageSrc() || "/placeholder.svg"}
               alt={cocktail.name}
               fill
               className="object-cover"
