@@ -193,9 +193,35 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
   const connectedIngredientIds = pumpConfig.map((pump) => pump.ingredient)
 
-  const filteredLevels = levels.filter((level) => {
-    if (!connectedIngredientIds.includes(level.ingredientId)) return false
+  // Erstelle eine feste Liste basierend auf den Pumpen
+  const pumpBasedLevels = pumpConfig.map((pump) => {
+    // Suche den existierenden Füllstand für diese Zutat
+    const existingLevel = levels.find((level) => level.ingredientId === pump.ingredient)
 
+    // Falls kein Füllstand existiert, erstelle einen temporären
+    if (!existingLevel) {
+      return {
+        ingredientId: pump.ingredient,
+        currentAmount: 0,
+        capacity: 1000,
+        lastRefill: new Date(),
+        pumpId: pump.id, // Füge Pumpen-ID hinzu für Sortierung
+        isNew: true, // Markiere als neu
+      }
+    }
+
+    return {
+      ...existingLevel,
+      pumpId: pump.id,
+      isNew: false,
+    }
+  })
+
+  // Sortiere nach Pumpen-ID
+  const sortedLevels = pumpBasedLevels.sort((a, b) => a.pumpId - b.pumpId)
+
+  // Filtere basierend auf dem aktiven Tab
+  const filteredLevels = sortedLevels.filter((level) => {
     if (activeTab === "all") return true
     if (activeTab === "low" && level.currentAmount < 100) return true
     if (activeTab === "alcoholic") {
@@ -292,6 +318,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                     const percentage = Math.round((level.currentAmount / level.capacity) * 100)
                     const isLow = level.currentAmount < 100
                     const isCritical = level.currentAmount < 50
+                    const isNew = level.isNew || false
 
                     // Bestimme die Farbe basierend auf dem Zustand
                     const ingredient = ingredients.find((i) => i.id === level.ingredientId)
@@ -323,7 +350,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                               {getIngredientIcon(level.ingredientId)}
                               <div>
                                 <h3 className="font-semibold text-white text-lg">
-                                  {getIngredientName(level.ingredientId)}
+                                  Pumpe {level.pumpId}: {getIngredientName(level.ingredientId)}
                                 </h3>
                                 <p className="text-sm text-gray-400">
                                   {level.currentAmount} / {level.capacity} ml
