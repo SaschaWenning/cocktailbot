@@ -15,7 +15,7 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageStatus, setImageStatus] = useState<"loading" | "success" | "error">("loading")
 
   useEffect(() => {
-    const testImagePaths = async () => {
+    const findWorkingImagePath = async () => {
       setImageStatus("loading")
 
       if (!cocktail.image) {
@@ -25,70 +25,51 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
         return
       }
 
-      // Verschiedene Pfadstrategien zum Testen
-      const strategies = [
-        // 1. Originaler Pfad
-        cocktail.image,
+      // Da wir wissen, dass /home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/ funktioniert,
+      // extrahieren wir nur den Dateinamen und verwenden den korrekten Web-Pfad
+      const filename = cocktail.image.split("/").pop() || cocktail.image
 
-        // 2. Nur Dateiname mit /images/cocktails/
-        `/images/cocktails/${cocktail.image.split("/").pop()}`,
+      // Der korrekte Web-Pfad für Next.js
+      const correctWebPath = `/images/cocktails/${filename}`
 
-        // 3. Ohne führenden Slash
-        cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
+      console.log(`🔍 [${cocktail.name}] Original: ${cocktail.image} → Using: ${correctWebPath}`)
 
-        // 4. Mit führendem Slash
-        cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
+      // Teste den korrekten Pfad
+      try {
+        const img = new Image()
 
-        // 5. Public-Pfad
-        `public${cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`}`,
-
-        // 6. Relativer Pfad von public
-        cocktail.image.replace(/^.*public\//, "/"),
-
-        // 7. Image API
-        `/api/image?path=${encodeURIComponent(cocktail.image)}`,
-      ]
-
-      console.log(`🔍 [${cocktail.name}] Testing image strategies:`, strategies)
-
-      for (let i = 0; i < strategies.length; i++) {
-        const testPath = strategies[i]
-
-        try {
-          const img = new Image()
-
-          const loadPromise = new Promise<boolean>((resolve) => {
-            img.onload = () => {
-              console.log(`✅ [${cocktail.name}] Strategy ${i + 1} SUCCESS: ${testPath}`)
-              resolve(true)
-            }
-            img.onerror = () => {
-              console.log(`❌ [${cocktail.name}] Strategy ${i + 1} FAILED: ${testPath}`)
-              resolve(false)
-            }
-            img.src = testPath
-          })
-
-          const success = await loadPromise
-
-          if (success) {
-            setImageSrc(testPath)
-            setImageStatus("success")
-            return
+        const loadPromise = new Promise<boolean>((resolve) => {
+          img.onload = () => {
+            console.log(`✅ [${cocktail.name}] Image loaded successfully: ${correctWebPath}`)
+            resolve(true)
           }
-        } catch (error) {
-          console.log(`❌ [${cocktail.name}] Strategy ${i + 1} ERROR: ${testPath}`, error)
-        }
-      }
+          img.onerror = () => {
+            console.log(`❌ [${cocktail.name}] Image failed to load: ${correctWebPath}`)
+            resolve(false)
+          }
+          img.src = correctWebPath
+        })
 
-      // Fallback auf Platzhalter
-      console.log(`🔄 [${cocktail.name}] All strategies failed, using placeholder`)
-      const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-      setImageSrc(placeholder)
-      setImageStatus("error")
+        const success = await loadPromise
+
+        if (success) {
+          setImageSrc(correctWebPath)
+          setImageStatus("success")
+        } else {
+          // Fallback auf Platzhalter
+          const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+          setImageSrc(placeholder)
+          setImageStatus("error")
+        }
+      } catch (error) {
+        console.log(`❌ [${cocktail.name}] Error testing image: ${correctWebPath}`, error)
+        const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+        setImageSrc(placeholder)
+        setImageStatus("error")
+      }
     }
 
-    testImagePaths()
+    findWorkingImagePath()
   }, [cocktail.image, cocktail.name])
 
   return (
@@ -97,28 +78,20 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       onClick={onClick}
     >
       <div className="relative aspect-square overflow-hidden">
-        {/* Bild */}
         <img
           src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
         />
 
-        {/* Status-Anzeige */}
-        <div className="absolute top-0 left-0 bg-black/90 text-white text-xs p-2 z-10 max-w-full">
-          <div className="font-mono">
+        {/* Debug-Info */}
+        <div className="absolute bottom-0 left-0 bg-black/90 text-white text-xs p-1 z-10 max-w-full">
+          <div className="font-mono text-xs">
             <div>Status: {imageStatus}</div>
-            <div className="truncate">Original: {cocktail.image}</div>
-            <div className="truncate">Using: {imageSrc}</div>
+            <div className="truncate">File: {cocktail.image?.split("/").pop()}</div>
+            <div className="truncate">Web: {imageSrc}</div>
           </div>
         </div>
-
-        {/* Loading-Indikator */}
-        {imageStatus === "loading" && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <div className="text-white text-sm">Lade Bild...</div>
-          </div>
-        )}
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
