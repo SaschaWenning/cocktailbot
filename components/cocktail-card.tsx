@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Cocktail } from "@/types/cocktail"
@@ -12,64 +12,25 @@ interface CocktailCardProps {
 
 export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
-  const [imageSrc, setImageSrc] = useState<string>("")
 
-  // Bildpfad-Logik von Version 56
-  useEffect(() => {
-    setImageError(false)
-
-    let imagePath = cocktail.image || ""
-
-    // Wenn kein Bild oder Platzhalter, verwende Platzhalter
-    if (!imagePath || imagePath.startsWith("/placeholder")) {
-      const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-      setImageSrc(placeholder)
-      return
+  // SUPER EINFACHE Bildlogik - garantiert funktionierend
+  const getImageSrc = () => {
+    // Wenn Fehler oder kein Bild, verwende Platzhalter
+    if (imageError || !cocktail.image) {
+      return `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
     }
 
-    // Normalisiere den Pfad
-    if (!imagePath.startsWith("/") && !imagePath.startsWith("http")) {
-      imagePath = `/${imagePath}`
-    }
+    // Extrahiere nur den Dateinamen aus dem Pfad (z.B. "big_john.jpg" aus jedem möglichen Pfad)
+    const filename = cocktail.image.split("/").pop()
 
-    // Entferne URL-Parameter
-    imagePath = imagePath.split("?")[0]
-
-    // Bestimme die finale URL
-    let finalSrc = ""
-
-    // Wenn der Pfad mit /images beginnt, versuche ihn direkt zu verwenden
-    if (imagePath.startsWith("/images")) {
-      finalSrc = imagePath
-    }
-    // Wenn der Pfad mit einem absoluten Pfad beginnt (z.B. /home/pi/...)
-    else if (imagePath.startsWith("/") && imagePath.includes("/", 1)) {
-      // Verwende die Image-API
-      finalSrc = `/api/image?path=${encodeURIComponent(imagePath)}`
-    }
-    // HTTP/HTTPS URLs direkt verwenden
-    else if (imagePath.startsWith("http")) {
-      finalSrc = imagePath
-    }
-    // Sonst verwende den Pfad direkt
-    else {
-      finalSrc = imagePath
-    }
-
-    setImageSrc(finalSrc)
-  }, [cocktail])
+    // Verwende den Dateinamen mit dem garantiert funktionierenden Pfad
+    return `/images/cocktails/${filename}`
+  }
 
   const handleImageError = () => {
-    console.log(`❌ [${cocktail.name}] Image failed to load:`, imageSrc)
+    console.error(`Bildfehler für ${cocktail.name}: Original-Pfad=${cocktail.image}`)
     setImageError(true)
   }
-
-  const handleImageLoad = () => {
-    console.log(`✅ [${cocktail.name}] Image loaded successfully:`, imageSrc)
-  }
-
-  const placeholderImage = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-  const finalImageSrc = imageError ? placeholderImage : imageSrc || placeholderImage
 
   return (
     <Card
@@ -77,17 +38,10 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       onClick={onClick}
     >
       <div className="relative aspect-square overflow-hidden">
-        {/* Debug-Info */}
-        <div className="absolute top-0 left-0 bg-black/80 text-white text-xs p-1 z-10 max-w-full">
-          <div>Original: {cocktail.image}</div>
-          <div className="truncate">Final: {finalImageSrc}</div>
-        </div>
-
         <img
-          src={finalImageSrc || "/placeholder.svg"}
+          src={getImageSrc() || "/placeholder.svg"}
           alt={cocktail.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          onLoad={handleImageLoad}
           onError={handleImageError}
         />
 

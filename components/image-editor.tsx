@@ -21,20 +21,26 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
   const [imageUrl, setImageUrl] = useState("")
   const [saving, setSaving] = useState(false)
   const [showFileBrowser, setShowFileBrowser] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   // Lade die Cocktail-Daten beim Öffnen
   useEffect(() => {
     if (cocktail && isOpen) {
-      // EINFACH: Verwende den Pfad wie er ist
       setImageUrl(cocktail.image || "")
+      setImageError(false)
     }
   }, [cocktail, isOpen])
 
   if (!cocktail) return null
 
   const handleSelectImageFromBrowser = (imagePath: string) => {
-    setImageUrl(imagePath)
+    // Extrahiere nur den Dateinamen aus dem Pfad
+    const filename = imagePath.split("/").pop()
+
+    // Setze den standardisierten Pfad
+    setImageUrl(`/images/cocktails/${filename}`)
     setShowFileBrowser(false)
+    setImageError(false)
   }
 
   const handleSave = async () => {
@@ -44,7 +50,7 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
     try {
       const updatedCocktail: Cocktail = {
         ...cocktail,
-        image: imageUrl || "", // Speichere genau was eingegeben wurde
+        image: imageUrl || "",
       }
 
       await saveRecipe(updatedCocktail)
@@ -59,19 +65,20 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
 
   // Vorschau-Bild
   const getPreviewSrc = () => {
-    if (!imageUrl || imageUrl.includes("placeholder")) {
+    if (imageError || !imageUrl) {
       return `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`
     }
 
-    if (imageUrl.startsWith("/images/")) {
-      return imageUrl
-    }
+    // Extrahiere nur den Dateinamen aus dem Pfad
+    const filename = imageUrl.split("/").pop()
 
-    if (imageUrl.startsWith("/")) {
-      return imageUrl
-    }
+    // Verwende den standardisierten Pfad
+    return `/images/cocktails/${filename}`
+  }
 
-    return `/${imageUrl}`
+  const handleImageError = () => {
+    console.error(`Vorschau: Bildfehler für ${cocktail.name}: ${imageUrl}`)
+    setImageError(true)
   }
 
   return (
@@ -90,18 +97,9 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
                   src={getPreviewSrc() || "/placeholder.svg"}
                   alt="Vorschau"
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`
-                  }}
+                  onError={handleImageError}
                 />
               </div>
-            </div>
-
-            {/* Debug Info */}
-            <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded">
-              <div>Original: {cocktail.image}</div>
-              <div>Eingabe: {imageUrl}</div>
-              <div>Vorschau: {getPreviewSrc()}</div>
             </div>
 
             {/* Bild-Pfad */}
@@ -113,7 +111,10 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
               <div className="flex gap-2">
                 <Input
                   value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
+                  onChange={(e) => {
+                    setImageUrl(e.target.value)
+                    setImageError(false)
+                  }}
                   className="bg-white border-[hsl(var(--cocktail-card-border))] text-black flex-1"
                   placeholder="/images/cocktails/mein-bild.jpg"
                 />
