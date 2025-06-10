@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Cocktail } from "@/types/cocktail"
@@ -13,30 +11,85 @@ interface CocktailCardProps {
 }
 
 export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
-  const [imageError, setImageError] = useState(false)
+  const [imageSrc, setImageSrc] = useState<string>("")
+  const [imageStatus, setImageStatus] = useState<"loading" | "success" | "error">("loading")
 
-  // SEHR EINFACH: Verwende nur den Standard Next.js Weg
-  const getImageSrc = () => {
-    if (imageError || !cocktail.image) {
-      return `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+  useEffect(() => {
+    const testImagePaths = async () => {
+      setImageStatus("loading")
+
+      if (!cocktail.image) {
+        const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+        setImageSrc(placeholder)
+        setImageStatus("success")
+        return
+      }
+
+      // Verschiedene Pfadstrategien zum Testen
+      const strategies = [
+        // 1. Originaler Pfad
+        cocktail.image,
+
+        // 2. Nur Dateiname mit /images/cocktails/
+        `/images/cocktails/${cocktail.image.split("/").pop()}`,
+
+        // 3. Ohne führenden Slash
+        cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
+
+        // 4. Mit führendem Slash
+        cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
+
+        // 5. Public-Pfad
+        `public${cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`}`,
+
+        // 6. Relativer Pfad von public
+        cocktail.image.replace(/^.*public\//, "/"),
+
+        // 7. Image API
+        `/api/image?path=${encodeURIComponent(cocktail.image)}`,
+      ]
+
+      console.log(`🔍 [${cocktail.name}] Testing image strategies:`, strategies)
+
+      for (let i = 0; i < strategies.length; i++) {
+        const testPath = strategies[i]
+
+        try {
+          const img = new Image()
+
+          const loadPromise = new Promise<boolean>((resolve) => {
+            img.onload = () => {
+              console.log(`✅ [${cocktail.name}] Strategy ${i + 1} SUCCESS: ${testPath}`)
+              resolve(true)
+            }
+            img.onerror = () => {
+              console.log(`❌ [${cocktail.name}] Strategy ${i + 1} FAILED: ${testPath}`)
+              resolve(false)
+            }
+            img.src = testPath
+          })
+
+          const success = await loadPromise
+
+          if (success) {
+            setImageSrc(testPath)
+            setImageStatus("success")
+            return
+          }
+        } catch (error) {
+          console.log(`❌ [${cocktail.name}] Strategy ${i + 1} ERROR: ${testPath}`, error)
+        }
+      }
+
+      // Fallback auf Platzhalter
+      console.log(`🔄 [${cocktail.name}] All strategies failed, using placeholder`)
+      const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+      setImageSrc(placeholder)
+      setImageStatus("error")
     }
 
-    // Extrahiere Dateiname und verwende Standard-Pfad
-    const filename = cocktail.image.split("/").pop() || cocktail.image
-
-    // Füge Cache-Buster hinzu um Caching-Probleme zu vermeiden
-    const cacheBuster = Date.now()
-    return `/images/cocktails/${filename}?v=${cacheBuster}`
-  }
-
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error(`❌ Bild konnte nicht geladen werden für ${cocktail.name}:`, e.currentTarget.src)
-    setImageError(true)
-  }
-
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.log(`✅ Bild erfolgreich geladen für ${cocktail.name}:`, e.currentTarget.src)
-  }
+    testImagePaths()
+  }, [cocktail.image, cocktail.name])
 
   return (
     <Card
@@ -44,23 +97,28 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       onClick={onClick}
     >
       <div className="relative aspect-square overflow-hidden">
-        {/* Verwende normales img-Tag statt Next.js Image */}
+        {/* Bild */}
         <img
-          src={getImageSrc() || "/placeholder.svg"}
+          src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          // Wichtig: Erzwinge das Neuladen
-          key={cocktail.image}
         />
 
-        {/* Debug-Info */}
-        <div className="absolute bottom-0 left-0 bg-black/80 text-white text-xs p-1 z-10">
-          <div>Pfad: {cocktail.image}</div>
-          <div>Src: {getImageSrc()}</div>
-          <div>Fehler: {imageError ? "Ja" : "Nein"}</div>
+        {/* Status-Anzeige */}
+        <div className="absolute top-0 left-0 bg-black/90 text-white text-xs p-2 z-10 max-w-full">
+          <div className="font-mono">
+            <div>Status: {imageStatus}</div>
+            <div className="truncate">Original: {cocktail.image}</div>
+            <div className="truncate">Using: {imageSrc}</div>
+          </div>
         </div>
+
+        {/* Loading-Indikator */}
+        {imageStatus === "loading" && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <div className="text-white text-sm">Lade Bild...</div>
+          </div>
+        )}
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
