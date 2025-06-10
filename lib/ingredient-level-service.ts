@@ -43,7 +43,15 @@ export async function updateIngredientLevel(ingredientId: string, newAmount: num
   const index = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
   if (index === -1) {
-    throw new Error(`Zutat mit ID ${ingredientId} nicht gefunden`)
+    // Erstelle neue Zutat wenn sie nicht existiert
+    const newLevel: IngredientLevel = {
+      ingredientId,
+      currentAmount: newAmount,
+      capacity: Math.max(newAmount, 1000), // Kapazität mindestens so groß wie die neue Menge
+      lastRefill: new Date(),
+    }
+    ingredientLevels.push(newLevel)
+    return newLevel
   }
 
   // Stelle sicher, dass die neue Menge nicht größer als die Kapazität ist

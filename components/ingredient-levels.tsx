@@ -107,12 +107,18 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
     setSaving(true)
     try {
-      const currentLevel = levels.find((level) => level.ingredientId === ingredientId)
-      if (!currentLevel) return
-
       const updatedLevel = await updateIngredientLevel(ingredientId, newTotalAmount)
 
-      setLevels((prev) => prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level)))
+      setLevels((prev) => {
+        const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
+        if (existingIndex >= 0) {
+          // Update existing
+          return prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level))
+        } else {
+          // Add new
+          return [...prev, updatedLevel]
+        }
+      })
 
       setRefillAmounts((prev) => ({
         ...prev,

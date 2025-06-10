@@ -20,65 +20,23 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
     setImageError(false)
     setImageLoadStatus("loading")
 
-    // Normalisiere den Bildpfad
-    let normalizedPath = cocktail.image || ""
+    let imagePath = cocktail.image || ""
 
-    console.log(`🔍 [${cocktail.name}] Original image path:`, normalizedPath)
-
-    // Wenn es ein Platzhalter ist, behalte ihn
-    if (normalizedPath.startsWith("/placeholder")) {
-      console.log(`📝 [${cocktail.name}] Using placeholder image`)
-      setImageSrc(normalizedPath)
-      setImageLoadStatus("success")
-      return
-    }
-
-    // Wenn kein Bild angegeben ist, verwende Platzhalter
-    if (!normalizedPath) {
-      console.log(`❌ [${cocktail.name}] No image path provided, using placeholder`)
+    // Wenn kein Bild oder Platzhalter, verwende Platzhalter
+    if (!imagePath || imagePath.startsWith("/placeholder")) {
       const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
       setImageSrc(placeholder)
       setImageLoadStatus("success")
       return
     }
 
-    // Stelle sicher, dass der Pfad mit / beginnt
-    if (normalizedPath && !normalizedPath.startsWith("/") && !normalizedPath.startsWith("http")) {
-      normalizedPath = `/${normalizedPath}`
-      console.log(`🔧 [${cocktail.name}] Added leading slash:`, normalizedPath)
+    // Normalisiere den Pfad
+    if (!imagePath.startsWith("/") && !imagePath.startsWith("http")) {
+      imagePath = `/${imagePath}`
     }
 
-    // Entferne URL-Parameter
-    normalizedPath = normalizedPath.split("?")[0]
-    console.log(`🧹 [${cocktail.name}] Cleaned path:`, normalizedPath)
-
-    // Bestimme die finale URL
-    let finalSrc = ""
-
-    // Wenn der Pfad mit /images beginnt, versuche ihn direkt zu verwenden
-    if (normalizedPath.startsWith("/images")) {
-      finalSrc = normalizedPath
-      console.log(`📁 [${cocktail.name}] Using direct path:`, finalSrc)
-    }
-    // Wenn der Pfad mit einem absoluten Pfad beginnt (z.B. /home/pi/...)
-    else if (normalizedPath.startsWith("/") && normalizedPath.includes("/", 1)) {
-      // Verwende die Image-API
-      finalSrc = `/api/image?path=${encodeURIComponent(normalizedPath)}`
-      console.log(`🌐 [${cocktail.name}] Using API path:`, finalSrc)
-    }
-    // HTTP/HTTPS URLs direkt verwenden
-    else if (normalizedPath.startsWith("http")) {
-      finalSrc = normalizedPath
-      console.log(`🔗 [${cocktail.name}] Using external URL:`, finalSrc)
-    }
-    // Sonst verwende den Pfad direkt
-    else {
-      finalSrc = normalizedPath
-      console.log(`📄 [${cocktail.name}] Using path as-is:`, finalSrc)
-    }
-
-    setImageSrc(finalSrc)
-    console.log(`✅ [${cocktail.name}] Final image source:`, finalSrc)
+    // Verwende den Pfad direkt
+    setImageSrc(imagePath)
   }, [cocktail])
 
   const handleImageLoad = () => {
