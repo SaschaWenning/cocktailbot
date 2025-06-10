@@ -347,7 +347,7 @@ export default function Home() {
     const [localImageError, setLocalImageError] = useState(false)
     const [imageSrc, setImageSrc] = useState<string>("")
 
-    // Reset image error when cocktail changes
+    // Reset image error when cocktail changes - Version 56 Logik
     useEffect(() => {
       setLocalImageError(false)
 
