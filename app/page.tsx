@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
 import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock, Bug } from "lucide-react"
+import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
 import { cocktails as defaultCocktails } from "@/data/cocktails"
@@ -25,13 +25,11 @@ import RecipeCreator from "@/components/recipe-creator"
 import DeleteConfirmation from "@/components/delete-confirmation"
 import { Progress } from "@/components/ui/progress"
 import ImageEditor from "@/components/image-editor"
-import { useRouter } from "next/navigation"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
 
 export default function Home() {
-  const router = useRouter()
   const [selectedCocktail, setSelectedCocktail] = useState<string | null>(null)
   const [selectedSize, setSelectedSize] = useState<number>(300)
   const [isMaking, setIsMaking] = useState(false)
@@ -54,7 +52,6 @@ export default function Home() {
   const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
   const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
   const [showImageEditor, setShowImageEditor] = useState(false)
-  const [fixingPaths, setFixingPaths] = useState(false)
 
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
@@ -109,13 +106,6 @@ export default function Home() {
   const loadCocktails = async () => {
     try {
       const cocktails = await getAllCocktails()
-
-      // Protokolliere die geladenen Cocktails für Debugging-Zwecke
-      console.log(
-        "Geladene Cocktails:",
-        cocktails.map((c) => ({ id: c.id, name: c.name, image: c.image })),
-      )
-
       setCocktailsData(cocktails)
     } catch (error) {
       console.error("Fehler beim Laden der Cocktails:", error)
@@ -141,27 +131,6 @@ export default function Home() {
       setLowIngredients(lowLevels.map((level) => level.ingredientId))
     } catch (error) {
       console.error("Fehler beim Laden der Füllstände:", error)
-    }
-  }
-
-  const handleFixImagePaths = async () => {
-    setFixingPaths(true)
-    try {
-      const response = await fetch("/api/fix-image-paths", { method: "POST" })
-      const result = await response.json()
-
-      if (result.success) {
-        alert(`✅ Bildpfade korrigiert! ${result.correctedCount} Cocktails aktualisiert.`)
-        // Lade die Cocktails neu
-        await loadCocktails()
-      } else {
-        alert(`❌ Fehler: ${result.error}`)
-      }
-    } catch (error) {
-      console.error("Fehler beim Korrigieren der Bildpfade:", error)
-      alert("❌ Fehler beim Korrigieren der Bildpfade")
-    } finally {
-      setFixingPaths(false)
     }
   }
 
@@ -367,7 +336,6 @@ export default function Home() {
 
   // Neue Komponente für die Cocktail-Detailansicht
   function CocktailDetail({ cocktail }: { cocktail: Cocktail }) {
-    const [imageError, setImageError] = useState(false)
     const [detailImageSrc, setDetailImageSrc] = useState<string>("")
 
     useEffect(() => {
@@ -411,11 +379,10 @@ export default function Home() {
 
             if (success) {
               setDetailImageSrc(testPath)
-              console.log(`✅ Detail image loaded: ${testPath}`)
               return
             }
           } catch (error) {
-            console.log(`❌ Detail image failed: ${testPath}`)
+            // Fehler ignorieren und nächste Strategie versuchen
           }
         }
 
@@ -428,8 +395,6 @@ export default function Home() {
     }, [cocktail.image, cocktail.name])
 
     const handleDetailImageError = () => {
-      console.error(`❌ Detail-Bild konnte nicht geladen werden für ${cocktail.name}`)
-      setImageError(true)
       const placeholder = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
       setDetailImageSrc(placeholder)
     }
@@ -445,17 +410,8 @@ export default function Home() {
               alt={cocktail.name}
               className="w-full h-full object-cover"
               onError={handleDetailImageError}
-              key={`${cocktail.image}-${detailImageSrc}`} // Erzwinge Neurendering bei Bildänderung
+              key={`${cocktail.image}-${detailImageSrc}`}
             />
-
-            {/* Debug-Info für Detail-Ansicht */}
-            <div className="absolute bottom-0 right-0 bg-black/90 text-white text-xs p-2 z-10">
-              <div className="font-mono">
-                <div>Detail: {detailImageSrc ? "✅" : "❌"}</div>
-                <div className="truncate max-w-32">Src: {detailImageSrc}</div>
-              </div>
-            </div>
-
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
           <div className="flex-1 p-6 flex flex-col">
@@ -646,25 +602,15 @@ export default function Home() {
           <div className="space-y-8">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Cocktails mit Alkohol</h2>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/image-debug")}
-                  className="bg-blue-600 text-white border-blue-500 hover:bg-blue-500"
-                >
-                  <Bug className="h-4 w-4 mr-2" />
-                  Bild-Debug
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => setShowRecipeCreator(true)}
-                  className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Neues Rezept
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setShowRecipeCreator(true)}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Neues Rezept
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -683,25 +629,15 @@ export default function Home() {
           <div className="space-y-8">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Alkoholfreie Cocktails</h2>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/image-debug")}
-                  className="bg-blue-600 text-white border-blue-500 hover:bg-blue-500"
-                >
-                  <Bug className="h-4 w-4 mr-2" />
-                  Bild-Debug
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => setShowRecipeCreator(true)}
-                  className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Neues Rezept
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setShowRecipeCreator(true)}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Neues Rezept
+              </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {currentPageVirginCocktails.map((cocktail) => (
