@@ -25,15 +25,8 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
   // Lade die Cocktail-Daten beim Öffnen
   useEffect(() => {
     if (cocktail && isOpen) {
-      let imagePath = cocktail.image || ""
-      if (imagePath.startsWith("/placeholder")) {
-        setImageUrl("")
-      } else {
-        if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
-          imagePath = `/${imagePath}`
-        }
-        setImageUrl(imagePath)
-      }
+      // EINFACH: Verwende den Pfad wie er ist
+      setImageUrl(cocktail.image || "")
     }
   }, [cocktail, isOpen])
 
@@ -51,7 +44,7 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
     try {
       const updatedCocktail: Cocktail = {
         ...cocktail,
-        image: imageUrl || "/placeholder.svg?height=200&width=400",
+        image: imageUrl || "", // Speichere genau was eingegeben wurde
       }
 
       await saveRecipe(updatedCocktail)
@@ -64,6 +57,23 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
     }
   }
 
+  // Vorschau-Bild
+  const getPreviewSrc = () => {
+    if (!imageUrl || imageUrl.includes("placeholder")) {
+      return `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`
+    }
+
+    if (imageUrl.startsWith("/images/")) {
+      return imageUrl
+    }
+
+    if (imageUrl.startsWith("/")) {
+      return imageUrl
+    }
+
+    return `/${imageUrl}`
+  }
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -74,20 +84,25 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
 
           <div className="space-y-4 my-4">
             {/* Aktuelles Bild anzeigen */}
-            {imageUrl && (
-              <div className="flex justify-center">
-                <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-[hsl(var(--cocktail-card-border))]">
-                  <img
-                    src={imageUrl || "/placeholder.svg"}
-                    alt="Aktuelles Bild"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg?height=128&width=128"
-                    }}
-                  />
-                </div>
+            <div className="flex justify-center">
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-[hsl(var(--cocktail-card-border))]">
+                <img
+                  src={getPreviewSrc() || "/placeholder.svg"}
+                  alt="Vorschau"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`
+                  }}
+                />
               </div>
-            )}
+            </div>
+
+            {/* Debug Info */}
+            <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded">
+              <div>Original: {cocktail.image}</div>
+              <div>Eingabe: {imageUrl}</div>
+              <div>Vorschau: {getPreviewSrc()}</div>
+            </div>
 
             {/* Bild-Pfad */}
             <div className="space-y-2">
@@ -100,7 +115,7 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   className="bg-white border-[hsl(var(--cocktail-card-border))] text-black flex-1"
-                  placeholder="/pfad/zum/bild.jpg"
+                  placeholder="/images/cocktails/mein-bild.jpg"
                 />
                 <Button
                   type="button"
@@ -147,7 +162,6 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
         </DialogContent>
       </Dialog>
 
-      {/* FileBrowser - EXAKT wie beim RecipeCreator */}
       <FileBrowser
         isOpen={showFileBrowser}
         onClose={() => setShowFileBrowser(false)}

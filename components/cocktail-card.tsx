@@ -13,27 +13,34 @@ interface CocktailCardProps {
 export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageError, setImageError] = useState(false)
 
-  // Einfache Bildpfad-Verarbeitung
-  let imagePath = cocktail.image || ""
+  // SUPER EINFACHE Bildlogik
+  const getImageSrc = () => {
+    if (imageError) {
+      return `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+    }
 
-  // Wenn es ein Platzhalter ist oder kein Bild, verwende Platzhalter
-  if (!imagePath || imagePath.startsWith("/placeholder")) {
-    imagePath = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+    const imagePath = cocktail.image || ""
+
+    // Wenn leer oder schon Platzhalter, verwende Platzhalter
+    if (!imagePath || imagePath.includes("placeholder")) {
+      return `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+    }
+
+    // Wenn es mit /images/ beginnt, verwende direkt
+    if (imagePath.startsWith("/images/")) {
+      return imagePath
+    }
+
+    // Wenn es mit / beginnt aber nicht /images/, verwende direkt
+    if (imagePath.startsWith("/")) {
+      return imagePath
+    }
+
+    // Sonst füge / hinzu
+    return `/${imagePath}`
   }
 
-  // Stelle sicher, dass der Pfad mit / beginnt
-  if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
-    imagePath = `/${imagePath}`
-  }
-
-  const handleImageError = () => {
-    console.error(`Bild konnte nicht geladen werden: ${imagePath}`)
-    setImageError(true)
-  }
-
-  const finalImageSrc = imageError
-    ? `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
-    : imagePath
+  const imageSrc = getImageSrc()
 
   return (
     <Card
@@ -41,18 +48,18 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
       onClick={onClick}
     >
       <div className="relative aspect-square overflow-hidden">
-        {/* Debug-Info (nur in Development) */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="absolute top-0 left-0 bg-black/80 text-white text-xs p-1 z-10 max-w-full">
-            <div className="truncate">Src: {finalImageSrc}</div>
-          </div>
-        )}
+        {/* Debug Info */}
+        <div className="absolute top-0 left-0 bg-black/80 text-white text-xs p-1 z-10 max-w-full">
+          <div className="truncate">Original: {cocktail.image}</div>
+          <div className="truncate">Final: {imageSrc}</div>
+        </div>
 
         <img
-          src={finalImageSrc || "/placeholder.svg"}
+          src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          onError={handleImageError}
+          onError={() => setImageError(true)}
+          onLoad={() => console.log(`✅ Bild geladen: ${imageSrc}`)}
         />
 
         {/* Gradient Overlay */}
