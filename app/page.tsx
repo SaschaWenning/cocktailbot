@@ -368,19 +368,70 @@ export default function Home() {
   // Neue Komponente für die Cocktail-Detailansicht
   function CocktailDetail({ cocktail }: { cocktail: Cocktail }) {
     const [imageError, setImageError] = useState(false)
+    const [detailImageSrc, setDetailImageSrc] = useState<string>("")
 
-    const getDetailImageSrc = () => {
-      if (imageError || !cocktail.image) {
-        return `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+    useEffect(() => {
+      const findDetailImagePath = async () => {
+        if (!cocktail.image) {
+          const placeholder = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+          setDetailImageSrc(placeholder)
+          return
+        }
+
+        // Extrahiere den Dateinamen aus dem Pfad (gleiche Logik wie in CocktailCard)
+        const filename = cocktail.image.split("/").pop() || cocktail.image
+
+        // Verschiedene Pfadstrategien zum Testen
+        const strategies = [
+          // 1. Standardpfad mit /images/cocktails/
+          `/images/cocktails/${filename}`,
+          // 2. Originaler Pfad
+          cocktail.image,
+          // 3. Ohne führenden Slash
+          cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
+          // 4. Mit führendem Slash
+          cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
+          // 5. API-Pfad als Fallback
+          `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
+        ]
+
+        for (let i = 0; i < strategies.length; i++) {
+          const testPath = strategies[i]
+
+          try {
+            const img = new Image()
+
+            const loadPromise = new Promise<boolean>((resolve) => {
+              img.onload = () => resolve(true)
+              img.onerror = () => resolve(false)
+            })
+
+            img.src = testPath
+            const success = await loadPromise
+
+            if (success) {
+              setDetailImageSrc(testPath)
+              console.log(`✅ Detail image loaded: ${testPath}`)
+              return
+            }
+          } catch (error) {
+            console.log(`❌ Detail image failed: ${testPath}`)
+          }
+        }
+
+        // Fallback auf Platzhalter
+        const placeholder = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+        setDetailImageSrc(placeholder)
       }
 
-      const filename = cocktail.image.split("/").pop() || cocktail.image
-      return `/images/cocktails/${filename}`
-    }
+      findDetailImagePath()
+    }, [cocktail.image, cocktail.name])
 
     const handleDetailImageError = () => {
       console.error(`❌ Detail-Bild konnte nicht geladen werden für ${cocktail.name}`)
       setImageError(true)
+      const placeholder = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+      setDetailImageSrc(placeholder)
     }
 
     const availableSizes = [200, 300, 400]
@@ -390,12 +441,21 @@ export default function Home() {
         <div className="flex flex-col md:flex-row">
           <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
             <img
-              src={getDetailImageSrc() || "/placeholder.svg"}
+              src={detailImageSrc || "/placeholder.svg"}
               alt={cocktail.name}
               className="w-full h-full object-cover"
               onError={handleDetailImageError}
-              key={cocktail.image} // Erzwinge Neurendering bei Bildänderung
+              key={`${cocktail.image}-${detailImageSrc}`} // Erzwinge Neurendering bei Bildänderung
             />
+
+            {/* Debug-Info für Detail-Ansicht */}
+            <div className="absolute bottom-0 right-0 bg-black/90 text-white text-xs p-2 z-10">
+              <div className="font-mono">
+                <div>Detail: {detailImageSrc ? "✅" : "❌"}</div>
+                <div className="truncate max-w-32">Src: {detailImageSrc}</div>
+              </div>
+            </div>
+
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
           <div className="flex-1 p-6 flex flex-col">
