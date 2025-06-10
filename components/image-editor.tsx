@@ -21,26 +21,61 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
   const [imageUrl, setImageUrl] = useState("")
   const [saving, setSaving] = useState(false)
   const [showFileBrowser, setShowFileBrowser] = useState(false)
-  const [imageError, setImageError] = useState(false)
+  const [previewSrc, setPreviewSrc] = useState("")
+  const [previewError, setPreviewError] = useState(false)
 
   // Lade die Cocktail-Daten beim Öffnen
   useEffect(() => {
     if (cocktail && isOpen) {
       setImageUrl(cocktail.image || "")
-      setImageError(false)
+      setPreviewError(false)
+      updatePreview(cocktail.image || "")
     }
   }, [cocktail, isOpen])
+
+  const updatePreview = async (url: string) => {
+    if (!url || !cocktail) {
+      setPreviewSrc(`/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail?.name || "")}`)
+      return
+    }
+
+    // Teste verschiedene Pfadstrategien für die Vorschau
+    const strategies = [
+      url,
+      `/images/cocktails/${url.split("/").pop()}`,
+      url.startsWith("/") ? url : `/${url}`,
+      url.startsWith("/") && url.includes("/", 1) ? `/api/image?path=${encodeURIComponent(url)}` : null,
+    ].filter(Boolean) as string[]
+
+    let workingSrc = ""
+    for (const testSrc of strategies) {
+      try {
+        const response = await fetch(testSrc, { method: "HEAD" })
+        if (response.ok) {
+          workingSrc = testSrc
+          break
+        }
+      } catch (error) {
+        // Ignoriere Fehler und versuche nächste Strategie
+      }
+    }
+
+    setPreviewSrc(workingSrc || `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`)
+  }
+
+  const handleImageUrlChange = (newUrl: string) => {
+    setImageUrl(newUrl)
+    setPreviewError(false)
+    updatePreview(newUrl)
+  }
 
   if (!cocktail) return null
 
   const handleSelectImageFromBrowser = (imagePath: string) => {
-    // Extrahiere nur den Dateinamen aus dem Pfad
-    const filename = imagePath.split("/").pop()
-
-    // Setze den standardisierten Pfad
-    setImageUrl(`/images/cocktails/${filename}`)
+    setImageUrl(imagePath)
     setShowFileBrowser(false)
-    setImageError(false)
+    setPreviewError(false)
+    updatePreview(imagePath)
   }
 
   const handleSave = async () => {
@@ -63,22 +98,8 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
     }
   }
 
-  // Vorschau-Bild
-  const getPreviewSrc = () => {
-    if (imageError || !imageUrl) {
-      return `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`
-    }
-
-    // Extrahiere nur den Dateinamen aus dem Pfad
-    const filename = imageUrl.split("/").pop()
-
-    // Verwende den standardisierten Pfad
-    return `/images/cocktails/${filename}`
-  }
-
-  const handleImageError = () => {
-    console.error(`Vorschau: Bildfehler für ${cocktail.name}: ${imageUrl}`)
-    setImageError(true)
+  const handlePreviewError = () => {
+    setPreviewError(true)
   }
 
   return (
@@ -94,12 +115,24 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
             <div className="flex justify-center">
               <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-[hsl(var(--cocktail-card-border))]">
                 <img
-                  src={getPreviewSrc() || "/placeholder.svg"}
+                  src={
+                    previewError
+                      ? `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`
+                      : previewSrc
+                  }
                   alt="Vorschau"
                   className="w-full h-full object-cover"
-                  onError={handleImageError}
+                  onError={handlePreviewError}
                 />
               </div>
+            </div>
+
+            {/* Debug-Info */}
+            <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded font-mono">
+              <div>Original: {cocktail.image}</div>
+              <div>Eingabe: {imageUrl}</div>
+              <div>Vorschau: {previewSrc}</div>
+              <div>Fehler: {previewError ? "Ja" : "Nein"}</div>
             </div>
 
             {/* Bild-Pfad */}
@@ -111,10 +144,7 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
               <div className="flex gap-2">
                 <Input
                   value={imageUrl}
-                  onChange={(e) => {
-                    setImageUrl(e.target.value)
-                    setImageError(false)
-                  }}
+                  onChange={(e) => handleImageUrlChange(e.target.value)}
                   className="bg-white border-[hsl(var(--cocktail-card-border))] text-black flex-1"
                   placeholder="/images/cocktails/mein-bild.jpg"
                 />
@@ -130,7 +160,7 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
                     type="button"
                     variant="destructive"
                     size="icon"
-                    onClick={() => setImageUrl("")}
+                    onClick={() => handleImageUrlChange("")}
                     className="h-10 w-10"
                   >
                     <X className="h-4 w-4" />
@@ -138,6 +168,16 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
                 )}
               </div>
             </div>
+
+            {/* Debug-Button */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.open("/debug-images", "_blank")}
+              className="w-full bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
+            >
+              🔍 Debug-Seite öffnen
+            </Button>
           </div>
 
           <DialogFooter className="flex gap-2">
