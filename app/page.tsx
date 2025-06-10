@@ -13,7 +13,6 @@ import { getIngredientLevels } from "@/lib/ingredient-level-service"
 import type { IngredientLevel } from "@/types/ingredient-level"
 import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
-import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import CocktailCard from "@/components/cocktail-card"
 import PumpCleaning from "@/components/pump-cleaning"
@@ -179,6 +178,9 @@ export default function Home() {
 
       // Aktualisiere auch die Füllstände für neue Zutaten
       await loadIngredientLevels()
+
+      // Erzwinge Neurendering der Komponenten
+      window.location.reload()
     } catch (error) {
       console.error("Fehler beim Speichern des Bildes:", error)
     }
@@ -346,22 +348,18 @@ export default function Home() {
   function CocktailDetail({ cocktail }: { cocktail: Cocktail }) {
     const [imageError, setImageError] = useState(false)
 
-    // SUPER EINFACHE Bildlogik - garantiert funktionierend
-    const getImageSrc = () => {
-      // Wenn Fehler oder kein Bild, verwende Platzhalter
+    const getDetailImageSrc = () => {
       if (imageError || !cocktail.image) {
         return `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
       }
 
-      // Extrahiere nur den Dateinamen aus dem Pfad (z.B. "big_john.jpg" aus jedem möglichen Pfad)
-      const filename = cocktail.image.split("/").pop()
-
-      // Verwende den Dateinamen mit dem garantiert funktionierenden Pfad
-      return `/images/cocktails/${filename}`
+      const filename = cocktail.image.split("/").pop() || cocktail.image
+      const cacheBuster = Date.now()
+      return `/images/cocktails/${filename}?v=${cacheBuster}`
     }
 
-    const handleImageError = () => {
-      console.error(`Detailansicht: Bildfehler für ${cocktail.name}: Original-Pfad=${cocktail.image}`)
+    const handleDetailImageError = () => {
+      console.error(`❌ Detail-Bild konnte nicht geladen werden für ${cocktail.name}`)
       setImageError(true)
     }
 
@@ -371,14 +369,12 @@ export default function Home() {
       <Card className="overflow-hidden transition-all bg-black border-[hsl(var(--cocktail-card-border))] ring-2 ring-[hsl(var(--cocktail-primary))] shadow-2xl">
         <div className="flex flex-col md:flex-row">
           <div className="relative w-full md:w-1/3 aspect-square md:aspect-auto">
-            <Image
-              src={getImageSrc() || "/placeholder.svg"}
+            <img
+              src={getDetailImageSrc() || "/placeholder.svg"}
               alt={cocktail.name}
-              fill
-              className="object-cover"
-              onError={handleImageError}
-              sizes="(max-width: 768px) 100vw, 33vw"
-              priority
+              className="w-full h-full object-cover"
+              onError={handleDetailImageError}
+              key={cocktail.image} // Erzwinge Neurendering bei Bildänderung
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
