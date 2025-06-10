@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
 import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock } from "lucide-react"
+import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock, Wrench, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
 import { cocktails as defaultCocktails } from "@/data/cocktails"
@@ -52,6 +52,7 @@ export default function Home() {
   const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
   const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
   const [showImageEditor, setShowImageEditor] = useState(false)
+  const [fixingPaths, setFixingPaths] = useState(false)
 
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
@@ -141,6 +142,27 @@ export default function Home() {
     }
   }
 
+  const handleFixImagePaths = async () => {
+    setFixingPaths(true)
+    try {
+      const response = await fetch("/api/fix-image-paths", { method: "POST" })
+      const result = await response.json()
+
+      if (result.success) {
+        alert(`✅ Bildpfade korrigiert! ${result.correctedCount} Cocktails aktualisiert.`)
+        // Lade die Cocktails neu
+        await loadCocktails()
+      } else {
+        alert(`❌ Fehler: ${result.error}`)
+      }
+    } catch (error) {
+      console.error("Fehler beim Korrigieren der Bildpfade:", error)
+      alert("❌ Fehler beim Korrigieren der Bildpfade")
+    } finally {
+      setFixingPaths(false)
+    }
+  }
+
   const handleImageEditClick = (cocktailId: string) => {
     setCocktailToEdit(cocktailId)
     setShowImageEditor(true)
@@ -178,9 +200,6 @@ export default function Home() {
 
       // Aktualisiere auch die Füllstände für neue Zutaten
       await loadIngredientLevels()
-
-      // Erzwinge Neurendering der Komponenten
-      window.location.reload()
     } catch (error) {
       console.error("Fehler beim Speichern des Bildes:", error)
     }
@@ -354,8 +373,7 @@ export default function Home() {
       }
 
       const filename = cocktail.image.split("/").pop() || cocktail.image
-      const cacheBuster = Date.now()
-      return `/images/cocktails/${filename}?v=${cacheBuster}`
+      return `/images/cocktails/${filename}`
     }
 
     const handleDetailImageError = () => {
@@ -566,15 +584,35 @@ export default function Home() {
           <div className="space-y-8">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Cocktails mit Alkohol</h2>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setShowRecipeCreator(true)}
-                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Neues Rezept
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleFixImagePaths}
+                  disabled={fixingPaths}
+                  className="bg-orange-600 text-white border-orange-500 hover:bg-orange-500"
+                >
+                  {fixingPaths ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Repariere...
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="h-4 w-4 mr-2" />
+                      Bildpfade reparieren
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setShowRecipeCreator(true)}
+                  className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Neues Rezept
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -593,15 +631,35 @@ export default function Home() {
           <div className="space-y-8">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">Alkoholfreie Cocktails</h2>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setShowRecipeCreator(true)}
-                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Neues Rezept
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleFixImagePaths}
+                  disabled={fixingPaths}
+                  className="bg-orange-600 text-white border-orange-500 hover:bg-orange-500"
+                >
+                  {fixingPaths ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Repariere...
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="h-4 w-4 mr-2" />
+                      Bildpfade reparieren
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setShowRecipeCreator(true)}
+                  className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Neues Rezept
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {currentPageVirginCocktails.map((cocktail) => (
