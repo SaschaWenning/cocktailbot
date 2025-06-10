@@ -21,7 +21,6 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
   const [imageUrl, setImageUrl] = useState("")
   const [saving, setSaving] = useState(false)
   const [showFileBrowser, setShowFileBrowser] = useState(false)
-  const [previewSrc, setPreviewSrc] = useState("")
   const [previewError, setPreviewError] = useState(false)
 
   // Lade die Cocktail-Daten beim Öffnen
@@ -29,53 +28,18 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
     if (cocktail && isOpen) {
       setImageUrl(cocktail.image || "")
       setPreviewError(false)
-      updatePreview(cocktail.image || "")
     }
   }, [cocktail, isOpen])
-
-  const updatePreview = async (url: string) => {
-    if (!url || !cocktail) {
-      setPreviewSrc(`/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail?.name || "")}`)
-      return
-    }
-
-    // Teste verschiedene Pfadstrategien für die Vorschau
-    const strategies = [
-      url,
-      `/images/cocktails/${url.split("/").pop()}`,
-      url.startsWith("/") ? url : `/${url}`,
-      url.startsWith("/") && url.includes("/", 1) ? `/api/image?path=${encodeURIComponent(url)}` : null,
-    ].filter(Boolean) as string[]
-
-    let workingSrc = ""
-    for (const testSrc of strategies) {
-      try {
-        const response = await fetch(testSrc, { method: "HEAD" })
-        if (response.ok) {
-          workingSrc = testSrc
-          break
-        }
-      } catch (error) {
-        // Ignoriere Fehler und versuche nächste Strategie
-      }
-    }
-
-    setPreviewSrc(workingSrc || `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`)
-  }
-
-  const handleImageUrlChange = (newUrl: string) => {
-    setImageUrl(newUrl)
-    setPreviewError(false)
-    updatePreview(newUrl)
-  }
 
   if (!cocktail) return null
 
   const handleSelectImageFromBrowser = (imagePath: string) => {
-    setImageUrl(imagePath)
+    // Extrahiere nur den Dateinamen
+    const filename = imagePath.split("/").pop()
+    // Setze den standardisierten Pfad
+    setImageUrl(`/images/cocktails/${filename}`)
     setShowFileBrowser(false)
     setPreviewError(false)
-    updatePreview(imagePath)
   }
 
   const handleSave = async () => {
@@ -98,8 +62,24 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
     }
   }
 
+  // Einfache Vorschau-Logik
+  const getPreviewSrc = () => {
+    if (previewError || !imageUrl) {
+      return `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`
+    }
+
+    const filename = imageUrl.split("/").pop()
+    const cacheBuster = Date.now()
+    return `/images/cocktails/${filename}?v=${cacheBuster}`
+  }
+
   const handlePreviewError = () => {
+    console.error(`❌ Vorschau-Bild konnte nicht geladen werden: ${getPreviewSrc()}`)
     setPreviewError(true)
+  }
+
+  const handlePreviewLoad = () => {
+    console.log(`✅ Vorschau-Bild erfolgreich geladen: ${getPreviewSrc()}`)
   }
 
   return (
@@ -115,14 +95,12 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
             <div className="flex justify-center">
               <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-[hsl(var(--cocktail-card-border))]">
                 <img
-                  src={
-                    previewError
-                      ? `/placeholder.svg?height=128&width=128&query=${encodeURIComponent(cocktail.name)}`
-                      : previewSrc
-                  }
+                  src={getPreviewSrc() || "/placeholder.svg"}
                   alt="Vorschau"
                   className="w-full h-full object-cover"
                   onError={handlePreviewError}
+                  onLoad={handlePreviewLoad}
+                  key={imageUrl} // Erzwinge Neurendering
                 />
               </div>
             </div>
@@ -131,7 +109,7 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
             <div className="text-xs text-gray-400 bg-gray-800 p-2 rounded font-mono">
               <div>Original: {cocktail.image}</div>
               <div>Eingabe: {imageUrl}</div>
-              <div>Vorschau: {previewSrc}</div>
+              <div>Vorschau: {getPreviewSrc()}</div>
               <div>Fehler: {previewError ? "Ja" : "Nein"}</div>
             </div>
 
@@ -144,7 +122,10 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
               <div className="flex gap-2">
                 <Input
                   value={imageUrl}
-                  onChange={(e) => handleImageUrlChange(e.target.value)}
+                  onChange={(e) => {
+                    setImageUrl(e.target.value)
+                    setPreviewError(false)
+                  }}
                   className="bg-white border-[hsl(var(--cocktail-card-border))] text-black flex-1"
                   placeholder="/images/cocktails/mein-bild.jpg"
                 />
@@ -160,7 +141,10 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
                     type="button"
                     variant="destructive"
                     size="icon"
-                    onClick={() => handleImageUrlChange("")}
+                    onClick={() => {
+                      setImageUrl("")
+                      setPreviewError(false)
+                    }}
                     className="h-10 w-10"
                   >
                     <X className="h-4 w-4" />
@@ -169,14 +153,17 @@ export default function ImageEditor({ isOpen, onClose, cocktail, onSave }: Image
               </div>
             </div>
 
-            {/* Debug-Button */}
+            {/* Test-Button */}
             <Button
               type="button"
               variant="outline"
-              onClick={() => window.open("/debug-images", "_blank")}
-              className="w-full bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
+              onClick={() => {
+                const testSrc = getPreviewSrc()
+                window.open(testSrc, "_blank")
+              }}
+              className="w-full bg-blue-600 text-white border-blue-500 hover:bg-blue-500"
             >
-              🔍 Debug-Seite öffnen
+              🔗 Bild in neuem Tab öffnen
             </Button>
           </div>
 
