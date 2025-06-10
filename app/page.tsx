@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
 import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock, Wrench, Loader2 } from "lucide-react"
+import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock, Bug } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
 import { cocktails as defaultCocktails } from "@/data/cocktails"
@@ -25,11 +25,13 @@ import RecipeCreator from "@/components/recipe-creator"
 import DeleteConfirmation from "@/components/delete-confirmation"
 import { Progress } from "@/components/ui/progress"
 import ImageEditor from "@/components/image-editor"
+import { useRouter } from "next/navigation"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
 
 export default function Home() {
+  const router = useRouter()
   const [selectedCocktail, setSelectedCocktail] = useState<string | null>(null)
   const [selectedSize, setSelectedSize] = useState<number>(300)
   const [isMaking, setIsMaking] = useState(false)
@@ -587,21 +589,11 @@ export default function Home() {
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  onClick={handleFixImagePaths}
-                  disabled={fixingPaths}
-                  className="bg-orange-600 text-white border-orange-500 hover:bg-orange-500"
+                  onClick={() => router.push("/image-debug")}
+                  className="bg-blue-600 text-white border-blue-500 hover:bg-blue-500"
                 >
-                  {fixingPaths ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Repariere...
-                    </>
-                  ) : (
-                    <>
-                      <Wrench className="h-4 w-4 mr-2" />
-                      Bildpfade reparieren
-                    </>
-                  )}
+                  <Bug className="h-4 w-4 mr-2" />
+                  Bild-Debug
                 </Button>
                 <Button
                   variant="outline"
@@ -634,21 +626,11 @@ export default function Home() {
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  onClick={handleFixImagePaths}
-                  disabled={fixingPaths}
-                  className="bg-orange-600 text-white border-orange-500 hover:bg-orange-500"
+                  onClick={() => router.push("/image-debug")}
+                  className="bg-blue-600 text-white border-blue-500 hover:bg-blue-500"
                 >
-                  {fixingPaths ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Repariere...
-                    </>
-                  ) : (
-                    <>
-                      <Wrench className="h-4 w-4 mr-2" />
-                      Bildpfade reparieren
-                    </>
-                  )}
+                  <Bug className="h-4 w-4 mr-2" />
+                  Bild-Debug
                 </Button>
                 <Button
                   variant="outline"
