@@ -751,7 +751,7 @@ export default function Home() {
                   : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
-              Quick-Shots
+              Entlüften
             </Button>
             <Button
               onClick={() => handleTabChange("levels")}
