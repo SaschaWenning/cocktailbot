@@ -228,9 +228,9 @@ export const cocktails: Cocktail[] = [
   },
   {
     id: "swimmingpool",
-    name: "Swimmingpool",
+    name: "Swimming Pool",
     description: "Blauer, tropischer Cocktail mit Vodka und Ananassaft",
-    image: "/images/cocktails/swimmingpool.jpg",
+    image: "/images/cocktails/swimming_pool.jpg",
     alcoholic: true,
     ingredients: ["60ml Vodka", "30ml Blue Curacao", "180ml Ananassaft", "40ml Cream of Coconut (selbst hinzufügen)"],
     recipe: [
