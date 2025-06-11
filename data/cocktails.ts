@@ -293,6 +293,21 @@ export const cocktails: Cocktail[] = [
       { ingredientId: "grenadine", amount: 20 },
     ],
   },
+  {
+    id: "mai-tai",
+    name: "Mai Tai",
+    description: "Klassischer Tiki-Cocktail mit braunem Rum und Mandelsirup",
+    image: "/images/cocktails/mai_tai.jpg",
+    alcoholic: true,
+    ingredients: ["60ml Brauner Rum", "15ml Orangenlikör", "50ml Ananassaft", "15ml Mandelsirup", "20ml Limettensaft"],
+    recipe: [
+      { ingredientId: "dark-rum", amount: 60 },
+      { ingredientId: "triple-sec", amount: 15 },
+      { ingredientId: "pineapple-juice", amount: 50 },
+      { ingredientId: "almond-syrup", amount: 15 },
+      { ingredientId: "lime-juice", amount: 20 },
+    ],
+  },
   // Neue alkoholfreie Cocktails mit Bildern
   {
     id: "tropical-sunset",
