@@ -25,6 +25,7 @@ import RecipeCreator from "@/components/recipe-creator"
 import DeleteConfirmation from "@/components/delete-confirmation"
 import { Progress } from "@/components/ui/progress"
 import ImageEditor from "@/components/image-editor"
+import QuickShotSelector from "@/components/quick-shot-selector"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -663,6 +664,14 @@ export default function Home() {
             availableIngredients={getAvailableIngredientsFromCocktails()}
           />
         )
+      case "quickshots":
+        return (
+          <QuickShotSelector
+            pumpConfig={pumpConfig}
+            ingredientLevels={ingredientLevels}
+            onShotComplete={loadIngredientLevels}
+          />
+        )
       case "levels":
         return <IngredientLevels pumpConfig={pumpConfig} onLevelsUpdated={loadIngredientLevels} />
       case "cleaning":
@@ -733,6 +742,16 @@ export default function Home() {
               }`}
             >
               Shots
+            </Button>
+            <Button
+              onClick={() => handleTabChange("quickshots")}
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
+                activeTab === "quickshots"
+                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
+              }`}
+            >
+              Quick-Shots
             </Button>
             <Button
               onClick={() => handleTabChange("levels")}
