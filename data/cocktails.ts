@@ -227,7 +227,7 @@ export const cocktails: Cocktail[] = [
     ],
   },
   {
-    id: "swimmingpool",
+    id: "swimming-pool",
     name: "Swimming Pool",
     description: "Blauer, tropischer Cocktail mit Vodka und Ananassaft",
     image: "/images/cocktails/swimming_pool.jpg",
