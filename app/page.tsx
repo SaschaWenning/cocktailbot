@@ -26,6 +26,7 @@ import DeleteConfirmation from "@/components/delete-confirmation"
 import { Progress } from "@/components/ui/progress"
 import ImageEditor from "@/components/image-editor"
 import QuickShotSelector from "@/components/quick-shot-selector"
+import { toast } from "@/components/ui/use-toast"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -53,6 +54,10 @@ export default function Home() {
   const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
   const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
   const [showImageEditor, setShowImageEditor] = useState(false)
+
+  // Kiosk-Modus Exit Zähler
+  const [kioskExitClicks, setKioskExitClicks] = useState(0)
+  const [lastClickTime, setLastClickTime] = useState(0)
 
   // Paginierung
   const [currentPage, setCurrentPage] = useState(1)
@@ -333,6 +338,57 @@ export default function Home() {
   const handleTabChange = (newTab: string) => {
     setSelectedCocktail(null) // Schließe die Cocktail-Detailansicht
     setActiveTab(newTab)
+  }
+
+  // Funktion zum Beenden des Kiosk-Modus
+  const handleExitKiosk = async () => {
+    try {
+      const response = await fetch("/api/exit-kiosk", {
+        method: "POST",
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: "Kiosk-Modus wird beendet",
+          description: "Die Anwendung wird in wenigen Sekunden geschlossen.",
+        })
+      } else {
+        toast({
+          title: "Fehler",
+          description: "Kiosk-Modus konnte nicht beendet werden.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Fehler beim Beenden des Kiosk-Modus:", error)
+      toast({
+        title: "Fehler",
+        description: "Verbindungsproblem beim Beenden des Kiosk-Modus.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Handler für Klicks auf den Titel
+  const handleTitleClick = () => {
+    const currentTime = Date.now()
+
+    // Wenn mehr als 3 Sekunden seit dem letzten Klick vergangen sind, setze den Zähler zurück
+    if (currentTime - lastClickTime > 3000 && kioskExitClicks > 0) {
+      setKioskExitClicks(1)
+    } else {
+      setKioskExitClicks((prev) => prev + 1)
+    }
+
+    setLastClickTime(currentTime)
+
+    // Nach 5 Klicks den Kiosk-Modus beenden
+    if (kioskExitClicks + 1 >= 5) {
+      handleExitKiosk()
+      setKioskExitClicks(0)
+    }
   }
 
   // Neue Komponente für die Cocktail-Detailansicht
@@ -706,7 +762,12 @@ export default function Home() {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <header className="mb-8">
-        <h1 className="text-4xl font-bold text-center text-[hsl(var(--cocktail-text))] mb-2">CocktailBot</h1>
+        <h1
+          className="text-4xl font-bold text-center text-[hsl(var(--cocktail-text))] mb-2 cursor-pointer"
+          onClick={handleTitleClick}
+        >
+          CocktailBot
+        </h1>
         <p className="text-center text-[hsl(var(--cocktail-text-muted))]">Dein persönlicher Cocktail-Assistent</p>
       </header>
 
