@@ -405,31 +405,43 @@ export default function Home() {
 
         // Extrahiere den Dateinamen aus dem Pfad
         const filename = cocktail.image.split("/").pop() || cocktail.image
+        const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "") // Entferne Dateierweiterung
+        const originalExt = filename.split(".").pop()?.toLowerCase() || ""
 
-        // Verschiedene Pfadstrategien zum Testen (gleiche wie in CocktailCard)
-        const strategies = [
-          // 1. Originaler Pfad (funktioniert für beide Ordner)
+        // Verschiedene Pfadstrategien zum Testen mit verschiedenen Dateierweiterungen
+        const extensions = [originalExt, "jpg", "jpeg", "png", "webp"]
+        const basePaths = [`/images/cocktails/`, `/`, ``, `/public/images/cocktails/`]
+
+        const strategies: string[] = []
+
+        // Generiere alle Kombinationen von Pfaden und Dateierweiterungen
+        for (const basePath of basePaths) {
+          for (const ext of extensions) {
+            if (ext) {
+              strategies.push(`${basePath}${filenameWithoutExt}.${ext}`)
+            }
+          }
+          // Auch den originalen Dateinamen probieren
+          strategies.push(`${basePath}${filename}`)
+        }
+
+        // Zusätzliche spezielle Strategien
+        strategies.push(
+          // Originaler Pfad
           cocktail.image,
-          // 2. Standardpfad mit /images/cocktails/ (für alkoholische)
-          `/images/cocktails/${filename}`,
-          // 3. Pfad für alkoholfreie Cocktails
-          `/images/cocktails/alkoholfrei/${filename}`,
-          // 4. Ohne führenden Slash
+          // Ohne führenden Slash
           cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
-          // 5. Mit führendem Slash
+          // Mit führendem Slash
           cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
-          // 6. Direkter Pfad zu public
-          `/public/images/cocktails/${filename}`,
-          // 7. Direkter Pfad zu public alkoholfrei
-          `/public/images/cocktails/alkoholfrei/${filename}`,
-          // 8. API-Pfad als Fallback für alkoholische
+          // API-Pfad als Fallback
           `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
-          // 9. API-Pfad als Fallback für alkoholfreie
-          `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/alkoholfrei/${filename}`)}`,
-        ]
+        )
 
-        for (let i = 0; i < strategies.length; i++) {
-          const testPath = strategies[i]
+        // Entferne Duplikate
+        const uniqueStrategies = [...new Set(strategies)]
+
+        for (let i = 0; i < uniqueStrategies.length; i++) {
+          const testPath = uniqueStrategies[i]
 
           try {
             const img = new Image()
