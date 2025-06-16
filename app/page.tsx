@@ -391,65 +391,107 @@ export default function Home() {
     }
   }
 
+  // Erweiterte Bildlogik für Cocktail-Detail
+  const findDetailImagePath = async (cocktail: Cocktail): Promise<string> => {
+    if (!cocktail.image) {
+      return `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+    }
+
+    // Extrahiere den Dateinamen aus dem Pfad
+    const filename = cocktail.image.split("/").pop() || cocktail.image
+    const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "") // Entferne Dateierweiterung
+    const originalExt = filename.split(".").pop()?.toLowerCase() || ""
+
+    // Alle gängigen Bildformate
+    const imageExtensions = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "svg"]
+
+    // Verwende originale Erweiterung zuerst, dann alle anderen
+    const extensionsToTry = originalExt
+      ? [originalExt, ...imageExtensions.filter((ext) => ext !== originalExt)]
+      : imageExtensions
+
+    // Verschiedene Basispfade für alkoholische und alkoholfreie Cocktails
+    const basePaths = [
+      "/images/cocktails/", // Alkoholische Cocktails
+      "/", // Alkoholfreie Cocktails (direkt im public/)
+      "", // Ohne Pfad
+      "/public/images/cocktails/", // Vollständiger Pfad
+      "/public/", // Public Verzeichnis
+    ]
+
+    const strategies: string[] = []
+
+    // Generiere alle Kombinationen von Pfaden und Dateierweiterungen
+    for (const basePath of basePaths) {
+      for (const ext of extensionsToTry) {
+        strategies.push(`${basePath}${filenameWithoutExt}.${ext}`)
+      }
+      // Auch den originalen Dateinamen probieren
+      strategies.push(`${basePath}${filename}`)
+    }
+
+    // Zusätzliche spezielle Strategien
+    strategies.push(
+      // Originaler Pfad
+      cocktail.image,
+      // Ohne führenden Slash
+      cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
+      // Mit führendem Slash
+      cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
+      // API-Pfad als Fallback
+      `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
+      `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/${filename}`)}`,
+    )
+
+    // Entferne Duplikate
+    const uniqueStrategies = [...new Set(strategies)]
+
+    console.log(
+      `Testing ${uniqueStrategies.length} detail image strategies for ${cocktail.name}:`,
+      uniqueStrategies.slice(0, 10),
+    )
+
+    for (let i = 0; i < uniqueStrategies.length; i++) {
+      const testPath = uniqueStrategies[i]
+
+      try {
+        const img = new Image()
+        img.crossOrigin = "anonymous" // Für CORS
+
+        const loadPromise = new Promise<boolean>((resolve) => {
+          img.onload = () => resolve(true)
+          img.onerror = () => resolve(false)
+        })
+
+        img.src = testPath
+        const success = await loadPromise
+
+        if (success) {
+          console.log(`✅ Found working detail image for ${cocktail.name}: ${testPath}`)
+          return testPath
+        }
+      } catch (error) {
+        // Fehler ignorieren und nächste Strategie versuchen
+      }
+    }
+
+    // Fallback auf Platzhalter
+    console.log(`❌ No working detail image found for ${cocktail.name}, using placeholder`)
+    return `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
+  }
+
   // Neue Komponente für die Cocktail-Detailansicht
   function CocktailDetail({ cocktail }: { cocktail: Cocktail }) {
     const [detailImageSrc, setDetailImageSrc] = useState<string>("")
 
     useEffect(() => {
-      const findDetailImagePath = async () => {
-        if (!cocktail.image) {
-          const placeholder = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
-          setDetailImageSrc(placeholder)
-          return
-        }
-
-        // Extrahiere den Dateinamen aus dem Pfad (gleiche Logik wie in CocktailCard)
-        const filename = cocktail.image.split("/").pop() || cocktail.image
-
-        // Verschiedene Pfadstrategien zum Testen
-        const strategies = [
-          // 1. Standardpfad mit /images/cocktails/
-          `/images/cocktails/${filename}`,
-          // 2. Originaler Pfad
-          cocktail.image,
-          // 3. Ohne führenden Slash
-          cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
-          // 4. Mit führendem Slash
-          cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
-          // 5. API-Pfad als Fallback
-          `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
-        ]
-
-        for (let i = 0; i < strategies.length; i++) {
-          const testPath = strategies[i]
-
-          try {
-            const img = new Image()
-
-            const loadPromise = new Promise<boolean>((resolve) => {
-              img.onload = () => resolve(true)
-              img.onerror = () => resolve(false)
-            })
-
-            img.src = testPath
-            const success = await loadPromise
-
-            if (success) {
-              setDetailImageSrc(testPath)
-              return
-            }
-          } catch (error) {
-            // Fehler ignorieren und nächste Strategie versuchen
-          }
-        }
-
-        // Fallback auf Platzhalter
-        const placeholder = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
-        setDetailImageSrc(placeholder)
+      const loadDetailImage = async () => {
+        const imagePath = await findDetailImagePath(cocktail)
+        setDetailImageSrc(imagePath)
       }
 
-      findDetailImagePath()
-    }, [cocktail.image, cocktail.name])
+      loadDetailImage()
+    }, [cocktail])
 
     const handleDetailImageError = () => {
       const placeholder = `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(cocktail.name)}`
@@ -467,6 +509,7 @@ export default function Home() {
               alt={cocktail.name}
               className="w-full h-full object-cover"
               onError={handleDetailImageError}
+              crossOrigin="anonymous"
               key={`${cocktail.image}-${detailImageSrc}`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
