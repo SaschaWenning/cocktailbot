@@ -42,20 +42,24 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
       const pump = pumpConfig[i]
       setCurrentPump(pump.id)
 
-      // Prüfen, ob der Prozess pausiert oder abgebrochen wurde
+      // Prüfen, ob der Prozess abgebrochen wurde
       if (cleaningProcessRef.current.cancel) return
 
       try {
         // Pumpe für 10 Sekunden laufen lassen
-        await cleanPumpWithPauseSupport(pump.id, 10000)
+        await cleanPump(pump.id, 10000)
 
-        // Wenn der Prozess während der Reinigung abgebrochen wurde, beenden
-        if (cleaningProcessRef.current.cancel) return
-
+        // Pumpe ist fertig - jetzt prüfen ob pausiert werden soll
         setPumpsDone((prev) => [...prev, pump.id])
-
-        // Fortschritt aktualisieren
         setProgress(Math.round(((i + 1) / pumpConfig.length) * 100))
+
+        // Warten wenn pausiert (nach dem die Pumpe fertig ist)
+        while (isPaused && !cleaningProcessRef.current.cancel) {
+          await new Promise((resolve) => setTimeout(resolve, 500))
+        }
+
+        // Prüfen ob abgebrochen wurde während der Pause
+        if (cleaningProcessRef.current.cancel) return
       } catch (error) {
         console.error(`Fehler beim Reinigen der Pumpe ${pump.id}:`, error)
         if (cleaningProcessRef.current.cancel) return
@@ -64,41 +68,6 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
 
     setCurrentPump(null)
     setCleaningStatus("complete")
-  }
-
-  // Funktion zum Reinigen einer Pumpe mit Unterstützung für Pausen
-  const cleanPumpWithPauseSupport = async (pumpId: number, duration: number) => {
-    return new Promise<void>((resolve, reject) => {
-      const startCleaning = async () => {
-        try {
-          await cleanPump(pumpId, duration)
-          resolve()
-        } catch (error) {
-          reject(error)
-        }
-      }
-
-      // Starte die Reinigung, wenn nicht pausiert
-      if (!isPaused) {
-        startCleaning()
-      } else {
-        // Wenn pausiert, warte auf Fortsetzung
-        const checkPauseStatus = () => {
-          if (cleaningProcessRef.current.cancel) {
-            reject(new Error("Cleaning process cancelled"))
-            return
-          }
-
-          if (!isPaused) {
-            startCleaning()
-          } else {
-            setTimeout(checkPauseStatus, 500)
-          }
-        }
-
-        setTimeout(checkPauseStatus, 500)
-      }
-    })
   }
 
   const togglePause = () => {
