@@ -63,3 +63,44 @@ export class Pump {
     return new Promise((resolve) => setTimeout(resolve, durationMs))
   }
 }
+
+// Funktion zum Aktivieren einer Pumpe für eine bestimmte Dauer (für Reinigung/Entlüftung)
+export async function activatePumpForDuration(pumpId: number, durationMs: number): Promise<void> {
+  try {
+    console.log(`Aktiviere Pumpe ${pumpId} für ${durationMs}ms`)
+
+    // GPIO-Steuerung über die API
+    const response = await fetch("/api/gpio", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "activate_pump",
+        pump_id: pumpId,
+        duration_ms: durationMs,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (!result.success) {
+      throw new Error(result.error || "Unbekannter Fehler beim Aktivieren der Pumpe")
+    }
+
+    console.log(`Pumpe ${pumpId} erfolgreich für ${durationMs}ms aktiviert`)
+  } catch (error) {
+    console.error(`Fehler beim Aktivieren der Pumpe ${pumpId}:`, error)
+    throw error
+  }
+}
+
+// Funktion zum Entlüften einer Pumpe (kurze Aktivierung)
+export async function activatePumpForPriming(pumpId: number): Promise<void> {
+  // Entlüftung für 2 Sekunden
+  return activatePumpForDuration(pumpId, 2000)
+}
