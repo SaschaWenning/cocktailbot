@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Loader2, Droplets, Check, AlertTriangle, Pause, Play } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
-import { cleanPump } from "@/lib/cocktail-machine"
+import { activatePumpForDuration } from "@/lib/cocktail-machine"
 
 interface PumpCleaningProps {
   pumpConfig: PumpConfig[]
@@ -21,7 +21,8 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
   const [progress, setProgress] = useState(0)
   const [pumpsDone, setPumpsDone] = useState<number[]>([])
   const [isPaused, setIsPaused] = useState(false)
-  const cleaningProcessRef = useRef<{ cancel: boolean }>({ cancel: false })
+  const [currentPumpProgress, setCurrentPumpProgress] = useState(0)
+  const cleaningProcessRef = useRef<{ cancel: boolean; pause: boolean }>({ cancel: false, pause: false })
 
   const startCleaning = async () => {
     // Reinigungsprozess starten
@@ -29,7 +30,8 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
     setProgress(0)
     setPumpsDone([])
     setIsPaused(false)
-    cleaningProcessRef.current = { cancel: false }
+    setCurrentPumpProgress(0)
+    cleaningProcessRef.current = { cancel: false, pause: false }
 
     // Kurze Verzögerung für die Vorbereitung
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -41,13 +43,14 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
     for (let i = 0; i < pumpConfig.length; i++) {
       const pump = pumpConfig[i]
       setCurrentPump(pump.id)
+      setCurrentPumpProgress(0)
 
-      // Prüfen, ob der Prozess pausiert oder abgebrochen wurde
+      // Prüfen, ob der Prozess abgebrochen wurde
       if (cleaningProcessRef.current.cancel) return
 
       try {
-        // Pumpe für 10 Sekunden laufen lassen
-        await cleanPumpWithPauseSupport(pump.id, 10000)
+        // Pumpe für 10 Sekunden reinigen (in 1-Sekunden-Intervallen für Pausierbarkeit)
+        await cleanPumpWithPauseSupport(pump.id, 10)
 
         // Wenn der Prozess während der Reinigung abgebrochen wurde, beenden
         if (cleaningProcessRef.current.cancel) return
@@ -63,60 +66,70 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
     }
 
     setCurrentPump(null)
+    setCurrentPumpProgress(0)
     setCleaningStatus("complete")
   }
 
   // Funktion zum Reinigen einer Pumpe mit Unterstützung für Pausen
-  const cleanPumpWithPauseSupport = async (pumpId: number, duration: number) => {
-    return new Promise<void>((resolve, reject) => {
-      const startCleaning = async () => {
-        try {
-          await cleanPump(pumpId, duration)
-          resolve()
-        } catch (error) {
-          reject(error)
-        }
-      }
-
-      // Starte die Reinigung, wenn nicht pausiert
-      if (!isPaused) {
-        startCleaning()
-      } else {
-        // Wenn pausiert, warte auf Fortsetzung
-        const checkPauseStatus = () => {
+  const cleanPumpWithPauseSupport = async (pumpId: number, durationSeconds: number) => {
+    return new Promise<void>(async (resolve, reject) => {
+      try {
+        for (let second = 0; second < durationSeconds; second++) {
+          // Prüfen ob abgebrochen wurde
           if (cleaningProcessRef.current.cancel) {
             reject(new Error("Cleaning process cancelled"))
             return
           }
 
-          if (!isPaused) {
-            startCleaning()
-          } else {
-            setTimeout(checkPauseStatus, 500)
+          // Warten wenn pausiert
+          while (cleaningProcessRef.current.pause && !cleaningProcessRef.current.cancel) {
+            await new Promise((resolve) => setTimeout(resolve, 100))
           }
+
+          // Nochmal prüfen ob abgebrochen wurde nach der Pause
+          if (cleaningProcessRef.current.cancel) {
+            reject(new Error("Cleaning process cancelled"))
+            return
+          }
+
+          // Pumpe für 1 Sekunde aktivieren
+          await activatePumpForDuration(pumpId, 1000)
+
+          // Fortschritt für diese Pumpe aktualisieren
+          setCurrentPumpProgress(Math.round(((second + 1) / durationSeconds) * 100))
+
+          // Kurze Pause zwischen den Sekunden
+          await new Promise((resolve) => setTimeout(resolve, 100))
         }
 
-        setTimeout(checkPauseStatus, 500)
+        resolve()
+      } catch (error) {
+        reject(error)
       }
     })
   }
 
   const togglePause = () => {
-    setIsPaused(!isPaused)
-    if (isPaused) {
-      setCleaningStatus("cleaning")
-    } else {
+    const newPausedState = !isPaused
+    setIsPaused(newPausedState)
+    cleaningProcessRef.current.pause = newPausedState
+
+    if (newPausedState) {
       setCleaningStatus("paused")
+    } else {
+      setCleaningStatus("cleaning")
     }
   }
 
   const resetCleaning = () => {
     cleaningProcessRef.current.cancel = true
+    cleaningProcessRef.current.pause = false
     setCleaningStatus("idle")
     setCurrentPump(null)
     setProgress(0)
     setPumpsDone([])
     setIsPaused(false)
+    setCurrentPumpProgress(0)
   }
 
   return (
@@ -178,26 +191,41 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
               </div>
 
               {currentPump !== null && (
-                <Alert
-                  className={`${
-                    cleaningStatus === "paused"
-                      ? "bg-[hsl(var(--cocktail-warning))]/10 border-[hsl(var(--cocktail-warning))]/30"
-                      : "bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {cleaningStatus === "paused" ? (
-                      <Pause className="h-4 w-4 text-[hsl(var(--cocktail-warning))]" />
-                    ) : (
-                      <Loader2 className="h-4 w-4 animate-spin text-[hsl(var(--cocktail-primary))]" />
-                    )}
-                    <AlertDescription className="text-[hsl(var(--cocktail-text))]">
-                      {cleaningStatus === "paused"
-                        ? `Reinigung pausiert bei Pumpe ${currentPump}`
-                        : `Reinige Pumpe ${currentPump}...`}
-                    </AlertDescription>
+                <div className="space-y-2">
+                  <Alert
+                    className={`${
+                      cleaningStatus === "paused"
+                        ? "bg-[hsl(var(--cocktail-warning))]/10 border-[hsl(var(--cocktail-warning))]/30"
+                        : "bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {cleaningStatus === "paused" ? (
+                        <Pause className="h-4 w-4 text-[hsl(var(--cocktail-warning))]" />
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin text-[hsl(var(--cocktail-primary))]" />
+                      )}
+                      <AlertDescription className="text-[hsl(var(--cocktail-text))]">
+                        {cleaningStatus === "paused"
+                          ? `Reinigung pausiert bei Pumpe ${currentPump}`
+                          : `Reinige Pumpe ${currentPump}...`}
+                      </AlertDescription>
+                    </div>
+                  </Alert>
+
+                  {/* Fortschritt der aktuellen Pumpe */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-[hsl(var(--cocktail-text-muted))]">
+                      <span>Pumpe {currentPump}</span>
+                      <span>{currentPumpProgress}%</span>
+                    </div>
+                    <Progress
+                      value={currentPumpProgress}
+                      className="h-1"
+                      indicatorClassName="bg-[hsl(var(--cocktail-primary))]/60"
+                    />
                   </div>
-                </Alert>
+                </div>
               )}
 
               <div className="grid grid-cols-5 gap-2">
