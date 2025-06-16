@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Loader2, Droplets, Check, AlertTriangle } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
+import { activatePumpForDuration } from "@/lib/cocktail-machine"
 
 interface PumpCleaningProps {
   pumpConfig: PumpConfig[]
@@ -17,16 +18,13 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
   const [currentPump, setCurrentPump] = useState<number | null>(null)
   const [progress, setProgress] = useState(0)
   const [pumpsDone, setPumpsDone] = useState<number[]>([])
-  const [currentPumpProgress, setCurrentPumpProgress] = useState(0)
 
   const startCleaning = async () => {
-    // Reinigungsprozess starten
     setCleaningStatus("preparing")
     setProgress(0)
     setPumpsDone([])
-    setCurrentPumpProgress(0)
 
-    // Kurze Verzögerung für die Vorbereitung
+    // Vorbereitung
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
     setCleaningStatus("cleaning")
@@ -35,29 +33,22 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
     for (let i = 0; i < pumpConfig.length; i++) {
       const pump = pumpConfig[i]
       setCurrentPump(pump.id)
-      setCurrentPumpProgress(0)
 
       try {
-        // Pumpe für 10 Sekunden reinigen
-        for (let second = 0; second < 10; second++) {
-          // Simuliere Pumpenaktivierung
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-
-          // Fortschritt für diese Pumpe aktualisieren
-          setCurrentPumpProgress(Math.round(((second + 1) / 10) * 100))
-        }
+        // Pumpe für 10 Sekunden aktivieren
+        await activatePumpForDuration(pump.id, 10000)
 
         setPumpsDone((prev) => [...prev, pump.id])
-
-        // Fortschritt aktualisieren
         setProgress(Math.round(((i + 1) / pumpConfig.length) * 100))
+
+        // Kurze Pause zwischen Pumpen
+        await new Promise((resolve) => setTimeout(resolve, 500))
       } catch (error) {
         console.error(`Fehler beim Reinigen der Pumpe ${pump.id}:`, error)
       }
     }
 
     setCurrentPump(null)
-    setCurrentPumpProgress(0)
     setCleaningStatus("complete")
   }
 
@@ -66,7 +57,6 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
     setCurrentPump(null)
     setProgress(0)
     setPumpsDone([])
-    setCurrentPumpProgress(0)
   }
 
   return (
@@ -110,9 +100,6 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
                 <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--cocktail-primary))]" />
               </div>
               <p className="text-center text-[hsl(var(--cocktail-text))]">Vorbereitung der Reinigung...</p>
-              <p className="text-center text-sm text-[hsl(var(--cocktail-text-muted))]">
-                Stelle sicher, dass alle Schläuche korrekt positioniert sind.
-              </p>
             </div>
           )}
 
@@ -124,33 +111,18 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
                 <span className="text-sm text-[hsl(var(--cocktail-text-muted))]">
                   {pumpsDone.length} von {pumpConfig.length} Pumpen gereinigt
                 </span>
-                <span className="text-sm font-medium">{progress}%</span>
+                <span className="text-sm font-medium text-white">{progress}%</span>
               </div>
 
               {currentPump !== null && (
-                <div className="space-y-2">
-                  <Alert className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-[hsl(var(--cocktail-primary))]" />
-                      <AlertDescription className="text-[hsl(var(--cocktail-text))]">
-                        Reinige Pumpe {currentPump}...
-                      </AlertDescription>
-                    </div>
-                  </Alert>
-
-                  {/* Fortschritt der aktuellen Pumpe */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-[hsl(var(--cocktail-text-muted))]">
-                      <span>Pumpe {currentPump}</span>
-                      <span>{currentPumpProgress}%</span>
-                    </div>
-                    <Progress
-                      value={currentPumpProgress}
-                      className="h-1"
-                      indicatorClassName="bg-[hsl(var(--cocktail-primary))]/60"
-                    />
+                <Alert className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-[hsl(var(--cocktail-primary))]" />
+                    <AlertDescription className="text-[hsl(var(--cocktail-text))]">
+                      Reinige Pumpe {currentPump}...
+                    </AlertDescription>
                   </div>
-                </div>
+                </Alert>
               )}
 
               <div className="grid grid-cols-5 gap-2">
@@ -161,11 +133,13 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
                       pumpsDone.includes(pump.id)
                         ? "bg-[hsl(var(--cocktail-success))]/10 border border-[hsl(var(--cocktail-success))]/30"
                         : currentPump === pump.id
-                          ? "bg-[hsl(var(--cocktail-primary))]/20 border border-[hsl(var(--cocktail-primary))]/50 font-bold animate-pulse"
+                          ? "bg-[hsl(var(--cocktail-primary))]/20 border border-[hsl(var(--cocktail-primary))]/50 animate-pulse"
                           : "bg-[hsl(var(--cocktail-bg))] border border-[hsl(var(--cocktail-card-border))]"
                     }`}
                   >
-                    <span className={`text-sm ${currentPump === pump.id ? "text-white font-bold" : ""}`}>
+                    <span
+                      className={`text-sm ${currentPump === pump.id ? "text-white font-bold" : "text-[hsl(var(--cocktail-text))]"}`}
+                    >
                       {pump.id}
                     </span>
                   </div>
@@ -182,7 +156,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
                 </div>
               </div>
 
-              <p className="text-center font-medium">Reinigung abgeschlossen!</p>
+              <p className="text-center font-medium text-white">Reinigung abgeschlossen!</p>
 
               <Alert className="bg-[hsl(var(--cocktail-warning))]/10 border-[hsl(var(--cocktail-warning))]/30">
                 <AlertTriangle className="h-4 w-4 text-[hsl(var(--cocktail-warning))]" />
@@ -196,7 +170,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
                 onClick={resetCleaning}
                 className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
               >
-                Zurücksetzen
+                Neue Reinigung starten
               </Button>
             </div>
           )}
