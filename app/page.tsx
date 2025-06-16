@@ -403,10 +403,10 @@ export default function Home() {
           return
         }
 
-        // Extrahiere den Dateinamen aus dem Pfad (gleiche Logik wie in CocktailCard)
+        // Extrahiere den Dateinamen aus dem Pfad (einfache Logik)
         const filename = cocktail.image.split("/").pop() || cocktail.image
 
-        // Verschiedene Pfadstrategien zum Testen (bewährte Logik)
+        // Einfache Pfadstrategien zum Testen (bewährte Logik)
         const strategies = [
           // 1. Standardpfad mit /images/cocktails/
           `/images/cocktails/${filename}`,
