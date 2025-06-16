@@ -403,45 +403,25 @@ export default function Home() {
           return
         }
 
-        // Extrahiere den Dateinamen aus dem Pfad
+        // Extrahiere den Dateinamen aus dem Pfad (gleiche Logik wie in CocktailCard)
         const filename = cocktail.image.split("/").pop() || cocktail.image
-        const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "") // Entferne Dateierweiterung
-        const originalExt = filename.split(".").pop()?.toLowerCase() || ""
 
-        // Verschiedene Pfadstrategien zum Testen mit verschiedenen Dateierweiterungen
-        const extensions = [originalExt, "jpg", "jpeg", "png", "webp"]
-        const basePaths = [`/images/cocktails/`, `/`, ``, `/public/images/cocktails/`]
-
-        const strategies: string[] = []
-
-        // Generiere alle Kombinationen von Pfaden und Dateierweiterungen
-        for (const basePath of basePaths) {
-          for (const ext of extensions) {
-            if (ext) {
-              strategies.push(`${basePath}${filenameWithoutExt}.${ext}`)
-            }
-          }
-          // Auch den originalen Dateinamen probieren
-          strategies.push(`${basePath}${filename}`)
-        }
-
-        // Zusätzliche spezielle Strategien
-        strategies.push(
-          // Originaler Pfad
+        // Verschiedene Pfadstrategien zum Testen (bewährte Logik)
+        const strategies = [
+          // 1. Standardpfad mit /images/cocktails/
+          `/images/cocktails/${filename}`,
+          // 2. Originaler Pfad
           cocktail.image,
-          // Ohne führenden Slash
+          // 3. Ohne führenden Slash
           cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
-          // Mit führendem Slash
+          // 4. Mit führendem Slash
           cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
-          // API-Pfad als Fallback
+          // 5. API-Pfad als Fallback
           `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
-        )
+        ]
 
-        // Entferne Duplikate
-        const uniqueStrategies = [...new Set(strategies)]
-
-        for (let i = 0; i < uniqueStrategies.length; i++) {
-          const testPath = uniqueStrategies[i]
+        for (let i = 0; i < strategies.length; i++) {
+          const testPath = strategies[i]
 
           try {
             const img = new Image()
