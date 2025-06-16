@@ -25,10 +25,10 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
         return
       }
 
-      // Extrahiere den Dateinamen aus dem Pfad (einfache Logik)
+      // Extrahiere den Dateinamen aus dem Pfad
       const filename = cocktail.image.split("/").pop() || cocktail.image
 
-      // Einfache Pfadstrategien zum Testen (bewährte Logik)
+      // Verschiedene Pfadstrategien zum Testen
       const strategies = [
         // 1. Standardpfad mit /images/cocktails/
         `/images/cocktails/${filename}`,
@@ -38,7 +38,9 @@ export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
         cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
         // 4. Mit führendem Slash
         cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
-        // 5. API-Pfad als Fallback
+        // 5. Direkter Pfad zu public
+        `/public/images/cocktails/${filename}`,
+        // 6. API-Pfad als Fallback
         `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
       ]
 
