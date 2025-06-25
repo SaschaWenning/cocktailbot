@@ -156,31 +156,6 @@ export const cocktails: Cocktail[] = [
     ],
   },
   {
-    id: "gin-tonic",
-    name: "Gin & Tonic",
-    description: "Klassischer Longdrink mit Gin und Tonic Water",
-    image: "/images/cocktails/gin_tonic.jpg",
-    alcoholic: true,
-    ingredients: ["50ml Gin", "150ml Tonic Water", "Limettenscheibe"],
-    recipe: [
-      { ingredientId: "gin", amount: 50 },
-      { ingredientId: "tonic-water", amount: 150 },
-    ],
-  },
-  {
-    id: "cuba-libre",
-    name: "Cuba Libre",
-    description: "Rum-Cola mit einem Spritzer Limette",
-    image: "/images/cocktails/cuba_libre.jpg",
-    alcoholic: true,
-    ingredients: ["50ml brauner Rum", "150ml Cola", "10ml Limettensaft"],
-    recipe: [
-      { ingredientId: "dark-rum", amount: 50 },
-      { ingredientId: "cola", amount: 150 },
-      { ingredientId: "lime-juice", amount: 10 },
-    ],
-  },
-  {
     id: "long-island-iced-tea",
     name: "Long Island Iced Tea",
     description: "Klassischer, starker Cocktail mit fünf verschiedenen Spirituosen und Cola",
@@ -297,7 +272,7 @@ export const cocktails: Cocktail[] = [
     id: "mai-tai",
     name: "Mai Tai",
     description: "Klassischer Tiki-Cocktail mit braunem Rum und Mandelsirup",
-    image: "/images/cocktails/mai_tai.jpg",
+    image: "/images/cocktails/Mai_Tai.jpg",
     alcoholic: true,
     ingredients: ["60ml Brauner Rum", "15ml Orangenlikör", "50ml Ananassaft", "15ml Mandelsirup", "20ml Limettensaft"],
     recipe: [
