@@ -1,279 +1,240 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Progress } from "@/components/ui/progress"
-import { Check, AlertCircle, GlassWater } from "lucide-react"
-import type { PumpConfig } from "@/types/pump"
-import { ingredients } from "@/data/ingredients"
-import { makeSingleShot } from "@/lib/cocktail-machine"
-import type { IngredientLevel } from "@/types/ingredient-level"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, Wine, AlertCircle, CheckCircle } from "lucide-react"
+import type { PumpConfig } from "@/types/pump"
+import type { IngredientLevel } from "@/types/ingredient-level"
+import { makeSingleShot } from "@/lib/cocktail-machine"
+import { ingredients } from "@/data/ingredients"
 
 interface ShotSelectorProps {
   pumpConfig: PumpConfig[]
   ingredientLevels: IngredientLevel[]
-  onShotComplete: () => Promise<void>
-  selectedSize: number
-  onSizeChange: (size: number) => void
+  onShotComplete?: () => Promise<void>
+  availableIngredients: string[]
 }
 
 export default function ShotSelector({
   pumpConfig,
   ingredientLevels,
   onShotComplete,
-  selectedSize,
-  onSizeChange,
+  availableIngredients,
 }: ShotSelectorProps) {
-  const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null)
+  const [selectedIngredient, setSelectedIngredient] = useState<string>("")
+  const [shotAmount, setShotAmount] = useState<number>(30)
   const [isMaking, setIsMaking] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [statusMessage, setStatusMessage] = useState("")
+  const [progress, setProgress] = useState<number>(0)
+  const [statusMessage, setStatusMessage] = useState<string>("")
   const [showSuccess, setShowSuccess] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string>("")
 
-  // Create a list of all available ingredients
-  // Combine pump ingredients with ingredients from cocktail recipes
-  const getAllAvailableIngredients = () => {
-    // Only ingredients that are actually connected to pumps
-    return pumpConfig.map((pump) => {
-      const ingredient = ingredients.find((i) => i.id === pump.ingredient)
-      return {
-        id: pump.ingredient,
-        name: ingredient?.name || pump.ingredient,
-        alcoholic: ingredient?.alcoholic || false,
-        pumpId: pump.id,
-        hasPump: true, // All have a pump since they come from pumpConfig
-      }
-    })
+  const getIngredientName = (ingredientId: string) => {
+    const ingredient = ingredients.find((i) => i.id === ingredientId)
+    return ingredient?.name || ingredientId
   }
 
-  const allAvailableIngredients = getAllAvailableIngredients()
-
-  // Group ingredients by alcoholic and non-alcoholic
-  const alcoholicIngredients = allAvailableIngredients.filter((i) => i.alcoholic)
-  const nonAlcoholicIngredients = allAvailableIngredients.filter((i) => !i.alcoholic)
-
-  const handleSelectShot = (ingredientId: string) => {
-    setSelectedIngredient(ingredientId)
+  const getIngredientLevel = (ingredientId: string) => {
+    return ingredientLevels.find((level) => level.ingredientId === ingredientId)
   }
 
-  const handleCancelSelection = () => {
-    setSelectedIngredient(null)
-  }
-
-  const checkIngredientAvailable = (ingredientId: string) => {
-    const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
-    // Since all ingredients have a pump, we only check the fill level
-    return level && level.currentAmount >= selectedSize
+  const canMakeShot = (ingredientId: string, amount: number) => {
+    const level = getIngredientLevel(ingredientId)
+    const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
+    return level && pump && level.currentAmount >= amount
   }
 
   const handleMakeShot = async () => {
-    if (!selectedIngredient) return
+    if (!selectedIngredient || shotAmount <= 0) return
 
     setIsMaking(true)
     setProgress(0)
-    setStatusMessage("Preparing shot...")
-    setErrorMessage(null)
-
-    let intervalId: NodeJS.Timeout
+    setStatusMessage(`Bereite ${shotAmount}ml ${getIngredientName(selectedIngredient)} zu...`)
+    setErrorMessage("")
+    setShowSuccess(false)
 
     try {
-      // Simulate progress
-      intervalId = setInterval(() => {
+      // Fortschritt simulieren
+      const progressInterval = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(intervalId)
-            return 100
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
           }
           return prev + 10
         })
       }, 200)
 
-      // Prepare the shot
-      await makeSingleShot(selectedIngredient, selectedSize)
+      await makeSingleShot(selectedIngredient, shotAmount, pumpConfig)
 
-      clearInterval(intervalId)
+      clearInterval(progressInterval)
       setProgress(100)
-
-      const ingredientName = ingredients.find((i) => i.id === selectedIngredient)?.name || selectedIngredient
-      setStatusMessage(`${ingredientName} shot (${selectedSize}ml) ready!`)
+      setStatusMessage("Shot fertig!")
       setShowSuccess(true)
 
-      // Update fill levels after successful preparation
-      await onShotComplete()
+      // Füllstände aktualisieren
+      if (onShotComplete) {
+        await onShotComplete()
+      }
 
       setTimeout(() => {
         setIsMaking(false)
         setShowSuccess(false)
-        setSelectedIngredient(null)
+        setProgress(0)
+        setStatusMessage("")
+        setSelectedIngredient("")
+        setShotAmount(30)
       }, 3000)
     } catch (error) {
-      clearInterval(intervalId)
+      setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
+      setIsMaking(false)
       setProgress(0)
-      setStatusMessage("Error during preparation!")
-      setErrorMessage(error instanceof Error ? error.message : "Unknown error")
-      setTimeout(() => setIsMaking(false), 3000)
+      setStatusMessage("")
     }
   }
 
-  if (isMaking) {
-    return (
-      <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
-        <CardContent className="pt-6 space-y-4">
-          <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
-          <Progress value={progress} className="h-2" />
-
-          {errorMessage && (
-            <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-              <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-              <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
-            </Alert>
-          )}
-
-          {showSuccess && (
-            <div className="flex justify-center">
-              <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-3">
-                <Check className="h-8 w-8 text-[hsl(var(--cocktail-success))]" />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (selectedIngredient) {
-    const ingredient = ingredients.find((i) => i.id === selectedIngredient)
-    const isAvailable = checkIngredientAvailable(selectedIngredient)
-
-    return (
-      <div className="space-y-4">
-        <Card className="border-[hsl(var(--cocktail-card-border))] bg-black">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-[hsl(var(--cocktail-primary))]/10 flex items-center justify-center">
-                <GlassWater className="h-10 w-10 text-[hsl(var(--cocktail-primary))]" />
-              </div>
-              <h2 className="text-xl font-semibold text-[hsl(var(--cocktail-text))]">
-                {ingredient?.name || selectedIngredient} Shot
-              </h2>
-
-              {/* Shot Size Selection */}
-              <div className="w-full max-w-xs">
-                <Label className="text-white">Größe wählen</Label>
-                <div className="flex gap-4 justify-center">
-                  {[200, 300, 400].map((size) => (
-                    <Button
-                      key={size}
-                      variant={selectedSize === size ? "default" : "outline"}
-                      onClick={() => onSizeChange(size)}
-                      className={
-                        selectedSize === size
-                          ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                          : "bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
-                      }
-                    >
-                      {size}ml
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {!isAvailable && (
-                <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-                  <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-                  <AlertDescription className="text-[hsl(var(--cocktail-error))]">
-                    Not enough {ingredient?.name || selectedIngredient} available! Please refill.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex gap-2 w-full mt-4">
-                <Button
-                  className="flex-1 bg-transparent"
-                  variant="outline"
-                  onClick={handleCancelSelection}
-                  className="flex-1 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black"
-                  onClick={handleMakeShot}
-                  disabled={!isAvailable}
-                >
-                  Prepare Shot
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  // Verfügbare Zutaten (nur die mit konfigurierten Pumpen)
+  const availablePumpIngredients = pumpConfig
+    .filter((pump) => availableIngredients.includes(pump.ingredient))
+    .map((pump) => pump.ingredient)
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alcoholic Shots</h2>
-        <div className="grid grid-cols-4 gap-3">
-          {alcoholicIngredients.map((ingredient) => {
-            const isAvailable = checkIngredientAvailable(ingredient.id)
-
-            return (
-              <Button
-                key={ingredient.id}
-                variant="outline"
-                className={`h-auto py-2 px-2 justify-center text-center transition-all duration-200 ${
-                  isAvailable
-                    ? "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] hover:scale-105"
-                    : "bg-[hsl(var(--cocktail-card-bg))]/50 text-[hsl(var(--cocktail-text))]/50 border-[hsl(var(--cocktail-card-border))]/50 cursor-not-allowed"
-                }`}
-                onClick={() => handleSelectShot(ingredient.id)}
-                disabled={!isAvailable}
-              >
-                <div className="flex flex-col items-center">
-                  <span className="font-medium text-sm">{ingredient.name}</span>
-                  {!isAvailable && <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Empty</span>}
-                </div>
-              </Button>
-            )
-          })}
-        </div>
-      </div>
-
-      {nonAlcoholicIngredients.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Non-Alcoholic Shots</h2>
-          <div className="grid grid-cols-4 gap-3">
-            {nonAlcoholicIngredients.map((ingredient) => {
-              const isAvailable = checkIngredientAvailable(ingredient.id)
-
-              return (
-                <Button
-                  key={ingredient.id}
-                  variant="outline"
-                  className={`h-auto py-2 px-2 justify-center text-center transition-all duration-200 ${
-                    isAvailable
-                      ? "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] hover:text-[hsl(var(--cocktail-primary))] hover:scale-105"
-                      : "bg-[hsl(var(--cocktail-card-bg))]/50 text-[hsl(var(--cocktail-text))]/50 border-[hsl(var(--cocktail-card-border))]/50 cursor-not-allowed"
-                  }`}
-                  onClick={() => handleSelectShot(ingredient.id)}
-                  disabled={!isAvailable}
-                >
-                  <div className="flex flex-col items-center">
-                    <span className="font-medium text-sm">{ingredient.name}</span>
-                    {!isAvailable && <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Empty</span>}
-                  </div>
-                </Button>
-              )
-            })}
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Wine className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+            Einzelne Shots
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Zutatenauswahl */}
+          <div className="space-y-2">
+            <Label htmlFor="ingredient-select" className="text-white">
+              Zutat auswählen
+            </Label>
+            <Select value={selectedIngredient} onValueChange={setSelectedIngredient} disabled={isMaking}>
+              <SelectTrigger className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]">
+                <SelectValue placeholder="Zutat auswählen" />
+              </SelectTrigger>
+              <SelectContent className="bg-black text-white border-[hsl(var(--cocktail-card-border))]">
+                {availablePumpIngredients.map((ingredientId) => {
+                  const level = getIngredientLevel(ingredientId)
+                  const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
+                  return (
+                    <SelectItem key={ingredientId} value={ingredientId}>
+                      <div className="flex justify-between items-center w-full">
+                        <span>{getIngredientName(ingredientId)}</span>
+                        <span className="text-sm text-gray-400 ml-2">
+                          Pumpe {pump?.id} - {level?.currentAmount || 0}ml
+                        </span>
+                      </div>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      )}
+
+          {/* Mengenauswahl */}
+          <div className="space-y-2">
+            <Label htmlFor="amount" className="text-white">
+              Menge (ml)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="amount"
+                type="number"
+                min="10"
+                max="200"
+                step="10"
+                value={shotAmount}
+                onChange={(e) => setShotAmount(Number.parseInt(e.target.value) || 30)}
+                disabled={isMaking}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
+              />
+              <div className="flex gap-1">
+                {[20, 30, 50].map((amount) => (
+                  <Button
+                    key={amount}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShotAmount(amount)}
+                    disabled={isMaking}
+                    className={`${
+                      shotAmount === amount
+                        ? "bg-[hsl(var(--cocktail-primary))] text-black"
+                        : "bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
+                    }`}
+                  >
+                    {amount}ml
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Verfügbarkeitscheck */}
+          {selectedIngredient && !canMakeShot(selectedIngredient, shotAmount) && (
+            <Alert className="bg-red-600/10 border-red-600/30">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertDescription className="text-red-400">
+                Nicht genügend {getIngredientName(selectedIngredient)} verfügbar. Verfügbar:{" "}
+                {getIngredientLevel(selectedIngredient)?.currentAmount || 0}ml
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Shot zubereiten Button */}
+          <Button
+            onClick={handleMakeShot}
+            disabled={!selectedIngredient || !canMakeShot(selectedIngredient, shotAmount) || isMaking}
+            className="w-full bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+          >
+            {isMaking ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Bereite zu...
+              </>
+            ) : (
+              `${shotAmount}ml ${selectedIngredient ? getIngredientName(selectedIngredient) : "Shot"} zubereiten`
+            )}
+          </Button>
+
+          {/* Fortschrittsanzeige */}
+          {isMaking && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-white">{statusMessage}</span>
+                <span className="text-white">{Math.round(progress)}%</span>
+              </div>
+              <Progress value={progress} className="w-full" />
+            </div>
+          )}
+
+          {/* Erfolgsmeldung */}
+          {showSuccess && (
+            <Alert className="bg-green-600/10 border-green-600/30">
+              <CheckCircle className="h-4 w-4 text-green-400" />
+              <AlertDescription className="text-green-400">{statusMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Fehlermeldung */}
+          {errorMessage && (
+            <Alert className="bg-red-600/10 border-red-600/30">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertDescription className="text-red-400">{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
