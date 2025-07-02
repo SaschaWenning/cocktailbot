@@ -21,20 +21,20 @@ interface RecipeEditorProps {
   onRequestDelete: (cocktailId: string) => void
 }
 
-// Verfügbare Bilder im Projekt
+// Available images in the project
 const AVAILABLE_IMAGES = [
   { path: "/images/cocktails/bahama_mama.jpg", name: "Bahama Mama" },
   { path: "/images/cocktails/big_john.jpg", name: "Big John" },
   { path: "/images/cocktails/long_island_iced_tea.jpg", name: "Long Island Iced Tea" },
   { path: "/images/cocktails/mai_tai.jpg", name: "Mai Tai" },
-  { path: "/images/cocktails/malibu_ananas.jpg", name: "Malibu Ananas" },
+  { path: "/images/cocktails/malibu_ananas.jpg", name: "Malibu Pineapple" },
   { path: "/images/cocktails/malibu_colada.jpg", name: "Malibu Colada" },
   { path: "/images/cocktails/malibu_sunrise.jpg", name: "Malibu Sunrise" },
   { path: "/images/cocktails/malibu_sunset.jpg", name: "Malibu Sunset" },
   { path: "/images/cocktails/mojito.jpg", name: "Mojito" },
   { path: "/images/cocktails/passion_colada.jpg", name: "Passion Colada" },
   { path: "/images/cocktails/peaches_cream.jpg", name: "Peaches & Cream" },
-  { path: "/images/cocktails/planters_punch.jpg", name: "Planters Punch" },
+  { path: "/images/cocktails/planters_punch.jpg", name: "Planter's Punch" },
   { path: "/images/cocktails/sex_on_the_beach.jpg", name: "Sex on the Beach" },
   { path: "/images/cocktails/solero.jpg", name: "Solero" },
   { path: "/images/cocktails/swimming_pool.jpg", name: "Swimming Pool" },
@@ -51,12 +51,12 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
   const [saving, setSaving] = useState(false)
 
-  // View states - genau wie beim RecipeCreator
+  // View states - same as RecipeCreator
   const [currentView, setCurrentView] = useState<"form" | "keyboard" | "imageBrowser">("form")
   const [activeInput, setActiveInput] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState("")
 
-  // Lade die Cocktail-Daten beim Öffnen
+  // Load cocktail data when opening
   useEffect(() => {
     if (cocktail && isOpen) {
       setName(cocktail.name)
@@ -69,11 +69,11 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       if (imagePath.startsWith("/placeholder")) {
         setImageUrl("")
       } else {
-        // Stelle sicher, dass der Pfad mit / beginnt
+        // Make sure path starts with /
         if (imagePath && !imagePath.startsWith("/") && !imagePath.startsWith("http")) {
           imagePath = `/${imagePath}`
         }
-        // Entferne URL-Parameter
+        // Remove URL parameters
         imagePath = imagePath.split("?")[0]
         setImageUrl(imagePath)
       }
@@ -95,7 +95,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   if (!cocktail) return null
 
-  // Keyboard handlers - genau wie beim RecipeCreator
+  // Keyboard handlers - same as RecipeCreator
   const handleInputFocus = (inputType: string, currentValue = "") => {
     setActiveInput(inputType)
     setInputValue(currentValue)
@@ -200,7 +200,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       onSave(updatedCocktail)
       onClose()
     } catch (error) {
-      console.error("Fehler beim Speichern des Rezepts:", error)
+      console.error("Error saving recipe:", error)
     } finally {
       setSaving(false)
     }
@@ -216,13 +216,13 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     return ingredient ? ingredient.name : id
   }
 
-  // Form View - genau wie beim RecipeCreator
+  // Form View - same as RecipeCreator
   const renderFormView = () => (
     <div className="space-y-6 my-4 max-h-[70vh] overflow-y-auto pr-2">
       {/* Name */}
       <div className="space-y-2">
         <Label htmlFor="name" className="text-white">
-          Name des Cocktails
+          Cocktail Name
         </Label>
         <Input
           id="name"
@@ -230,14 +230,14 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           onClick={() => handleInputFocus("name", name)}
           readOnly
           className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
-          placeholder="z.B. Mein Cocktail"
+          placeholder="e.g. My Cocktail"
         />
       </div>
 
-      {/* Beschreibung */}
+      {/* Description */}
       <div className="space-y-2">
         <Label htmlFor="description" className="text-white">
-          Beschreibung
+          Description
         </Label>
         <Input
           id="description"
@@ -245,13 +245,13 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           onClick={() => handleInputFocus("description", description)}
           readOnly
           className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
-          placeholder="Beschreibe deinen Cocktail..."
+          placeholder="Describe your cocktail..."
         />
       </div>
 
-      {/* Alkoholisch */}
+      {/* Alcoholic */}
       <div className="space-y-2">
-        <Label className="text-white">Typ</Label>
+        <Label className="text-white">Type</Label>
         <Select
           value={alcoholic ? "alcoholic" : "virgin"}
           onValueChange={(value) => setAlcoholic(value === "alcoholic")}
@@ -261,20 +261,20 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           </SelectTrigger>
           <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
             <SelectItem value="alcoholic" className="text-black hover:bg-gray-100 cursor-pointer">
-              Mit Alkohol
+              With Alcohol
             </SelectItem>
             <SelectItem value="virgin" className="text-black hover:bg-gray-100 cursor-pointer">
-              Alkoholfrei
+              Non-Alcoholic
             </SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Bild */}
+      {/* Image */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2 text-white">
           <ImageIcon className="h-4 w-4" />
-          Bild (optional)
+          Image (optional)
         </Label>
         <div className="flex gap-2">
           <Input
@@ -282,7 +282,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             onClick={() => handleInputFocus("imageUrl", imageUrl)}
             readOnly
             className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer flex-1"
-            placeholder="Bild-URL oder aus Galerie wählen"
+            placeholder="Image URL or select from gallery"
           />
           <Button
             type="button"
@@ -294,10 +294,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         </div>
       </div>
 
-      {/* Zutaten */}
-      <div className="space-y-4">
+      {/* Recipe */}
+      <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <Label className="text-white">Zutaten</Label>
+          <Label className="text-white">Recipe</Label>
           <Button
             type="button"
             size="sm"
@@ -306,145 +306,133 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             disabled={recipe.length >= ingredients.length}
           >
             <Plus className="h-4 w-4 mr-1" />
-            Zutat hinzufügen
+            Add Ingredient
           </Button>
         </div>
 
-        {recipe.map((item, index) => (
-          <div
-            key={index}
-            className="grid grid-cols-12 gap-2 items-center p-3 bg-[hsl(var(--cocktail-card-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]"
-          >
-            <div className="col-span-6">
-              <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
-                <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))] max-h-48 overflow-y-auto">
-                  {ingredients.map((ingredient) => (
-                    <SelectItem
-                      key={ingredient.id}
-                      value={ingredient.id}
-                      className="text-black hover:bg-gray-100 cursor-pointer"
-                    >
-                      {ingredient.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <div className="space-y-2">
+          {recipe.map((item, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-12 gap-2 items-center p-3 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]"
+            >
+              <div className="col-span-6">
+                <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
+                  <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))] max-h-48 overflow-y-auto">
+                    {ingredients.map((ingredient) => (
+                      <SelectItem
+                        key={ingredient.id}
+                        value={ingredient.id}
+                        className="text-black hover:bg-gray-100 cursor-pointer"
+                      >
+                        {ingredient.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-3">
+                <Input
+                  value={item.amount}
+                  onClick={() => handleInputFocus(`amount-${index}`, item.amount.toString())}
+                  readOnly
+                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
+                />
+              </div>
+              <div className="col-span-2 text-sm text-white">ml</div>
+              <div className="col-span-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => removeIngredient(index)}
+                  disabled={recipe.length <= 1}
+                  className="h-8 w-8 p-0"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div className="col-span-3">
-              <Input
-                type="text"
-                value={item.amount}
-                onClick={() => handleInputFocus(`amount-${index}`, item.amount.toString())}
-                readOnly
-                className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
-              />
-            </div>
-            <div className="col-span-2 text-sm text-white">ml</div>
-            <div className="col-span-1">
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                onClick={() => removeIngredient(index)}
-                disabled={recipe.length <= 1}
-                className="h-8 w-8 p-0"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   )
 
-  // Keyboard View - genau wie beim RecipeCreator
-  const renderKeyboardView = () => (
-    <div className="space-y-4 my-4">
-      <div className="flex items-center gap-3 mb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleKeyboardCancel}
-          className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h3 className="text-lg font-semibold text-white">
-          {activeInput === "name" && "Name eingeben"}
-          {activeInput === "description" && "Beschreibung eingeben"}
-          {activeInput === "imageUrl" && "Bild-URL eingeben"}
-          {activeInput?.startsWith("amount-") && "Menge eingeben (ml)"}
-        </h3>
-      </div>
+  // Keyboard View - same as RecipeCreator
+  const renderKeyboardView = () => {
+    const isNumeric = activeInput?.startsWith("amount-")
 
-      <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-lg p-4">
-        <Input
+    return (
+      <div className="space-y-4 my-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Button type="button" onClick={handleKeyboardCancel} className="bg-gray-700 hover:bg-gray-600 text-white">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h3 className="text-lg font-semibold text-white">
+            {activeInput === "name" && "Edit Name"}
+            {activeInput === "description" && "Edit Description"}
+            {activeInput === "imageUrl" && "Edit Image URL"}
+            {activeInput?.startsWith("amount-") && "Edit Amount (ml)"}
+          </h3>
+        </div>
+
+        <VirtualKeyboard
           value={inputValue}
-          readOnly
-          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black text-center text-lg"
-          placeholder={
-            activeInput === "name"
-              ? "Cocktail-Name..."
-              : activeInput === "description"
-                ? "Beschreibung..."
-                : activeInput === "imageUrl"
-                  ? "https://..."
-                  : "Menge in ml"
-          }
+          onChange={handleKeyboardInput}
+          onConfirm={handleKeyboardConfirm}
+          onCancel={handleKeyboardCancel}
+          allowDecimal={isNumeric}
+          numericOnly={isNumeric}
         />
       </div>
+    )
+  }
 
-      <VirtualKeyboard
-        onInput={handleKeyboardInput}
-        onConfirm={handleKeyboardConfirm}
-        onCancel={handleKeyboardCancel}
-        currentValue={inputValue}
-        inputType={activeInput?.startsWith("amount-") ? "numeric" : "text"}
-      />
-    </div>
-  )
-
-  // Image Browser View - genau wie beim RecipeCreator
+  // Image Browser View
   const renderImageBrowserView = () => (
     <div className="space-y-4 my-4">
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-2 mb-4">
         <Button
-          variant="outline"
-          size="sm"
+          type="button"
           onClick={() => setCurrentView("form")}
-          className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
+          className="bg-gray-700 hover:bg-gray-600 text-white"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h3 className="text-lg font-semibold text-white">Bild auswählen</h3>
+        <h3 className="text-lg font-semibold text-white">Select Image</h3>
       </div>
 
-      <ScrollArea className="h-[60vh] pr-4">
-        <div className="grid grid-cols-2 gap-4">
+      <ScrollArea className="h-[50vh]">
+        <div className="grid grid-cols-2 gap-3">
           {AVAILABLE_IMAGES.map((image) => (
             <div
               key={image.path}
-              className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
-                imageUrl === image.path
-                  ? "border-[hsl(var(--cocktail-primary))] ring-2 ring-[hsl(var(--cocktail-primary))]/50"
-                  : "border-transparent hover:border-[hsl(var(--cocktail-card-border))]"
-              }`}
               onClick={() => handleSelectImage(image.path)}
+              className="cursor-pointer group border border-[hsl(var(--cocktail-card-border))] rounded-lg overflow-hidden hover:border-[hsl(var(--cocktail-primary))] transition-colors"
             >
-              <img
-                src={image.path || "/placeholder.svg"}
-                alt={image.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "/placeholder.svg?height=200&width=200"
-                }}
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2 text-xs text-center text-white">
-                {image.name}
+              <div className="aspect-video bg-gray-800 flex items-center justify-center">
+                <img
+                  src={image.path || "/placeholder.svg"}
+                  alt={image.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = "none"
+                    target.nextElementSibling?.classList.remove("hidden")
+                  }}
+                />
+                <div className="hidden text-white text-sm text-center p-2">
+                  <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  {image.name}
+                </div>
+              </div>
+              <div className="p-2 bg-[hsl(var(--cocktail-card-bg))]">
+                <p className="text-white text-sm truncate">{image.name}</p>
+                <p className="text-gray-400 text-xs truncate">{image.path}</p>
               </div>
             </div>
           ))}
@@ -454,10 +442,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   )
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md max-h-[90vh] overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Rezept bearbeiten: {cocktail.name}</DialogTitle>
+          <DialogTitle>Edit Recipe: {cocktail.name}</DialogTitle>
         </DialogHeader>
 
         {currentView === "form" && renderFormView()}
@@ -465,10 +453,15 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         {currentView === "imageBrowser" && renderImageBrowserView()}
 
         {currentView === "form" && (
-          <DialogFooter className="flex justify-between items-center">
-            <Button variant="destructive" onClick={handleDeleteRequest} className="mr-auto" type="button">
+          <DialogFooter className="flex justify-between">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteRequest}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
               <Trash2 className="mr-2 h-4 w-4" />
-              Löschen
+              Delete Recipe
             </Button>
             <div className="flex gap-2">
               <Button
@@ -477,20 +470,16 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 onClick={onClose}
                 className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
               >
-                Abbrechen
+                Cancel
               </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saving || !name.trim() || recipe.length === 0}
-                className="bg-[#00ff00] text-black hover:bg-[#00cc00]"
-              >
+              <Button onClick={handleSave} disabled={saving} className="bg-[#00ff00] text-black hover:bg-[#00cc00]">
                 {saving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Speichern...
+                    Saving...
                   </>
                 ) : (
-                  "Speichern"
+                  "Save Changes"
                 )}
               </Button>
             </div>

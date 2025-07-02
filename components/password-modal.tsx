@@ -1,14 +1,13 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Lock } from "lucide-react"
-import AlphaKeyboard from "./alpha-keyboard"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle, Lock } from "lucide-react"
+import VirtualKeyboard from "./virtual-keyboard"
 
 interface PasswordModalProps {
   isOpen: boolean
@@ -18,101 +17,106 @@ interface PasswordModalProps {
 
 export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordModalProps) {
   const [password, setPassword] = useState("")
-  const [error, setError] = useState(false)
-  const [showKeyboard, setShowKeyboard] = useState(true)
+  const [error, setError] = useState("")
+  const [showKeyboard, setShowKeyboard] = useState(false)
 
-  // Reset password when dialog opens
-  useEffect(() => {
-    if (isOpen) {
+  const correctPassword = "1234" // In einer echten Anwendung sollte dies sicher gespeichert werden
+
+  const handleSubmit = () => {
+    if (password === correctPassword) {
       setPassword("")
-      setError(false)
-      setShowKeyboard(true)
-    }
-  }, [isOpen])
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (password === "cocktail") {
-      setError(false)
-      setPassword("")
+      setError("")
+      setShowKeyboard(false)
       onSuccess()
     } else {
-      setError(true)
+      setError("Falsches Passwort")
+      setPassword("")
     }
+  }
+
+  const handleClose = () => {
+    setPassword("")
+    setError("")
+    setShowKeyboard(false)
+    onClose()
   }
 
   const handleKeyPress = (key: string) => {
     setPassword((prev) => prev + key)
-    setError(false)
+    setError("")
   }
 
   const handleBackspace = () => {
     setPassword((prev) => prev.slice(0, -1))
-    setError(false)
   }
 
   const handleClear = () => {
     setPassword("")
-    setError(false)
+    setError("")
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
-            Passwort erforderlich
+            <Lock className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+            Passwort eingeben
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Bitte gib das Passwort ein, um Rezepte zu bearbeiten:</Label>
+            <Label htmlFor="password" className="text-white">
+              Passwort
+            </Label>
             <Input
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${error ? "border-[hsl(var(--cocktail-error))]" : ""}`}
-              placeholder="Passwort eingeben"
-              autoComplete="off"
               readOnly
+              placeholder="Passwort eingeben"
+              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] text-center text-xl"
               onFocus={() => setShowKeyboard(true)}
             />
-            {error && (
-              <p className="text-[hsl(var(--cocktail-error))] text-sm">Falsches Passwort. Bitte versuche es erneut.</p>
-            )}
           </div>
 
-          {showKeyboard && (
-            <div className="mt-4">
-              <AlphaKeyboard
-                onKeyPress={handleKeyPress}
-                onBackspace={handleBackspace}
-                onClear={handleClear}
-                onConfirm={handleSubmit}
-              />
-            </div>
+          {error && (
+            <Alert className="bg-red-600/10 border-red-600/30">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertDescription className="text-red-400">{error}</AlertDescription>
+            </Alert>
           )}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-              onClick={onClose}
-            >
-              Abbrechen
-            </Button>
-            <Button
-              type="submit"
-              className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-            >
-              Bestätigen
-            </Button>
-          </DialogFooter>
-        </form>
+          {showKeyboard && (
+            <VirtualKeyboard
+              onKeyPress={handleKeyPress}
+              onBackspace={handleBackspace}
+              onClear={handleClear}
+              onConfirm={handleSubmit}
+              allowDecimal={false}
+              isPassword={true}
+            />
+          )}
+
+          {!showKeyboard && (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowKeyboard(true)}
+                className="flex-1 bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+              >
+                Tastatur öffnen
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              >
+                Abbrechen
+              </Button>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )

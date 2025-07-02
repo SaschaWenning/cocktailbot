@@ -1,199 +1,242 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Check, AlertCircle, GlassWater } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, Zap, AlertCircle, CheckCircle } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
-import { ingredients } from "@/data/ingredients"
-import { makeSingleShot } from "@/lib/cocktail-machine"
-import type { IngredientLevel } from "@/types/ingredient-level"
+import { activatePumpForDuration } from "@/lib/cocktail-machine"
 
 interface QuickShotSelectorProps {
   pumpConfig: PumpConfig[]
-  ingredientLevels: IngredientLevel[]
-  onShotComplete: () => Promise<void>
 }
 
-export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShotComplete }: QuickShotSelectorProps) {
-  const [isMaking, setIsMaking] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [statusMessage, setStatusMessage] = useState("")
+export default function QuickShotSelector({ pumpConfig }: QuickShotSelectorProps) {
+  const [purgeDuration, setPurgeDuration] = useState<number>(3)
+  const [activePumps, setActivePumps] = useState<Set<number>>(new Set())
+  const [progress, setProgress] = useState<number>(0)
+  const [statusMessage, setStatusMessage] = useState<string>("")
   const [showSuccess, setShowSuccess] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [currentIngredient, setCurrentIngredient] = useState<string>("")
+  const [errorMessage, setErrorMessage] = useState<string>("")
 
-  const shotSize = 20 // Feste Größe: 20ml
+  const handlePumpActivation = async (pumpId: number) => {
+    const durationMs = purgeDuration * 1000
 
-  // Erstelle eine Liste aller verfügbaren Zutaten
-  const getAllAvailableIngredients = () => {
-    return pumpConfig.map((pump) => {
-      const ingredient = ingredients.find((i) => i.id === pump.ingredient)
-      return {
-        id: pump.ingredient,
-        name: ingredient?.name || pump.ingredient,
-        alcoholic: ingredient?.alcoholic || false,
-        pumpId: pump.id,
-        hasPump: true,
-      }
-    })
-  }
-
-  const allAvailableIngredients = getAllAvailableIngredients()
-
-  // Gruppiere Zutaten nach alkoholisch und nicht-alkoholisch
-  const alcoholicIngredients = allAvailableIngredients.filter((i) => i.alcoholic)
-  const nonAlcoholicIngredients = allAvailableIngredients.filter((i) => !i.alcoholic)
-
-  const checkIngredientAvailable = (ingredientId: string) => {
-    const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
-    return level && level.currentAmount >= shotSize
-  }
-
-  const handleQuickShot = async (ingredientId: string) => {
-    const ingredientName = ingredients.find((i) => i.id === ingredientId)?.name || ingredientId
-    setCurrentIngredient(ingredientName)
-    setIsMaking(true)
+    setActivePumps((prev) => new Set(prev).add(pumpId))
     setProgress(0)
-    setStatusMessage(`Entlüfte ${ingredientName}...`)
-    setErrorMessage(null)
-
-    let intervalId: NodeJS.Timeout
+    setStatusMessage(`Spüle Pumpe ${pumpId}...`)
+    setErrorMessage("")
+    setShowSuccess(false)
 
     try {
-      // Simuliere den Fortschritt
-      intervalId = setInterval(() => {
+      // Fortschritt simulieren
+      const progressInterval = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
-            clearInterval(intervalId)
+            clearInterval(progressInterval)
             return 100
           }
-          return prev + 10
+          return prev + 100 / purgeDuration
         })
-      }, 200)
+      }, 1000)
 
-      // Bereite den Shot zu
-      await makeSingleShot(ingredientId, shotSize)
+      await activatePumpForDuration(pumpId, durationMs)
 
-      clearInterval(intervalId)
+      clearInterval(progressInterval)
       setProgress(100)
-      setStatusMessage(`${ingredientName} fertig!`)
+      setStatusMessage(`Pumpe ${pumpId} gespült!`)
       setShowSuccess(true)
 
-      // Aktualisiere die Füllstände nach erfolgreicher Zubereitung
-      await onShotComplete()
-
       setTimeout(() => {
-        setIsMaking(false)
+        setActivePumps((prev) => {
+          const newSet = new Set(prev)
+          newSet.delete(pumpId)
+          return newSet
+        })
         setShowSuccess(false)
-        setCurrentIngredient("")
-      }, 3000)
+        setProgress(0)
+        setStatusMessage("")
+      }, 2000)
     } catch (error) {
-      clearInterval(intervalId)
-      setProgress(0)
-      setStatusMessage("Fehler bei der Zubereitung!")
       setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
-      setTimeout(() => {
-        setIsMaking(false)
-        setCurrentIngredient("")
-      }, 3000)
+      setActivePumps((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(pumpId)
+        return newSet
+      })
+      setProgress(0)
+      setStatusMessage("")
     }
   }
 
-  if (isMaking) {
-    return (
-      <Card className="border-[hsl(var(--cocktail-card-border))] bg-black text-[hsl(var(--cocktail-text))]">
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-[hsl(var(--cocktail-primary))]/10 flex items-center justify-center">
-              <GlassWater className="h-10 w-10 text-[hsl(var(--cocktail-primary))]" />
-            </div>
-            <h2 className="text-xl font-semibold text-center">{statusMessage}</h2>
-          </div>
-          <Progress value={progress} className="h-2" />
+  const handleAllPumpsActivation = async () => {
+    const durationMs = purgeDuration * 1000
+    const allPumpIds = pumpConfig.map((p) => p.id)
 
-          {errorMessage && (
-            <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-              <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-              <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
-            </Alert>
-          )}
+    setActivePumps(new Set(allPumpIds))
+    setProgress(0)
+    setStatusMessage("Spüle alle Pumpen...")
+    setErrorMessage("")
+    setShowSuccess(false)
 
-          {showSuccess && (
-            <div className="flex justify-center">
-              <div className="rounded-full bg-[hsl(var(--cocktail-success))]/20 p-3">
-                <Check className="h-8 w-8 text-[hsl(var(--cocktail-success))]" />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    )
+    try {
+      // Fortschritt simulieren
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(progressInterval)
+            return 100
+          }
+          return prev + 100 / purgeDuration
+        })
+      }, 1000)
+
+      // Alle Pumpen gleichzeitig aktivieren
+      await Promise.all(allPumpIds.map((pumpId) => activatePumpForDuration(pumpId, durationMs)))
+
+      clearInterval(progressInterval)
+      setProgress(100)
+      setStatusMessage("Alle Pumpen gespült!")
+      setShowSuccess(true)
+
+      setTimeout(() => {
+        setActivePumps(new Set())
+        setShowSuccess(false)
+        setProgress(0)
+        setStatusMessage("")
+      }, 2000)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
+      setActivePumps(new Set())
+      setProgress(0)
+      setStatusMessage("")
+    }
   }
+
+  const isAnyPumpActive = activePumps.size > 0
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">Alkoholische Zutaten entlüften</h2>
-        <div className="grid grid-cols-4 gap-3">
-          {alcoholicIngredients.map((ingredient) => {
-            const isAvailable = checkIngredientAvailable(ingredient.id)
-
-            return (
-              <Button
-                key={ingredient.id}
-                variant="outline"
-                className={`h-auto py-3 px-3 justify-center text-center transition-all duration-200 ${
-                  isAvailable
-                    ? "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black hover:scale-105"
-                    : "bg-[hsl(var(--cocktail-card-bg))]/50 text-[hsl(var(--cocktail-text))]/50 border-[hsl(var(--cocktail-card-border))]/50 cursor-not-allowed"
-                }`}
-                onClick={() => handleQuickShot(ingredient.id)}
-                disabled={!isAvailable}
-              >
-                <div className="flex flex-col items-center">
-                  <span className="font-medium text-sm">{ingredient.name}</span>
-                  {!isAvailable && <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Leer</span>}
-                </div>
-              </Button>
-            )
-          })}
-        </div>
-      </div>
-
-      {nonAlcoholicIngredients.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">
-            Alkoholfreie Zutaten entlüften
-          </h2>
-          <div className="grid grid-cols-4 gap-3">
-            {nonAlcoholicIngredients.map((ingredient) => {
-              const isAvailable = checkIngredientAvailable(ingredient.id)
-
-              return (
-                <Button
-                  key={ingredient.id}
-                  variant="outline"
-                  className={`h-auto py-3 px-3 justify-center text-center transition-all duration-200 ${
-                    isAvailable
-                      ? "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black hover:scale-105"
-                      : "bg-[hsl(var(--cocktail-card-bg))]/50 text-[hsl(var(--cocktail-text))]/50 border-[hsl(var(--cocktail-card-border))]/50 cursor-not-allowed"
-                  }`}
-                  onClick={() => handleQuickShot(ingredient.id)}
-                  disabled={!isAvailable}
-                >
-                  <div className="flex flex-col items-center">
-                    <span className="font-medium text-sm">{ingredient.name}</span>
-                    {!isAvailable && <span className="text-xs text-[hsl(var(--cocktail-warning))] mt-1">Leer</span>}
-                  </div>
-                </Button>
-              )
-            })}
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Zap className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+            Schnell-Spülung
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Spüldauer */}
+          <div className="space-y-2">
+            <Label htmlFor="purge-duration" className="text-white">
+              Spüldauer (Sekunden)
+            </Label>
+            <Input
+              id="purge-duration"
+              type="number"
+              min="1"
+              max="10"
+              value={purgeDuration}
+              onChange={(e) => setPurgeDuration(Number.parseInt(e.target.value) || 3)}
+              disabled={isAnyPumpActive}
+              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]"
+            />
           </div>
-        </div>
-      )}
+
+          {/* Einzelne Pumpen */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-white">Einzelne Pumpen spülen</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {pumpConfig.map((pump) => (
+                <Button
+                  key={pump.id}
+                  onClick={() => handlePumpActivation(pump.id)}
+                  disabled={isAnyPumpActive}
+                  className={`h-16 flex flex-col items-center justify-center ${
+                    activePumps.has(pump.id)
+                      ? "bg-[hsl(var(--cocktail-accent))] text-black"
+                      : "bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  }`}
+                  variant="outline"
+                >
+                  {activePumps.has(pump.id) ? (
+                    <Loader2 className="h-4 w-4 animate-spin mb-1" />
+                  ) : (
+                    <Zap className="h-4 w-4 mb-1" />
+                  )}
+                  <span className="text-xs">Pumpe {pump.id}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Alle Pumpen */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-white">Alle Pumpen spülen</h3>
+            <Button
+              onClick={handleAllPumpsActivation}
+              disabled={isAnyPumpActive}
+              className="w-full h-16 bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
+            >
+              {isAnyPumpActive ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Spüle alle Pumpen...
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-5 w-5" />
+                  Alle Pumpen spülen ({purgeDuration}s)
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Fortschrittsanzeige */}
+          {isAnyPumpActive && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-white">{statusMessage}</span>
+                <span className="text-white">{Math.round(progress)}%</span>
+              </div>
+              <Progress value={progress} className="w-full" />
+            </div>
+          )}
+
+          {/* Erfolgsmeldung */}
+          {showSuccess && (
+            <Alert className="bg-green-600/10 border-green-600/30">
+              <CheckCircle className="h-4 w-4 text-green-400" />
+              <AlertDescription className="text-green-400">{statusMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Fehlermeldung */}
+          {errorMessage && (
+            <Alert className="bg-red-600/10 border-red-600/30">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertDescription className="text-red-400">{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Hinweise */}
+          <Alert className="bg-blue-600/10 border-blue-600/30">
+            <AlertCircle className="h-4 w-4 text-blue-400" />
+            <AlertDescription className="text-blue-400">
+              <strong>Spül-Hinweise:</strong>
+              <ul className="mt-2 space-y-1 list-disc list-inside">
+                <li>Verwenden Sie diese Funktion zum schnellen Entlüften der Leitungen</li>
+                <li>Ideal vor der ersten Nutzung oder nach längerer Standzeit</li>
+                <li>Kurze Spülzeiten (1-3 Sekunden) reichen meist aus</li>
+                <li>Stellen Sie sicher, dass Flüssigkeit in den Behältern ist</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     </div>
   )
 }
