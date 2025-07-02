@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X } from "lucide-react"
+import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X, ArrowLeft, Check, ArrowUp, Lock } from "lucide-react"
 import FileBrowser from "./file-browser"
 
 interface RecipeCreatorProps {
@@ -229,7 +229,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && !showFileBrowser && onClose()}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-2xl">
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-4xl max-h-[95vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Neues Rezept erstellen</DialogTitle>
           </DialogHeader>
@@ -375,91 +375,99 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               ))}
             </div>
           ) : (
-            // TASTATUR-ANSICHT - Komplett skaliert
-            <div className="flex flex-col h-[70vh] my-4">
-              <div className="text-center mb-3">
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  {keyboardMode === "name" && "Name eingeben"}
-                  {keyboardMode === "description" && "Beschreibung eingeben"}
-                  {keyboardMode === "imageUrl" && "Bild-Pfad eingeben"}
-                  {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
-                </h3>
-                <div className="bg-white text-black text-lg p-3 rounded mb-4 min-h-[50px] break-all">
-                  {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
+            // TASTATUR-ANSICHT - Tastatur links, Action-Buttons rechts
+            <div className="flex gap-3 my-4 h-[70vh]">
+              {/* Tastatur links */}
+              <div className="flex-1 flex flex-col">
+                <div className="text-center mb-3">
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    {keyboardMode === "name" && "Name eingeben"}
+                    {keyboardMode === "description" && "Beschreibung eingeben"}
+                    {keyboardMode === "imageUrl" && "Bild-Pfad eingeben"}
+                    {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
+                  </h3>
+                  <div className="bg-white text-black text-lg p-3 rounded mb-4 min-h-[50px] break-all">
+                    {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-2">
+                  {keys.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex gap-1 justify-center flex-1">
+                      {row.map((key) => (
+                        <Button
+                          key={key}
+                          type="button"
+                          onClick={() => handleKeyPress(key)}
+                          className="flex-1 text-lg bg-gray-700 hover:bg-gray-600 text-white min-h-0 h-full"
+                        >
+                          {key}
+                        </Button>
+                      ))}
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col gap-2">
-                {keys.map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex gap-1 justify-center flex-1">
-                    {row.map((key) => (
-                      <Button
-                        key={key}
-                        type="button"
-                        onClick={() => handleKeyPress(key)}
-                        className="flex-1 text-lg bg-gray-700 hover:bg-gray-600 text-white min-h-0 h-full"
-                      >
-                        {key}
-                      </Button>
-                    ))}
-                  </div>
-                ))}
-
-                {/* Shift und Caps Lock Reihe nur für Alpha-Tastatur */}
+              {/* Action Buttons rechts */}
+              <div className="flex flex-col gap-2 w-24">
+                {/* Shift und Caps nur für Alpha-Tastatur */}
                 {!isNumericKeyboard && (
-                  <div className="flex gap-1 justify-center flex-1">
+                  <>
                     <Button
                       type="button"
                       onClick={handleShift}
-                      className={`flex-1 text-white min-h-0 h-full ${
+                      className={`h-16 text-white flex flex-col items-center justify-center ${
                         isShiftActive ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
                       }`}
                     >
-                      ⇧ Shift
+                      <ArrowUp className="h-4 w-4" />
+                      <span className="text-xs">Shift</span>
                     </Button>
                     <Button
                       type="button"
                       onClick={handleCapsLock}
-                      className={`flex-1 text-white min-h-0 h-full ${
+                      className={`h-16 text-white flex flex-col items-center justify-center ${
                         isCapsLockActive ? "bg-orange-600 hover:bg-orange-700" : "bg-gray-700 hover:bg-gray-600"
                       }`}
                     >
-                      ⇪ Caps
+                      <Lock className="h-4 w-4" />
+                      <span className="text-xs">Caps</span>
                     </Button>
-                  </div>
+                  </>
                 )}
 
-                {/* Action Buttons - vollständig sichtbar */}
-                <div className="flex gap-1 justify-center flex-1">
-                  <Button
-                    type="button"
-                    onClick={handleBackspace}
-                    className="flex-1 bg-red-700 hover:bg-red-600 text-white min-h-0 h-full"
-                  >
-                    ← Löschen
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleClear}
-                    className="flex-1 bg-yellow-700 hover:bg-yellow-600 text-white min-h-0 h-full"
-                  >
-                    ✕ Alles
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleKeyboardCancel}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white min-h-0 h-full"
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleKeyboardConfirm}
-                    className="flex-1 bg-green-700 hover:bg-green-600 text-white min-h-0 h-full"
-                  >
-                    ✓ OK
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  onClick={handleBackspace}
+                  className="h-16 bg-red-700 hover:bg-red-600 text-white flex flex-col items-center justify-center"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="text-xs">Back</span>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleClear}
+                  className="h-16 bg-yellow-700 hover:bg-yellow-600 text-white flex flex-col items-center justify-center"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="text-xs">Clear</span>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleKeyboardCancel}
+                  className="h-16 bg-gray-700 hover:bg-gray-600 text-white flex flex-col items-center justify-center"
+                >
+                  <span className="text-xs">Cancel</span>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleKeyboardConfirm}
+                  className="h-16 bg-green-700 hover:bg-green-600 text-white flex flex-col items-center justify-center"
+                >
+                  <Check className="h-4 w-4" />
+                  <span className="text-xs">OK</span>
+                </Button>
               </div>
             </div>
           )}
