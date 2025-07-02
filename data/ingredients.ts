@@ -1,86 +1,82 @@
-import type { Ingredient } from "@/types/pump"
+export interface Ingredient {
+  id: string
+  name: string
+  alcoholic: boolean
+  category: "spirit" | "liqueur" | "juice" | "syrup" | "mixer" | "garnish"
+}
 
 export const ingredients: Ingredient[] = [
-  // Alkoholische Getränke - Spirituosen
-  { id: "white-rum", name: "Weißer Rum", alcoholic: true },
-  { id: "dark-rum", name: "Brauner Rum", alcoholic: true },
-  { id: "spiced-rum", name: "Gewürzrum", alcoholic: true },
-  { id: "gin", name: "Gin", alcoholic: true },
-  { id: "vodka", name: "Vodka", alcoholic: true },
-  { id: "tequila", name: "Tequila", alcoholic: true },
-  { id: "whiskey", name: "Whiskey", alcoholic: true },
-  { id: "bourbon", name: "Bourbon", alcoholic: true },
-  { id: "scotch", name: "Scotch Whisky", alcoholic: true },
-  { id: "brandy", name: "Brandy", alcoholic: true },
-  { id: "cognac", name: "Cognac", alcoholic: true },
-  { id: "apricot-brandy", name: "Aprikosen Brandy", alcoholic: true },
+  // Spirituosen
+  { id: "vodka", name: "Wodka", alcoholic: true, category: "spirit" },
+  { id: "dark-rum", name: "Dunkler Rum", alcoholic: true, category: "spirit" },
+  { id: "white-rum", name: "Weißer Rum", alcoholic: true, category: "spirit" },
+  { id: "gin", name: "Gin", alcoholic: true, category: "spirit" },
+  { id: "tequila", name: "Tequila", alcoholic: true, category: "spirit" },
+  { id: "whiskey", name: "Whiskey", alcoholic: true, category: "spirit" },
+  { id: "bourbon", name: "Bourbon", alcoholic: true, category: "spirit" },
+  { id: "scotch", name: "Scotch", alcoholic: true, category: "spirit" },
+  { id: "brandy", name: "Weinbrand", alcoholic: true, category: "spirit" },
+  { id: "cognac", name: "Cognac", alcoholic: true, category: "spirit" },
 
-  // Alkoholische Getränke - Liköre
-  { id: "malibu", name: "Malibu", alcoholic: true },
-  { id: "peach-liqueur", name: "Pfirsich Likör", alcoholic: true },
-  { id: "blue-curacao", name: "Blue Curacao", alcoholic: true },
-  { id: "triple-sec", name: "Triple Sec", alcoholic: true },
-  { id: "cointreau", name: "Cointreau", alcoholic: true },
-  { id: "grand-marnier", name: "Grand Marnier", alcoholic: true },
-  { id: "amaretto", name: "Amaretto", alcoholic: true },
-  { id: "kahlua", name: "Kahlúa", alcoholic: true },
-  { id: "baileys", name: "Baileys", alcoholic: true },
-  { id: "sambuca", name: "Sambuca", alcoholic: true },
-  { id: "jagermeister", name: "Jägermeister", alcoholic: true },
-  { id: "midori", name: "Midori", alcoholic: true },
-  { id: "chambord", name: "Chambord", alcoholic: true },
-  { id: "frangelico", name: "Frangelico", alcoholic: true },
-  { id: "pitu", name: "Pitu", alcoholic: true },
+  // Liköre
+  { id: "malibu", name: "Malibu", alcoholic: true, category: "liqueur" },
+  { id: "triple-sec", name: "Triple Sec", alcoholic: true, category: "liqueur" },
+  { id: "blue-curacao", name: "Blauer Curacao", alcoholic: true, category: "liqueur" },
+  { id: "peach-liqueur", name: "Pfirsichlikör", alcoholic: true, category: "liqueur" },
+  { id: "amaretto", name: "Amaretto", alcoholic: true, category: "liqueur" },
+  { id: "kahlua", name: "Kahlua", alcoholic: true, category: "liqueur" },
+  { id: "baileys", name: "Baileys", alcoholic: true, category: "liqueur" },
+  { id: "sambuca", name: "Sambuca", alcoholic: true, category: "liqueur" },
+  { id: "jagermeister", name: "Jägermeister", alcoholic: true, category: "liqueur" },
+  { id: "midori", name: "Midori", alcoholic: true, category: "liqueur" },
+  { id: "chambord", name: "Chambord", alcoholic: true, category: "liqueur" },
+  { id: "frangelico", name: "Frangelico", alcoholic: true, category: "liqueur" },
+  { id: "cointreau", name: "Cointreau", alcoholic: true, category: "liqueur" },
+  { id: "grand-marnier", name: "Grand Marnier", alcoholic: true, category: "liqueur" },
+  { id: "apricot-brandy", name: "Aprikosenbrand", alcoholic: true, category: "liqueur" },
 
-  // Alkoholische Getränke - Wein
-  { id: "white-wine", name: "Weißwein", alcoholic: true },
-  { id: "red-wine", name: "Rotwein", alcoholic: true },
-  { id: "rose-wine", name: "Rosé", alcoholic: true },
-  { id: "port-wine", name: "Portwein", alcoholic: true },
-  { id: "sherry", name: "Sherry", alcoholic: true },
-
-  // Alkoholische Getränke - Vermouth & Aperitifs
-  { id: "dry-vermouth", name: "Trockener Vermouth", alcoholic: true },
-  { id: "sweet-vermouth", name: "Süßer Vermouth", alcoholic: true },
-  { id: "campari", name: "Campari", alcoholic: true },
-  { id: "aperol", name: "Aperol", alcoholic: true },
-
-  // Nicht-alkoholische Getränke - Fruchtsäfte
-  { id: "orange-juice", name: "Orangensaft", alcoholic: false },
-  { id: "apple-juice", name: "Apfelsaft", alcoholic: false },
-  { id: "pineapple-juice", name: "Ananassaft", alcoholic: false },
-  { id: "cranberry-juice", name: "Cranberrysaft", alcoholic: false },
-  { id: "grapefruit-juice", name: "Grapefruitsaft", alcoholic: false },
-  { id: "tomato-juice", name: "Tomatensaft", alcoholic: false },
-  { id: "grape-juice", name: "Traubensaft", alcoholic: false },
-  { id: "passion-fruit-juice", name: "Maracujasaft", alcoholic: false },
-  { id: "mango-juice", name: "Mangosaft", alcoholic: false },
-  { id: "peach-juice", name: "Pfirsichsaft", alcoholic: false },
-  { id: "cherry-juice", name: "Kirschsaft", alcoholic: false },
-  { id: "pomegranate-juice", name: "Granatapfelsaft", alcoholic: false },
-
-  // Nicht-alkoholische Getränke - Zitrusfrüchte
-  { id: "lime-juice", name: "Limettensaft", alcoholic: false },
-  { id: "lemon-juice", name: "Zitronensaft", alcoholic: false },
-
-  // Nicht-alkoholische Getränke - Kohlensäurehaltige Getränke
-  { id: "cola", name: "Cola", alcoholic: false },
-  { id: "soda-water", name: "Sprudelwasser", alcoholic: false },
-  { id: "ginger-ale", name: "Ginger Ale", alcoholic: false },
-  { id: "tonic-water", name: "Tonic Water", alcoholic: false },
-
-  // Nicht-alkoholische Getränke - Milchprodukte
-  { id: "cream", name: "Sahne", alcoholic: false },
-  { id: "coconut-cream", name: "Kokossahne", alcoholic: false },
-  { id: "coconut-milk", name: "Kokosmilch", alcoholic: false },
+  // Säfte
+  { id: "orange-juice", name: "Orangensaft", alcoholic: false, category: "juice" },
+  { id: "pineapple-juice", name: "Ananassaft", alcoholic: false, category: "juice" },
+  { id: "cranberry-juice", name: "Cranberrysaft", alcoholic: false, category: "juice" },
+  { id: "lime-juice", name: "Limettensaft", alcoholic: false, category: "juice" },
+  { id: "lemon-juice", name: "Zitronensaft", alcoholic: false, category: "juice" },
+  { id: "grapefruit-juice", name: "Grapefruitsaft", alcoholic: false, category: "juice" },
+  { id: "passion-fruit-juice", name: "Maracujasaft", alcoholic: false, category: "juice" },
+  { id: "mango-juice", name: "Mangosaft", alcoholic: false, category: "juice" },
+  { id: "apple-juice", name: "Apfelsaft", alcoholic: false, category: "juice" },
+  { id: "grape-juice", name: "Traubensaft", alcoholic: false, category: "juice" },
+  { id: "tomato-juice", name: "Tomatensaft", alcoholic: false, category: "juice" },
 
   // Sirupe
-  { id: "sugar-syrup", name: "Zuckersirup", alcoholic: false },
-  { id: "vanilla-syrup", name: "Vanillesirup", alcoholic: false },
-  { id: "almond-syrup", name: "Mandelsirup", alcoholic: false },
-  { id: "grenadine", name: "Grenadine", alcoholic: false },
-  { id: "honey-syrup", name: "Honigsirup", alcoholic: false },
-  { id: "maple-syrup", name: "Ahornsirup", alcoholic: false },
-  { id: "caramel-syrup", name: "Karamellsirup", alcoholic: false },
-  { id: "chocolate-syrup", name: "Schokoladensirup", alcoholic: false },
+  { id: "grenadine", name: "Grenadine", alcoholic: false, category: "syrup" },
+  { id: "sugar-syrup", name: "Zuckersirup", alcoholic: false, category: "syrup" },
+  { id: "vanilla-syrup", name: "Vanillesirup", alcoholic: false, category: "syrup" },
+  { id: "almond-syrup", name: "Mandelsirup", alcoholic: false, category: "syrup" },
+  { id: "coconut-syrup", name: "Kokossirup", alcoholic: false, category: "syrup" },
+  { id: "strawberry-syrup", name: "Erdbeersirup", alcoholic: false, category: "syrup" },
+  { id: "raspberry-syrup", name: "Himbeersirup", alcoholic: false, category: "syrup" },
+
+  // Mixer
+  { id: "soda-water", name: "Sodawasser", alcoholic: false, category: "mixer" },
+  { id: "tonic-water", name: "Tonic Water", alcoholic: false, category: "mixer" },
+  { id: "ginger-beer", name: "Ginger Beer", alcoholic: false, category: "mixer" },
+  { id: "cola", name: "Cola", alcoholic: false, category: "mixer" },
+  { id: "sprite", name: "Sprite", alcoholic: false, category: "mixer" },
+  { id: "ginger-ale", name: "Ginger Ale", alcoholic: false, category: "mixer" },
+  { id: "coconut-milk", name: "Kokosmilch", alcoholic: false, category: "mixer" },
+  { id: "coconut-cream", name: "Kokoscreme", alcoholic: false, category: "mixer" },
+
+  // Wein & Wermut
+  { id: "red-wine", name: "Rotwein", alcoholic: true, category: "spirit" },
+  { id: "white-wine", name: "Weißwein", alcoholic: true, category: "spirit" },
+  { id: "champagne", name: "Champagner", alcoholic: true, category: "spirit" },
+  { id: "prosecco", name: "Prosecco", alcoholic: true, category: "spirit" },
+  { id: "dry-vermouth", name: "Trockener Wermut", alcoholic: true, category: "liqueur" },
+  { id: "sweet-vermouth", name: "Süßer Wermut", alcoholic: true, category: "liqueur" },
+
+  // Bitter & Andere
+  { id: "angostura-bitters", name: "Angostura Bitter", alcoholic: true, category: "liqueur" },
+  { id: "campari", name: "Campari", alcoholic: true, category: "liqueur" },
+  { id: "aperol", name: "Aperol", alcoholic: true, category: "liqueur" },
 ]

@@ -30,7 +30,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
   const [showInputDialog, setShowInputDialog] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Lade die gespeicherte Konfiguration beim ersten Rendern
+  // Load saved configuration on first render
   useEffect(() => {
     loadPumpConfig()
   }, [])
@@ -41,7 +41,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
       const config = await getPumpConfig()
       setPumpConfig(config)
     } catch (error) {
-      console.error("Fehler beim Laden der Pumpenkonfiguration:", error)
+      console.error("Error loading pump configuration:", error)
     } finally {
       setLoading(false)
     }
@@ -58,12 +58,12 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
 
-      // Benachrichtige die Hauptkomponente über die Aktualisierung
+      // Notify main component about update
       if (onConfigUpdate) {
         await onConfigUpdate()
       }
     } catch (error) {
-      console.error("Fehler beim Speichern der Pumpenkonfiguration:", error)
+      console.error("Error saving pump configuration:", error)
     } finally {
       setSaving(false)
     }
@@ -75,14 +75,14 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
     setCalibrating(pumpId)
 
     try {
-      // Pumpe für genau 2 Sekunden laufen lassen
+      // Run pump for exactly 2 seconds
       await calibratePump(pumpId, 2000)
       setCalibrationStep("input")
       setMeasuredAmount("")
-      // Öffne das Dialog-Fenster für die Eingabe
+      // Open dialog for input
       setShowInputDialog(true)
     } catch (error) {
-      console.error("Fehler bei der Kalibrierung:", error)
+      console.error("Error during calibration:", error)
       setCalibrationStep("idle")
     } finally {
       setCalibrating(null)
@@ -90,14 +90,14 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
   }
 
   const handleMeasuredAmountChange = (value: string) => {
-    // Nur Zahlen und einen Dezimalpunkt erlauben
+    // Only allow numbers and one decimal point
     if (/^\d*\.?\d*$/.test(value) || value === "") {
       setMeasuredAmount(value)
     }
   }
 
   const handleKeyPress = (key: string) => {
-    // Verhindere mehrere Dezimalpunkte
+    // Prevent multiple decimal points
     if (key === "." && measuredAmount.includes(".")) {
       return
     }
@@ -126,40 +126,40 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
       return
     }
 
-    // Berechne die Durchflussrate (ml/s) basierend auf der gemessenen Menge und 2 Sekunden Laufzeit
+    // Calculate flow rate (ml/s) based on measured amount and 2 seconds runtime
     const flowRate = amount / 2
 
-    // Aktualisiere die lokale Konfiguration
+    // Update local configuration
     const updatedConfig = pumpConfig.map((pump) => (pump.id === currentPumpId ? { ...pump, flowRate } : pump))
 
     setPumpConfig(updatedConfig)
 
-    // Speichere die Konfiguration sofort
+    // Save configuration immediately
     setSaving(true)
     try {
       await savePumpConfig(updatedConfig)
 
-      // Protokolliere die aktualisierte Durchflussrate für Debugging-Zwecke
+      // Log updated flow rate for debugging
       const pump = updatedConfig.find((p) => p.id === currentPumpId)
       if (pump) {
-        console.log(`Kalibrierung für Pumpe ${pump.id} (${pump.ingredient}) aktualisiert: ${flowRate} ml/s`)
+        console.log(`Calibration for pump ${pump.id} (${pump.ingredient}) updated: ${flowRate} ml/s`)
       }
 
-      // Zeige Erfolgsmeldung
+      // Show success message
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
 
-      // Benachrichtige die Hauptkomponente über die Aktualisierung
+      // Notify main component about update
       if (onConfigUpdate) {
         await onConfigUpdate()
       }
     } catch (error) {
-      console.error("Fehler beim Speichern der Kalibrierung:", error)
+      console.error("Error saving calibration:", error)
     } finally {
       setSaving(false)
     }
 
-    // Zurücksetzen
+    // Reset
     setMeasuredAmount("")
     setCalibrationStep("idle")
     setCurrentPumpId(null)
@@ -185,10 +185,10 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
     <div className="space-y-4">
       <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
         <CardHeader>
-          <CardTitle className="text-white">CocktailBot Pumpenkalibrierung</CardTitle>
+          <CardTitle className="text-white">CocktailBot Pump Calibration</CardTitle>
           <CardDescription className="text-white">
-            Kalibriere jede Pumpe, indem du sie für 2 Sekunden laufen lässt, die geförderte Menge in ml misst und den
-            Wert einträgst.
+            Calibrate each pump by running it for 2 seconds, measuring the dispensed amount in ml and entering the
+            value.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,7 +201,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
               className="flex items-center gap-1 bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
             >
               <RefreshCw className="h-4 w-4" />
-              Konfiguration neu laden
+              Reload Configuration
             </Button>
           </div>
 
@@ -209,8 +209,8 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
             <Alert className="mb-4 bg-[hsl(var(--cocktail-accent))]/10 border-[hsl(var(--cocktail-accent))]/30">
               <Beaker className="h-4 w-4 text-[hsl(var(--cocktail-accent))]" />
               <AlertDescription className="text-[hsl(var(--cocktail-text))]">
-                Pumpe {currentPumpId} läuft für 2 Sekunden. Bitte stelle ein Messgefäß bereit und miss die geförderte
-                Menge in ml.
+                Pump {currentPumpId} is running for 2 seconds. Please place a measuring cup and measure the dispensed
+                amount in ml.
               </AlertDescription>
             </Alert>
           )}
@@ -229,7 +229,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
                     disabled={calibrationStep !== "idle"}
                   >
                     <SelectTrigger className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))]">
-                      <SelectValue placeholder="Zutat wählen" />
+                      <SelectValue placeholder="Select ingredient" />
                     </SelectTrigger>
                     <SelectContent className="bg-black text-white border-[hsl(var(--cocktail-card-border))]">
                       {ingredients.map((ingredient) => (
@@ -261,7 +261,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
                     onClick={() => startCalibration(pump.id)}
                     disabled={calibrationStep !== "idle" || calibrating !== null}
                   >
-                    {calibrating === pump.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Kalibrieren"}
+                    {calibrating === pump.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Calibrate"}
                   </Button>
                 </div>
               </div>
@@ -276,12 +276,12 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Speichern...
+                Saving...
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Konfiguration speichern
+                Save Configuration
               </>
             )}
           </Button>
@@ -289,23 +289,23 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
           {showSuccess && (
             <Alert className="mt-4 bg-[hsl(var(--cocktail-success))]/10 border-[hsl(var(--cocktail-success))]/30">
               <AlertDescription className="text-[hsl(var(--cocktail-success))]">
-                Pumpenkonfiguration erfolgreich gespeichert!
+                Pump configuration saved successfully!
               </AlertDescription>
             </Alert>
           )}
         </CardContent>
       </Card>
 
-      {/* Dialog für die Eingabe der gemessenen Menge */}
+      {/* Dialog for entering measured amount */}
       <Dialog open={showInputDialog} onOpenChange={(open) => !open && cancelCalibration()}>
         <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] sm:max-w-md text-white">
           <DialogHeader>
-            <DialogTitle>Gemessene Menge eingeben</DialogTitle>
+            <DialogTitle>Enter Measured Amount</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <p className="text-sm text-[hsl(var(--cocktail-text))]">
-              Bitte gib die gemessene Menge für Pumpe {currentPumpId} ein:
+              Please enter the measured amount for pump {currentPumpId}:
             </p>
 
             <div className="flex items-center gap-2">
@@ -314,7 +314,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
                 type="text"
                 value={measuredAmount}
                 onChange={(e) => handleMeasuredAmountChange(e.target.value)}
-                placeholder="Menge in ml"
+                placeholder="Amount in ml"
                 className="text-xl h-12 text-center bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))]"
                 autoFocus
                 readOnly
@@ -337,14 +337,14 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
               onClick={cancelCalibration}
               className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
             >
-              Abbrechen
+              Cancel
             </Button>
             <Button
               onClick={saveCalibration}
               disabled={!measuredAmount}
               className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
             >
-              Speichern
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
