@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Cocktail } from "@/types/cocktail"
 import { ingredients } from "@/data/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
-import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X, ArrowLeft, Check, ArrowUp, Lock } from "lucide-react"
+import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X, ArrowLeft, Check } from "lucide-react"
 import FileBrowser from "./file-browser"
 
 interface RecipeCreatorProps {
@@ -31,13 +31,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   }>({})
   const [showFileBrowser, setShowFileBrowser] = useState(false)
 
-  // Tastatur-Zustände - INNERHALB des Dialogs
+  // Tastatur-States - INNERHALB des Dialogs
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [keyboardMode, setKeyboardMode] = useState<"name" | "description" | "imageUrl" | string>("name")
   const [keyboardValue, setKeyboardValue] = useState("")
   const [isNumericKeyboard, setIsNumericKeyboard] = useState(false)
-  const [isShiftActive, setIsShiftActive] = useState(false)
-  const [isCapsLockActive, setIsCapsLockActive] = useState(false)
 
   useEffect(() => {
     if (recipe.length === 0) {
@@ -51,9 +49,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     setKeyboardValue(currentValue)
     setIsNumericKeyboard(numeric)
     setShowKeyboard(true)
-    // Tastatur-Zustände beim Öffnen zurücksetzen
-    setIsShiftActive(false)
-    setIsCapsLockActive(false)
   }
 
   // Tastatur-Eingabe
@@ -64,33 +59,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         setKeyboardValue("0")
         return
       }
-      setKeyboardValue((prev) => prev + key)
-    } else {
-      // Groß-/Kleinschreibung für Buchstaben handhaben
-      let finalKey = key
-      if (key.match(/[a-z]/)) {
-        if (isShiftActive || isCapsLockActive) {
-          finalKey = key.toUpperCase()
-        }
-      }
-
-      setKeyboardValue((prev) => prev + finalKey)
-
-      // Shift nach Eingabe zurücksetzen (aber nicht Caps Lock)
-      if (isShiftActive) {
-        setIsShiftActive(false)
-      }
     }
-  }
-
-  const handleShift = () => {
-    setIsShiftActive(!isShiftActive)
-  }
-
-  const handleCapsLock = () => {
-    setIsCapsLockActive(!isCapsLockActive)
-    // Shift ausschalten wenn Caps Lock umgeschaltet wird
-    setIsShiftActive(false)
+    setKeyboardValue((prev) => prev + key)
   }
 
   const handleBackspace = () => {
@@ -187,7 +157,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       await saveRecipe(newCocktail)
       onSave(newCocktail)
       onClose()
-      // Zurücksetzen
+      // Reset
       setName("")
       setDescription("")
       setRecipe([])
@@ -206,20 +176,20 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     setShowFileBrowser(false)
   }
 
-  // Deutsche Tastatur definieren - ohne Shift/Caps Reihe
+  // Tastaturen definieren
   const alphaKeys = [
-    ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü"],
-    ["a", "s", "d", "f", "g", "h", "j", "k", "l", "ö", "ä"],
-    ["y", "x", "c", "v", "b", "n", "m", "ß"],
     ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-    [" ", "-", "_", ".", "/", "@"],
+    ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
+    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+    ["Y", "X", "C", "V", "B", "N", "M"],
+    [" ", "-", "_", ".", "/"],
   ]
 
   const numericKeys = [
     ["1", "2", "3"],
     ["4", "5", "6"],
     ["7", "8", "9"],
-    ["0", ".", "00"],
+    ["0", "00", "."],
   ]
 
   const keys = isNumericKeyboard ? numericKeys : alphaKeys
@@ -227,7 +197,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && !showFileBrowser && onClose()}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-4xl max-h-[95vh] overflow-hidden">
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Neues Rezept erstellen</DialogTitle>
           </DialogHeader>
@@ -242,7 +212,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   onClick={() => openKeyboard("name", name)}
                   readOnly
                   className={`bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer ${errors.name ? "border-red-500" : ""}`}
-                  placeholder="Cocktail-Name"
+                  placeholder="Name des Cocktails"
                 />
                 {errors.name && <p className="text-red-400 text-xs">{errors.name}</p>}
               </div>
@@ -261,7 +231,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-white">
                   <ImageIcon className="h-4 w-4" />
-                  Bildpfad (optional)
+                  Bild-Pfad (optional)
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -373,99 +343,66 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
               ))}
             </div>
           ) : (
-            // TASTATUR-ANSICHT - Shift und Caps an der Seite
-            <div className="flex gap-3 my-4">
-              {/* Tastatur links */}
-              <div className="flex-1">
-                <div className="text-center mb-3">
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    {keyboardMode === "name" && "Name eingeben"}
-                    {keyboardMode === "description" && "Beschreibung eingeben"}
-                    {keyboardMode === "imageUrl" && "Bildpfad eingeben"}
-                    {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
-                  </h3>
-                  <div className="bg-white text-black text-lg p-3 rounded mb-4 min-h-[50px] break-all">
-                    {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  {keys.map((row, rowIndex) => (
-                    <div key={rowIndex} className="flex gap-1 justify-center">
-                      {row.map((key) => (
-                        <Button
-                          key={key}
-                          type="button"
-                          onClick={() => handleKeyPress(key)}
-                          className="flex-1 h-12 text-lg bg-gray-700 hover:bg-gray-600 text-white"
-                        >
-                          {key}
-                        </Button>
-                      ))}
-                    </div>
-                  ))}
+            // TASTATUR-ANSICHT
+            <div className="space-y-4 my-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  {keyboardMode === "name" && "Name eingeben"}
+                  {keyboardMode === "description" && "Beschreibung eingeben"}
+                  {keyboardMode === "imageUrl" && "Bild-Pfad eingeben"}
+                  {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
+                </h3>
+                <div className="bg-white text-black text-xl p-3 rounded mb-4 min-h-[50px] break-all">
+                  {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
                 </div>
               </div>
 
-              {/* Action-Buttons rechts - mit Shift und Caps */}
-              <div className="flex flex-col gap-2 w-24">
-                {/* Shift und Caps nur für Alpha-Tastatur */}
-                {!isNumericKeyboard && (
-                  <>
-                    <Button
-                      type="button"
-                      onClick={handleShift}
-                      className={`h-12 text-white flex flex-col items-center justify-center ${
-                        isShiftActive ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"
-                      }`}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                      <span className="text-xs">Umschalt</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleCapsLock}
-                      className={`h-12 text-white flex flex-col items-center justify-center ${
-                        isCapsLockActive ? "bg-orange-600 hover:bg-orange-700" : "bg-gray-700 hover:bg-gray-600"
-                      }`}
-                    >
-                      <Lock className="h-4 w-4" />
-                      <span className="text-xs">Feststelltaste</span>
-                    </Button>
-                  </>
-                )}
+              <div className="grid gap-2">
+                {keys.map((row, rowIndex) => (
+                  <div key={rowIndex} className="flex gap-1 justify-center">
+                    {row.map((key) => (
+                      <Button
+                        key={key}
+                        type="button"
+                        onClick={() => handleKeyPress(key)}
+                        className="flex-1 h-12 text-lg bg-gray-700 hover:bg-gray-600 text-white"
+                      >
+                        {key}
+                      </Button>
+                    ))}
+                  </div>
+                ))}
 
-                <Button
-                  type="button"
-                  onClick={handleBackspace}
-                  className="h-12 bg-red-700 hover:bg-red-600 text-white flex flex-col items-center justify-center"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="text-xs">Zurück</span>
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleClear}
-                  className="h-12 bg-yellow-700 hover:bg-yellow-600 text-white flex flex-col items-center justify-center"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="text-xs">Löschen</span>
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleKeyboardCancel}
-                  className="h-12 bg-gray-700 hover:bg-gray-600 text-white flex flex-col items-center justify-center"
-                >
-                  <span className="text-xs">Abbrechen</span>
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleKeyboardConfirm}
-                  className="h-12 bg-green-700 hover:bg-green-600 text-white flex flex-col items-center justify-center"
-                >
-                  <Check className="h-4 w-4" />
-                  <span className="text-xs">OK</span>
-                </Button>
+                <div className="flex gap-1 mt-2">
+                  <Button
+                    type="button"
+                    onClick={handleBackspace}
+                    className="flex-1 h-12 bg-red-700 hover:bg-red-600 text-white"
+                  >
+                    <ArrowLeft className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleClear}
+                    className="flex-1 h-12 bg-yellow-700 hover:bg-yellow-600 text-white"
+                  >
+                    <X className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleKeyboardCancel}
+                    className="flex-1 h-12 bg-gray-700 hover:bg-gray-600 text-white"
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleKeyboardConfirm}
+                    className="flex-1 h-12 bg-green-700 hover:bg-green-600 text-white"
+                  >
+                    <Check className="h-6 w-6" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -495,7 +432,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         </DialogContent>
       </Dialog>
 
-      {/* Datei-Browser */}
+      {/* Dateibrowser */}
       <FileBrowser
         isOpen={showFileBrowser}
         onClose={() => setShowFileBrowser(false)}

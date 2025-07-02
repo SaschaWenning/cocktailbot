@@ -3,166 +3,157 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Edit, Trash2 } from "lucide-react"
 import type { Cocktail } from "@/types/cocktail"
 
 interface CocktailCardProps {
   cocktail: Cocktail
-  isSelected?: boolean
-  canMake?: boolean
-  onSelect?: () => void
-  onImageEdit?: () => void
-  onDelete?: () => void
-  showEditButtons?: boolean
+  onClick: () => void
 }
 
-export default function CocktailCard({
-  cocktail,
-  isSelected = false,
-  canMake = true,
-  onSelect,
-  onImageEdit,
-  onDelete,
-  showEditButtons = false,
-}: CocktailCardProps) {
+export default function CocktailCard({ cocktail, onClick }: CocktailCardProps) {
   const [imageSrc, setImageSrc] = useState<string>("")
-  const [imageError, setImageError] = useState(false)
+  const [imageStatus, setImageStatus] = useState<"loading" | "success" | "error">("loading")
 
   useEffect(() => {
-    const loadImage = async () => {
+    const findWorkingImagePath = async () => {
+      setImageStatus("loading")
+
       if (!cocktail.image) {
-        setImageSrc(`/placeholder.svg?height=200&width=300&text=${encodeURIComponent(cocktail.name)}`)
+        const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+        setImageSrc(placeholder)
+        setImageStatus("success")
         return
       }
 
-      // Verschiedene Bildpfade testen
-      const imagePaths = [
-        cocktail.image,
-        `/images/cocktails/${cocktail.image.split("/").pop()}`,
-        `/${cocktail.image.split("/").pop()}`,
-        `/public${cocktail.image}`,
-        `/api/image?path=${encodeURIComponent(cocktail.image)}`,
+      // Extrahiere den Dateinamen aus dem Pfad
+      const filename = cocktail.image.split("/").pop() || cocktail.image
+      const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "") // Entferne Dateierweiterung
+      const originalExt = filename.split(".").pop()?.toLowerCase() || ""
+
+      // Alle gängigen Bildformate
+      const imageExtensions = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "svg"]
+
+      // Verwende originale Erweiterung zuerst, dann alle anderen
+      const extensionsToTry = originalExt
+        ? [originalExt, ...imageExtensions.filter((ext) => ext !== originalExt)]
+        : imageExtensions
+
+      // Verschiedene Basispfade für alkoholische und alkoholfreie Cocktails
+      const basePaths = [
+        "/images/cocktails/", // Alkoholische Cocktails
+        "/", // Alkoholfreie Cocktails (direkt im public/)
+        "", // Ohne Pfad
+        "/public/images/cocktails/", // Vollständiger Pfad
+        "/public/", // Public Verzeichnis
       ]
 
-      for (const path of imagePaths) {
+      const strategies: string[] = []
+
+      // Generiere alle Kombinationen von Pfaden und Dateierweiterungen
+      for (const basePath of basePaths) {
+        for (const ext of extensionsToTry) {
+          strategies.push(`${basePath}${filenameWithoutExt}.${ext}`)
+        }
+        // Auch den originalen Dateinamen probieren
+        strategies.push(`${basePath}${filename}`)
+      }
+
+      // Zusätzliche spezielle Strategien
+      strategies.push(
+        // Originaler Pfad
+        cocktail.image,
+        // Ohne führenden Slash
+        cocktail.image.startsWith("/") ? cocktail.image.substring(1) : cocktail.image,
+        // Mit führendem Slash
+        cocktail.image.startsWith("/") ? cocktail.image : `/${cocktail.image}`,
+        // API-Pfad als Fallback
+        `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/images/cocktails/${filename}`)}`,
+        `/api/image?path=${encodeURIComponent(`/home/pi/cocktailbot/cocktailbot-main/public/${filename}`)}`,
+      )
+
+      // Entferne Duplikate
+      const uniqueStrategies = [...new Set(strategies)]
+
+      console.log(
+        `Testing ${uniqueStrategies.length} image strategies for ${cocktail.name}:`,
+        uniqueStrategies.slice(0, 10),
+      )
+
+      for (let i = 0; i < uniqueStrategies.length; i++) {
+        const testPath = uniqueStrategies[i]
+
         try {
           const img = new Image()
-          img.crossOrigin = "anonymous"
+          img.crossOrigin = "anonymous" // Für CORS
 
           const loadPromise = new Promise<boolean>((resolve) => {
             img.onload = () => resolve(true)
             img.onerror = () => resolve(false)
           })
 
-          img.src = path
+          img.src = testPath
           const success = await loadPromise
 
           if (success) {
-            setImageSrc(path)
-            setImageError(false)
+            console.log(`✅ Found working image for ${cocktail.name}: ${testPath}`)
+            setImageSrc(testPath)
+            setImageStatus("success")
             return
           }
         } catch (error) {
-          continue
+          // Fehler ignorieren und nächste Strategie versuchen
         }
       }
 
-      // Fallback zu Platzhalter
-      setImageSrc(`/placeholder.svg?height=200&width=300&text=${encodeURIComponent(cocktail.name)}`)
-      setImageError(true)
+      // Fallback auf Platzhalter
+      console.log(`❌ No working image found for ${cocktail.name}, using placeholder`)
+      const placeholder = `/placeholder.svg?height=300&width=300&query=${encodeURIComponent(cocktail.name)}`
+      setImageSrc(placeholder)
+      setImageStatus("error")
     }
 
-    loadImage()
+    findWorkingImagePath()
   }, [cocktail.image, cocktail.name])
-
-  const handleImageError = () => {
-    if (!imageError) {
-      setImageError(true)
-      setImageSrc(`/placeholder.svg?height=200&width=300&text=${encodeURIComponent(cocktail.name)}`)
-    }
-  }
 
   return (
     <Card
-      className={`overflow-hidden transition-all cursor-pointer hover:shadow-lg ${
-        isSelected
-          ? "ring-2 ring-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-card-bg))]/80"
-          : "bg-[hsl(var(--cocktail-card-bg))] hover:bg-[hsl(var(--cocktail-card-bg))]/80"
-      } border-[hsl(var(--cocktail-card-border))]`}
-      onClick={onSelect}
+      className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer bg-black border-[hsl(var(--cocktail-card-border))] hover:border-[hsl(var(--cocktail-primary))]/50"
+      onClick={onClick}
     >
-      <div className="relative">
+      <div className="relative aspect-square overflow-hidden">
         <img
           src={imageSrc || "/placeholder.svg"}
           alt={cocktail.name}
-          className="w-full h-48 object-cover"
-          onError={handleImageError}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           crossOrigin="anonymous"
         />
-        <div className="absolute top-2 right-2">
-          <Badge
-            variant={cocktail.alcoholic ? "default" : "secondary"}
-            className={cocktail.alcoholic ? "bg-[hsl(var(--cocktail-primary))] text-black" : "bg-green-600 text-white"}
-          >
-            {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
-          </Badge>
-        </div>
-        {!canMake && (
-          <div className="absolute top-2 left-2">
-            <Badge variant="destructive" className="bg-red-600 text-white">
-              Zutaten fehlen
-            </Badge>
-          </div>
-        )}
-        {showEditButtons && (
-          <div className="absolute bottom-2 right-2 flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-white/90 text-black border-white/90 hover:bg-white"
-              onClick={(e) => {
-                e.stopPropagation()
-                onImageEdit?.()
-              }}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="bg-red-600/90 text-white border-red-600/90 hover:bg-red-600"
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete?.()
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+        {/* Badge */}
+        <Badge className="absolute top-3 right-3 bg-[hsl(var(--cocktail-primary))] text-black font-medium shadow-lg">
+          {cocktail.alcoholic ? "Alkoholisch" : "Alkoholfrei"}
+        </Badge>
+
+        {/* Debug Info (nur in Development) */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="absolute bottom-2 left-2 text-xs bg-black/70 text-white p-1 rounded">
+            {imageStatus === "loading" && "🔄"}
+            {imageStatus === "success" && "✅"}
+            {imageStatus === "error" && "❌"}
           </div>
         )}
       </div>
+
       <CardContent className="p-4">
-        <h3 className="font-semibold text-lg mb-2 text-[hsl(var(--cocktail-text))]">{cocktail.name}</h3>
-        <p className="text-sm text-[hsl(var(--cocktail-text-muted))] mb-3 line-clamp-2">{cocktail.description}</p>
-        <div className="flex flex-wrap gap-1">
-          {cocktail.ingredients.slice(0, 3).map((ingredient, index) => (
-            <Badge
-              key={index}
-              variant="outline"
-              className="text-xs bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-            >
-              {ingredient}
-            </Badge>
-          ))}
-          {cocktail.ingredients.length > 3 && (
-            <Badge
-              variant="outline"
-              className="text-xs bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-            >
-              +{cocktail.ingredients.length - 3} weitere
-            </Badge>
-          )}
+        <div className="space-y-2">
+          <h3 className="font-bold text-lg text-[hsl(var(--cocktail-text))] line-clamp-1 group-hover:text-[hsl(var(--cocktail-primary))] transition-colors duration-200">
+            {cocktail.name}
+          </h3>
+          <p className="text-sm text-[hsl(var(--cocktail-text-muted))] line-clamp-2 leading-relaxed">
+            {cocktail.description}
+          </p>
         </div>
       </CardContent>
     </Card>
