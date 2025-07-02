@@ -297,7 +297,7 @@ export const cocktails: Cocktail[] = [
     id: "mai-tai",
     name: "Mai Tai",
     description: "Klassischer Tiki-Cocktail mit braunem Rum und Mandelsirup",
-    image: "/images/cocktails/mai_tai.jpg",
+    image: "/images/cocktails/Mai_Tai.jpg",
     alcoholic: true,
     ingredients: ["60ml Brauner Rum", "15ml Orangenlikör", "50ml Ananassaft", "15ml Mandelsirup", "20ml Limettensaft"],
     recipe: [
@@ -313,7 +313,7 @@ export const cocktails: Cocktail[] = [
     id: "tropical-sunset",
     name: "Tropical Sunset",
     description: "Schöner Farbverlauf mit Ananas, Orange und Grenadine",
-    image: "/tropical-sunset.png",
+    image: "/tropical_sunset.png",
     alcoholic: false,
     ingredients: ["120ml Ananassaft", "80ml Orangensaft", "15ml Grenadine"],
     recipe: [
@@ -338,7 +338,7 @@ export const cocktails: Cocktail[] = [
     id: "pineapple-lime-fizz",
     name: "Pineapple Lime Fizz",
     description: "Erfrischender Cocktail mit Ananas und Limette",
-    image: "/pineapple-lime-fizz.png",
+    image: "/pineapple_lime_fizz.png",
     alcoholic: false,
     ingredients: ["150ml Ananassaft", "30ml Limettensaft", "10ml Vanillesirup"],
     recipe: [
@@ -363,7 +363,7 @@ export const cocktails: Cocktail[] = [
     id: "passion-paradise",
     name: "Passion Paradise",
     description: "Exotischer Cocktail mit Maracuja und tropischen Früchten",
-    image: "/passion-paradise.png",
+    image: "/passion_paradise.png",
     alcoholic: false,
     ingredients: ["100ml Maracujasaft", "80ml Ananassaft", "40ml Orangensaft", "15ml Mandelsirup"],
     recipe: [
@@ -389,7 +389,7 @@ export const cocktails: Cocktail[] = [
     id: "vanilla-orange-dream",
     name: "Vanilla Orange Dream",
     description: "Cremiger Traum mit Vanille und Orange",
-    image: "/vanilla-orange-dream.png",
+    image: "/vanilla_orange_dream.png",
     alcoholic: false,
     ingredients: ["120ml Orangensaft", "60ml Ananassaft", "25ml Vanillesirup", "10ml Limettensaft"],
     recipe: [
@@ -415,7 +415,7 @@ export const cocktails: Cocktail[] = [
     id: "grenadine-sunrise",
     name: "Grenadine Sunrise",
     description: "Wunderschöner Sonnenaufgang im Glas",
-    image: "/grenadine-sunrise.png",
+    image: "/grenadine_sunrise.png",
     alcoholic: false,
     ingredients: ["100ml Orangensaft", "80ml Ananassaft", "20ml Grenadine", "10ml Limettensaft"],
     recipe: [
@@ -441,7 +441,7 @@ export const cocktails: Cocktail[] = [
     id: "almond-citrus-cooler",
     name: "Almond Citrus Cooler",
     description: "Erfrischender Mandel-Zitrus Mix",
-    image: "/almond-citrus-cooler.png",
+    image: "/almond_citrus_cooler.png",
     alcoholic: false,
     ingredients: ["80ml Orangensaft", "40ml Limettensaft", "60ml Ananassaft", "20ml Mandelsirup"],
     recipe: [
