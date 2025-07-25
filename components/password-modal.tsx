@@ -2,13 +2,13 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Lock } from "lucide-react"
+import AlphaKeyboard from "./alpha-keyboard"
 
 interface PasswordModalProps {
   isOpen: boolean
@@ -23,62 +23,93 @@ export default function PasswordModal({
   onClose,
   onSuccess,
   title = "Passwort erforderlich",
-  description = "Bitte gib das Passwort ein, um fortzufahren:",
+  description = "Bitte gib das Passwort ein, um Rezepte zu bearbeiten:",
 }: PasswordModalProps) {
   const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [error, setError] = useState(false)
+  const [showKeyboard, setShowKeyboard] = useState(true)
+
+  // Reset password when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setPassword("")
+      setError(false)
+      setShowKeyboard(true)
+    }
+  }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (password === "cocktail") {
+      setError(false)
       setPassword("")
-      setError("")
       onSuccess()
     } else {
-      setError("Falsches Passwort")
+      setError(true)
     }
   }
 
-  const handleClose = () => {
+  const handleKeyPress = (key: string) => {
+    setPassword((prev) => prev + key)
+    setError(false)
+  }
+
+  const handleBackspace = () => {
+    setPassword((prev) => prev.slice(0, -1))
+    setError(false)
+  }
+
+  const handleClear = () => {
     setPassword("")
-    setError("")
-    onClose()
+    setError(false)
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-md">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white">{title}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            {title}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-white">{description}</Label>
+            <Label htmlFor="password">{description}</Label>
             <Input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white border-[hsl(var(--cocktail-card-border))] text-black"
-              placeholder="Passwort eingeben..."
-              autoFocus
+              className={`bg-[hsl(var(--cocktail-bg))] border-[hsl(var(--cocktail-card-border))] ${error ? "border-[hsl(var(--cocktail-error))]" : ""}`}
+              placeholder="Passwort eingeben"
+              autoComplete="off"
+              readOnly
+              onFocus={() => setShowKeyboard(true)}
             />
+            {error && (
+              <p className="text-[hsl(var(--cocktail-error))] text-sm">Falsches Passwort. Bitte versuche es erneut.</p>
+            )}
           </div>
 
-          {error && (
-            <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30">
-              <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
-              <AlertDescription className="text-[hsl(var(--cocktail-error))]">{error}</AlertDescription>
-            </Alert>
+          {showKeyboard && (
+            <div className="mt-4">
+              <AlphaKeyboard
+                onKeyPress={handleKeyPress}
+                onBackspace={handleBackspace}
+                onClear={handleClear}
+                onConfirm={handleSubmit}
+              />
+            </div>
           )}
 
-          <DialogFooter className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
               type="button"
-              variant="outline"
-              onClick={handleClose}
               className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+              onClick={onClose}
             >
               Abbrechen
             </Button>

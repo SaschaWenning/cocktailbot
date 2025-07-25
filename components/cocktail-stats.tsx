@@ -4,15 +4,15 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3, Trophy, Calendar, RotateCcw, Trash2 } from "lucide-react"
-import { getCocktailStats, getTotalStats, resetCocktailCount } from "@/lib/cocktail-stats-service"
-
-interface CocktailStat {
-  cocktailId: string
-  cocktailName: string
-  count: number
-  lastMade: string
-}
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { BarChart3, Trophy, Calendar, RotateCcw, Trash2, AlertCircle } from "lucide-react"
+import {
+  getCocktailStats,
+  resetSingleCocktailStat,
+  getTotalCocktailCount,
+  getTopCocktails,
+} from "@/lib/cocktail-stats-service"
+import type { CocktailStat } from "@/lib/cocktail-stats-service"
 
 interface CocktailStatsProps {
   onResetRequest: () => void
@@ -20,23 +20,22 @@ interface CocktailStatsProps {
 
 export default function CocktailStats({ onResetRequest }: CocktailStatsProps) {
   const [stats, setStats] = useState<CocktailStat[]>([])
-  const [totalStats, setTotalStats] = useState({
-    totalCocktails: 0,
-    uniqueCocktails: 0,
-    mostPopular: null as CocktailStat | null,
-  })
+  const [topCocktails, setTopCocktails] = useState<CocktailStat[]>([])
+  const [totalCount, setTotalCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadStats()
-  }, [])
 
   const loadStats = async () => {
     setLoading(true)
     try {
-      const [cocktailStats, totals] = await Promise.all([getCocktailStats(), getTotalStats()])
-      setStats(cocktailStats)
-      setTotalStats(totals)
+      const [allStats, topStats, total] = await Promise.all([
+        getCocktailStats(),
+        getTopCocktails(5),
+        getTotalCocktailCount(),
+      ])
+
+      setStats(allStats)
+      setTopCocktails(topStats)
+      setTotalCount(total)
     } catch (error) {
       console.error("Fehler beim Laden der Statistiken:", error)
     } finally {
@@ -44,18 +43,21 @@ export default function CocktailStats({ onResetRequest }: CocktailStatsProps) {
     }
   }
 
+  useEffect(() => {
+    loadStats()
+  }, [])
+
   const handleResetSingle = async (cocktailId: string) => {
     try {
-      await resetCocktailCount(cocktailId)
-      await loadStats() // Lade Statistiken neu
+      await resetSingleCocktailStat(cocktailId)
+      await loadStats()
     } catch (error) {
       console.error("Fehler beim Zurücksetzen der Statistik:", error)
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("de-DE", {
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString("de-DE", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -74,112 +76,79 @@ export default function CocktailStats({ onResetRequest }: CocktailStatsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))] flex items-center gap-2">
-          <BarChart3 className="h-6 w-6" />
-          Cocktail-Statistiken
-        </h2>
-        <Button onClick={onResetRequest} variant="destructive" className="flex items-center gap-2">
-          <RotateCcw className="h-4 w-4" />
-          Alle zurücksetzen
-        </Button>
-      </div>
-
-      {/* Gesamtstatistiken */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[hsl(var(--cocktail-text-muted))]">
-              Gesamt zubereitet
-            </CardTitle>
+      {/* Header mit Gesamtstatistiken */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-[hsl(var(--cocktail-text))]">Gesamt zubereitet</CardTitle>
+            <BarChart3 className="h-4 w-4 text-[hsl(var(--cocktail-primary))]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-[hsl(var(--cocktail-primary))]">{totalStats.totalCocktails}</div>
+            <div className="text-2xl font-bold text-[hsl(var(--cocktail-primary))]">{totalCount}</div>
+            <p className="text-xs text-[hsl(var(--cocktail-text-muted))]">Cocktails insgesamt</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[hsl(var(--cocktail-text-muted))]">
+        <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-[hsl(var(--cocktail-text))]">
               Verschiedene Cocktails
             </CardTitle>
+            <Trophy className="h-4 w-4 text-[hsl(var(--cocktail-primary))]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-[hsl(var(--cocktail-primary))]">{totalStats.uniqueCocktails}</div>
+            <div className="text-2xl font-bold text-[hsl(var(--cocktail-primary))]">{stats.length}</div>
+            <p className="text-xs text-[hsl(var(--cocktail-text-muted))]">Verschiedene Rezepte</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[hsl(var(--cocktail-text-muted))] flex items-center gap-1">
-              <Trophy className="h-4 w-4" />
-              Beliebtester
+        <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-[hsl(var(--cocktail-text))]">
+              Beliebtester Cocktail
             </CardTitle>
+            <Trophy className="h-4 w-4 text-[hsl(var(--cocktail-primary))]" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold text-[hsl(var(--cocktail-primary))]">
-              {totalStats.mostPopular ? totalStats.mostPopular.cocktailName : "Noch keine"}
+            <div className="text-lg font-bold text-[hsl(var(--cocktail-primary))] truncate">
+              {topCocktails[0]?.cocktailName || "Noch keine"}
             </div>
-            {totalStats.mostPopular && (
-              <div className="text-sm text-[hsl(var(--cocktail-text-muted))]">
-                {totalStats.mostPopular.count}x zubereitet
-              </div>
-            )}
+            <p className="text-xs text-[hsl(var(--cocktail-text-muted))]">{topCocktails[0]?.count || 0}x zubereitet</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Top 5 Cocktails */}
-      {stats.length > 0 && (
-        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
+      {topCocktails.length > 0 && (
+        <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
           <CardHeader>
             <CardTitle className="text-[hsl(var(--cocktail-text))] flex items-center gap-2">
               <Trophy className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
-              Top 5 Cocktails
+              Top 5 Beliebteste Cocktails
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.slice(0, 5).map((stat, index) => (
+              {topCocktails.map((stat, index) => (
                 <div
                   key={stat.cocktailId}
-                  className="flex items-center justify-between p-3 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-lg border border-[hsl(var(--cocktail-card-border))]"
+                  className="flex items-center justify-between p-3 bg-[hsl(var(--cocktail-card-bg))]/30 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     <Badge
                       variant="outline"
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                        index === 0
-                          ? "bg-yellow-500 text-black border-yellow-500"
-                          : index === 1
-                            ? "bg-gray-400 text-black border-gray-400"
-                            : index === 2
-                              ? "bg-orange-600 text-white border-orange-600"
-                              : "bg-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))]"
-                      }`}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-[hsl(var(--cocktail-primary))] border-[hsl(var(--cocktail-primary))]"
                     >
                       {index + 1}
                     </Badge>
                     <div>
                       <div className="font-medium text-[hsl(var(--cocktail-text))]">{stat.cocktailName}</div>
-                      <div className="text-sm text-[hsl(var(--cocktail-text-muted))] flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                      <div className="text-sm text-[hsl(var(--cocktail-text-muted))]">
                         Zuletzt: {formatDate(stat.lastMade)}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge className="bg-[hsl(var(--cocktail-primary))] text-black">{stat.count}x</Badge>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleResetSingle(stat.cocktailId)}
-                      className="h-8 w-8 p-0 bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-red-500 hover:border-red-500 hover:text-white"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  <Badge className="bg-[hsl(var(--cocktail-primary))] text-black">{stat.count}x</Badge>
                 </div>
               ))}
             </div>
@@ -187,55 +156,60 @@ export default function CocktailStats({ onResetRequest }: CocktailStatsProps) {
         </Card>
       )}
 
-      {/* Alle Cocktails */}
-      {stats.length > 5 && (
-        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-          <CardHeader>
-            <CardTitle className="text-[hsl(var(--cocktail-text))]">Alle Cocktails ({stats.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {stats.slice(5).map((stat) => (
+      {/* Alle Statistiken */}
+      <Card className="bg-black border-[hsl(var(--cocktail-card-border))]">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-[hsl(var(--cocktail-text))] flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+            Alle Cocktail-Statistiken
+          </CardTitle>
+          <Button onClick={onResetRequest} variant="destructive" size="sm" className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Alle zurücksetzen
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {stats.length === 0 ? (
+            <Alert className="bg-[hsl(var(--cocktail-card-bg))]/30 border-[hsl(var(--cocktail-card-border))]">
+              <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-text-muted))]" />
+              <AlertDescription className="text-[hsl(var(--cocktail-text-muted))]">
+                Noch keine Cocktails zubereitet. Die Statistiken werden angezeigt, sobald du deinen ersten Cocktail
+                zubereitest.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-3">
+              {stats.map((stat) => (
                 <div
                   key={stat.cocktailId}
-                  className="flex items-center justify-between p-2 bg-[hsl(var(--cocktail-card-bg))]/30 rounded border border-[hsl(var(--cocktail-card-border))]/50"
+                  className="flex items-center justify-between p-4 bg-[hsl(var(--cocktail-card-bg))]/30 rounded-lg hover:bg-[hsl(var(--cocktail-card-bg))]/50 transition-colors"
                 >
-                  <div>
-                    <div className="font-medium text-[hsl(var(--cocktail-text))] text-sm">{stat.cocktailName}</div>
-                    <div className="text-xs text-[hsl(var(--cocktail-text-muted))]">{formatDate(stat.lastMade)}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium text-[hsl(var(--cocktail-text))]">{stat.cocktailName}</h3>
+                      <Badge className="bg-[hsl(var(--cocktail-primary))] text-black font-semibold">
+                        {stat.count}x
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-[hsl(var(--cocktail-text-muted))]">
+                      <Calendar className="h-4 w-4" />
+                      Zuletzt zubereitet: {formatDate(stat.lastMade)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {stat.count}x
-                    </Badge>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleResetSingle(stat.cocktailId)}
-                      className="h-6 w-6 p-0 bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-red-500 hover:border-red-500 hover:text-white"
-                    >
-                      <Trash2 className="h-2 w-2" />
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => handleResetSingle(stat.cocktailId)}
+                    variant="outline"
+                    size="sm"
+                    className="ml-4 bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Keine Statistiken */}
-      {stats.length === 0 && (
-        <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-          <CardContent className="text-center py-12">
-            <BarChart3 className="h-12 w-12 mx-auto mb-4 text-[hsl(var(--cocktail-text-muted))]" />
-            <h3 className="text-lg font-medium text-[hsl(var(--cocktail-text))] mb-2">Noch keine Statistiken</h3>
-            <p className="text-[hsl(var(--cocktail-text-muted))]">
-              Bereite deinen ersten Cocktail zu, um Statistiken zu sehen!
-            </p>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
