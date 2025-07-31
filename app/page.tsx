@@ -4,8 +4,8 @@ import { useState } from "react"
 
 import { Wine, Zap, Gauge, BookOpen, Settings, Droplets, BarChart3 } from "lucide-react"
 import { CocktailStats } from "@/components/cocktail-stats"
-import { CocktailMachine } from "@/lib/cocktail-machine"
 import { toast } from "sonner"
+import { makeCocktailAction } from "@/app/actions/cocktail" // Import the new server action
 
 const Page = () => {
   const [activeTab, setActiveTab] = useState("cocktails")
@@ -13,14 +13,15 @@ const Page = () => {
 
   const handlePasswordRequired = (callback: () => void) => {
     // Password handling logic here
+    // For now, just execute the callback directly
     callback()
   }
 
-  const makeCocktail = async (cocktailId: string) => {
+  // This function now calls the server action
+  const makeCocktail = async (cocktailId: string, cocktailName: string) => {
     setIsLoading(true)
     try {
-      const machine = CocktailMachine.getInstance()
-      const result = await machine.makeCocktail(cocktailId)
+      const result = await makeCocktailAction(cocktailId, cocktailName)
 
       if (result.success) {
         toast({
@@ -35,6 +36,7 @@ const Page = () => {
         })
       }
     } catch (error) {
+      console.error("Error in makeCocktail:", error)
       toast({
         title: "Fehler",
         description: "Unbekannter Fehler beim Zubereiten",
@@ -58,16 +60,22 @@ const Page = () => {
   return (
     <div>
       {/* Tab navigation here */}
-      <div>
+      <div className="flex justify-around p-4 bg-gray-100 border-b border-gray-200">
         {tabs.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? "active" : ""}>
-            {tab.icon}
-            {tab.label}
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex flex-col items-center p-2 rounded-md transition-colors ${
+              activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-gray-200"
+            }`}
+          >
+            <tab.icon className="w-6 h-6" />
+            <span className="text-xs mt-1">{tab.label}</span>
           </button>
         ))}
       </div>
       {/* Main content area here */}
-      <div>
+      <div className="p-4">
         {activeTab === "cocktails" && <div>{/* Cocktail list here */}</div>}
         {activeTab === "shots" && <div>{/* Shot list here */}</div>}
         {activeTab === "levels" && <div>{/* Level display here */}</div>}
