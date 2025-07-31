@@ -28,9 +28,7 @@ export const ingredients: Ingredient[] = [
   { id: "sambuca", name: "Sambuca", alcoholic: true },
   { id: "jagermeister", name: "Jägermeister", alcoholic: true },
   { id: "midori", name: "Midori", alcoholic: true },
-  { id: "chambord", name: "Chambord", alcoholic: true },
-  { id: "frangelico", name: "Frangelico", alcoholic: true },
-  { id: "pitu", name: "Pitu", alcoholic: true },
+  { id: "melon-liqueur", name: "Melonenlikör", alcoholic: true },
 
   // Alkoholische Getränke - Wein
   { id: "white-wine", name: "Weißwein", alcoholic: true },
@@ -58,6 +56,7 @@ export const ingredients: Ingredient[] = [
   { id: "peach-juice", name: "Pfirsichsaft", alcoholic: false },
   { id: "cherry-juice", name: "Kirschsaft", alcoholic: false },
   { id: "pomegranate-juice", name: "Granatapfelsaft", alcoholic: false },
+  { id: "banana-juice", name: "Bananensaft", alcoholic: false },
 
   // Nicht-alkoholische Getränke - Zitrusfrüchte
   { id: "lime-juice", name: "Limettensaft", alcoholic: false },
@@ -73,6 +72,7 @@ export const ingredients: Ingredient[] = [
   { id: "cream", name: "Sahne", alcoholic: false },
   { id: "coconut-cream", name: "Kokossahne", alcoholic: false },
   { id: "coconut-milk", name: "Kokosmilch", alcoholic: false },
+  { id: "cream-of-coconut", name: "Cream of Coconut", alcoholic: false },
 
   // Sirupe
   { id: "sugar-syrup", name: "Zuckersirup", alcoholic: false },
@@ -83,4 +83,7 @@ export const ingredients: Ingredient[] = [
   { id: "maple-syrup", name: "Ahornsirup", alcoholic: false },
   { id: "caramel-syrup", name: "Karamellsirup", alcoholic: false },
   { id: "chocolate-syrup", name: "Schokoladensirup", alcoholic: false },
+  { id: "melon-syrup", name: "Melonensirup", alcoholic: false },
+  { id: "mango-syrup", name: "Mangosirup", alcoholic: false },
+  { id: "banana-syrup", name: "Bananensirup", alcoholic: false },
 ]

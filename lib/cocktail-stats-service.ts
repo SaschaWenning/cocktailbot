@@ -1,59 +1,111 @@
-"use server"
+import { promises as fs } from "fs"
+import path from "path"
 
 export interface CocktailStat {
-  cocktailId: string
-  cocktailName: string
+  id: string
+  name: string
   count: number
-  lastMade: Date
+  lastMade: string
 }
 
-// In einer echten Anwendung würden wir diese Daten in einer Datenbank speichern
-let cocktailStats: CocktailStat[] = []
-
-// Statistiken abrufen
-export async function getCocktailStats(): Promise<CocktailStat[]> {
-  return cocktailStats.sort((a, b) => b.count - a.count) // Sortiert nach Anzahl (höchste zuerst)
+export interface CocktailStats {
+  [cocktailId: string]: CocktailStat
 }
 
-// Cocktail-Zähler erhöhen
-export async function incrementCocktailCount(cocktailId: string, cocktailName: string): Promise<void> {
-  const existingIndex = cocktailStats.findIndex((stat) => stat.cocktailId === cocktailId)
+const STATS_FILE = path.join(process.cwd(), "data", "cocktail-stats.json")
 
-  if (existingIndex !== -1) {
-    // Existierenden Eintrag aktualisieren
-    cocktailStats[existingIndex] = {
-      ...cocktailStats[existingIndex],
-      count: cocktailStats[existingIndex].count + 1,
-      lastMade: new Date(),
-      cocktailName: cocktailName, // Name aktualisieren falls er sich geändert hat
+export class CocktailStatsService {
+  private static instance: CocktailStatsService
+  private stats: CocktailStats = {}
+
+  private constructor() {}
+
+  static getInstance(): CocktailStatsService {
+    if (!CocktailStatsService.instance) {
+      CocktailStatsService.instance = new CocktailStatsService()
     }
-  } else {
-    // Neuen Eintrag erstellen
-    cocktailStats.push({
-      cocktailId,
-      cocktailName,
-      count: 1,
-      lastMade: new Date(),
-    })
+    return CocktailStatsService.instance
   }
-}
 
-// Statistiken zurücksetzen
-export async function resetCocktailStats(): Promise<void> {
-  cocktailStats = []
-}
+  async loadStats(): Promise<CocktailStats> {
+    try {
+      // Ensure data directory exists
+      const dataDir = path.dirname(STATS_FILE)
+      await fs.mkdir(dataDir, { recursive: true })
 
-// Einzelnen Cocktail-Zähler zurücksetzen
-export async function resetSingleCocktailStat(cocktailId: string): Promise<void> {
-  cocktailStats = cocktailStats.filter((stat) => stat.cocktailId !== cocktailId)
-}
+      const data = await fs.readFile(STATS_FILE, "utf-8")
+      this.stats = JSON.parse(data)
+    } catch (error) {
+      // File doesn't exist or is invalid, start with empty stats
+      this.stats = {}
+    }
+    return this.stats
+  }
 
-// Gesamtanzahl aller zubereiteten Cocktails
-export async function getTotalCocktailCount(): Promise<number> {
-  return cocktailStats.reduce((total, stat) => total + stat.count, 0)
-}
+  async saveStats(): Promise<void> {
+    try {
+      const dataDir = path.dirname(STATS_FILE)
+      await fs.mkdir(dataDir, { recursive: true })
+      await fs.writeFile(STATS_FILE, JSON.stringify(this.stats, null, 2))
+    } catch (error) {
+      console.error("Error saving cocktail stats:", error)
+    }
+  }
 
-// Top 5 beliebteste Cocktails
-export async function getTopCocktails(limit = 5): Promise<CocktailStat[]> {
-  return cocktailStats.sort((a, b) => b.count - a.count).slice(0, limit)
+  async incrementCocktail(cocktailId: string, cocktailName: string): Promise<void> {
+    await this.loadStats()
+
+    if (!this.stats[cocktailId]) {
+      this.stats[cocktailId] = {
+        id: cocktailId,
+        name: cocktailName,
+        count: 0,
+        lastMade: new Date().toISOString(),
+      }
+    }
+
+    this.stats[cocktailId].count++
+    this.stats[cocktailId].lastMade = new Date().toISOString()
+    this.stats[cocktailId].name = cocktailName // Update name in case it changed
+
+    await this.saveStats()
+  }
+
+  async getStats(): Promise<CocktailStat[]> {
+    await this.loadStats()
+    return Object.values(this.stats).sort((a, b) => b.count - a.count)
+  }
+
+  async resetCocktailStats(cocktailId: string): Promise<void> {
+    await this.loadStats()
+    if (this.stats[cocktailId]) {
+      delete this.stats[cocktailId]
+      await this.saveStats()
+    }
+  }
+
+  async resetAllStats(): Promise<void> {
+    this.stats = {}
+    await this.saveStats()
+  }
+
+  async getTotalStats(): Promise<{
+    totalCocktails: number
+    uniqueCocktails: number
+    mostPopular: CocktailStat | null
+  }> {
+    await this.loadStats()
+    const statsArray = Object.values(this.stats)
+
+    const totalCocktails = statsArray.reduce((sum, stat) => sum + stat.count, 0)
+    const uniqueCocktails = statsArray.length
+    const mostPopular =
+      statsArray.length > 0 ? statsArray.reduce((max, stat) => (stat.count > max.count ? stat : max)) : null
+
+    return {
+      totalCocktails,
+      uniqueCocktails,
+      mostPopular,
+    }
+  }
 }
