@@ -1,20 +1,24 @@
 import { promises as fs } from "fs"
 import path from "path"
 import type { Cocktail } from "@/types/cocktail"
-import type { PumpConfig } from "@/types/pump"
-import { cocktails as defaultCocktails } from "@/data/cocktails"
-import { CocktailStatsService } from "./cocktail-stats-service"
-
-const COCKTAILS_FILE = path.join(process.cwd(), "data", "user-cocktails.json")
-const DELETED_COCKTAILS_FILE = path.join(process.cwd(), "data", "deleted-cocktails.json")
-const PUMP_CONFIG_FILE = path.join(process.cwd(), "data", "user-pump-config.json")
+import type { PumpConfig } from "@/types/pump-config"
+import { defaultCocktails } from "@/data/cocktails"
+import { defaultPumpConfig } from "@/data/pump-config"
+import { GpioController } from "./gpio-controller"
 
 export class CocktailMachine {
   private static instance: CocktailMachine
+  private gpioController: GpioController
   private cocktails: Cocktail[] = []
-  private deletedStandardCocktails: string[] = []
+  private pumpConfig: PumpConfig = defaultPumpConfig
+  private userCocktailsFile = path.join(process.cwd(), "data", "user-cocktails.json")
+  private deletedCocktailsFile = path.join(process.cwd(), "data", "deleted-cocktails.json")
+  private deletedCocktailIds: string[] = []
 
-  private constructor() {}
+  private constructor() {
+    this.gpioController = GpioController.getInstance()
+    this.loadCocktailsAndConfig()
+  }
 
   static getInstance(): CocktailMachine {
     if (!CocktailMachine.instance) {
@@ -23,219 +27,159 @@ export class CocktailMachine {
     return CocktailMachine.instance
   }
 
-  async loadCocktails(): Promise<Cocktail[]> {
+  private async loadCocktailsAndConfig() {
     try {
-      // Load deleted standard cocktails
-      await this.loadDeletedStandardCocktails()
+      // Ensure data directory exists
+      const dataDir = path.dirname(this.userCocktailsFile)
+      await fs.mkdir(dataDir, { recursive: true })
 
-      // Load user cocktails
-      const userCocktails = await this.loadUserCocktails()
+      // Load user-created cocktails
+      let userCocktails: Cocktail[] = []
+      try {
+        const userData = await fs.readFile(this.userCocktailsFile, "utf-8")
+        userCocktails = JSON.parse(userData)
+      } catch (error) {
+        console.log("No user-cocktails.json found, starting with empty user cocktails.")
+      }
 
-      // Filter out deleted standard cocktails
-      const availableStandardCocktails = defaultCocktails.filter(
-        (cocktail) => !this.deletedStandardCocktails.includes(cocktail.id),
+      // Load deleted cocktail IDs
+      try {
+        const deletedData = await fs.readFile(this.deletedCocktailsFile, "utf-8")
+        this.deletedCocktailIds = JSON.parse(deletedData)
+      } catch (error) {
+        console.log("No deleted-cocktails.json found, starting with empty deleted list.")
+      }
+
+      // Filter out deleted default cocktails
+      const filteredDefaultCocktails = defaultCocktails.filter(
+        (cocktail) => !this.deletedCocktailIds.includes(cocktail.id),
       )
 
-      // Combine standard and user cocktails, with user cocktails overriding standard ones
-      const cocktailMap = new Map<string, Cocktail>()
-
-      // Add standard cocktails first
-      availableStandardCocktails.forEach((cocktail) => {
-        cocktailMap.set(cocktail.id, cocktail)
-      })
-
-      // Add/override with user cocktails
-      userCocktails.forEach((cocktail) => {
-        cocktailMap.set(cocktail.id, cocktail)
-      })
-
-      this.cocktails = Array.from(cocktailMap.values())
-      return this.cocktails
+      this.cocktails = [...filteredDefaultCocktails, ...userCocktails]
+      this.pumpConfig = defaultPumpConfig // Assuming pump config is always default for now
     } catch (error) {
-      console.error("Error loading cocktails:", error)
-      return defaultCocktails
+      console.error("Error loading cocktails or config:", error)
+      this.cocktails = defaultCocktails // Fallback to default if error
+      this.pumpConfig = defaultPumpConfig
     }
   }
 
-  private async loadUserCocktails(): Promise<Cocktail[]> {
+  private async saveUserCocktails() {
     try {
-      const dataDir = path.dirname(COCKTAILS_FILE)
-      await fs.mkdir(dataDir, { recursive: true })
-
-      const data = await fs.readFile(COCKTAILS_FILE, "utf-8")
-      return JSON.parse(data)
-    } catch (error) {
-      // File doesn't exist, return empty array
-      return []
-    }
-  }
-
-  private async loadDeletedStandardCocktails(): Promise<void> {
-    try {
-      const dataDir = path.dirname(DELETED_COCKTAILS_FILE)
-      await fs.mkdir(dataDir, { recursive: true })
-
-      const data = await fs.readFile(DELETED_COCKTAILS_FILE, "utf-8")
-      this.deletedStandardCocktails = JSON.parse(data)
-    } catch (error) {
-      // File doesn't exist, start with empty array
-      this.deletedStandardCocktails = []
-    }
-  }
-
-  private async saveUserCocktails(): Promise<void> {
-    try {
-      const dataDir = path.dirname(COCKTAILS_FILE)
-      await fs.mkdir(dataDir, { recursive: true })
-
-      // Only save user-created cocktails (not standard ones)
-      const userCocktails = this.cocktails.filter(
-        (cocktail) =>
-          !defaultCocktails.some((defaultCocktail) => defaultCocktail.id === cocktail.id) ||
-          this.deletedStandardCocktails.includes(cocktail.id),
-      )
-
-      await fs.writeFile(COCKTAILS_FILE, JSON.stringify(userCocktails, null, 2))
+      const userCreated = this.cocktails.filter((c) => !defaultCocktails.some((dc) => dc.id === c.id))
+      await fs.writeFile(this.userCocktailsFile, JSON.stringify(userCreated, null, 2))
     } catch (error) {
       console.error("Error saving user cocktails:", error)
     }
   }
 
-  private async saveDeletedStandardCocktails(): Promise<void> {
+  private async saveDeletedCocktailIds() {
     try {
-      const dataDir = path.dirname(DELETED_COCKTAILS_FILE)
-      await fs.mkdir(dataDir, { recursive: true })
-
-      await fs.writeFile(DELETED_COCKTAILS_FILE, JSON.stringify(this.deletedStandardCocktails, null, 2))
+      await fs.writeFile(this.deletedCocktailsFile, JSON.stringify(this.deletedCocktailIds, null, 2))
     } catch (error) {
-      console.error("Error saving deleted standard cocktails:", error)
+      console.error("Error saving deleted cocktail IDs:", error)
     }
   }
 
-  async addCocktail(cocktail: Cocktail): Promise<void> {
-    await this.loadCocktails()
-
-    // Check if cocktail already exists
-    const existingIndex = this.cocktails.findIndex((c) => c.id === cocktail.id)
-    if (existingIndex >= 0) {
-      this.cocktails[existingIndex] = cocktail
-    } else {
-      this.cocktails.push(cocktail)
-    }
-
-    await this.saveUserCocktails()
-  }
-
-  async deleteCocktail(cocktailId: string): Promise<void> {
-    await this.loadCocktails()
-
-    // Check if it's a standard cocktail
-    const isStandardCocktail = defaultCocktails.some((cocktail) => cocktail.id === cocktailId)
-
-    if (isStandardCocktail) {
-      // Add to deleted standard cocktails list
-      if (!this.deletedStandardCocktails.includes(cocktailId)) {
-        this.deletedStandardCocktails.push(cocktailId)
-        await this.saveDeletedStandardCocktails()
-      }
-    }
-
-    // Remove from current cocktails list
-    this.cocktails = this.cocktails.filter((cocktail) => cocktail.id !== cocktailId)
-    await this.saveUserCocktails()
-  }
-
-  async getCocktails(): Promise<Cocktail[]> {
-    if (this.cocktails.length === 0) {
-      await this.loadCocktails()
-    }
+  async getAvailableCocktails(): Promise<Cocktail[]> {
+    await this.loadCocktailsAndConfig() // Ensure latest state
     return this.cocktails
   }
 
   async getCocktailById(id: string): Promise<Cocktail | undefined> {
-    const cocktails = await this.getCocktails()
-    return cocktails.find((cocktail) => cocktail.id === id)
+    await this.loadCocktailsAndConfig() // Ensure latest state
+    return this.cocktails.find((c) => c.id === id)
+  }
+
+  async addOrUpdateCocktail(newCocktail: Cocktail): Promise<void> {
+    await this.loadCocktailsAndConfig() // Ensure latest state
+    const index = this.cocktails.findIndex((c) => c.id === newCocktail.id)
+    if (index > -1) {
+      this.cocktails[index] = newCocktail
+    } else {
+      this.cocktails.push(newCocktail)
+    }
+    await this.saveUserCocktails()
+  }
+
+  async deleteCocktail(id: string): Promise<void> {
+    await this.loadCocktailsAndConfig() // Ensure latest state
+    const initialLength = this.cocktails.length
+    this.cocktails = this.cocktails.filter((c) => c.id !== id)
+
+    // If it was a default cocktail, add its ID to the deleted list
+    if (defaultCocktails.some((dc) => dc.id === id) && !this.deletedCocktailIds.includes(id)) {
+      this.deletedCocktailIds.push(id)
+      await this.saveDeletedCocktailIds()
+    }
+
+    if (this.cocktails.length < initialLength) {
+      await this.saveUserCocktails()
+    }
   }
 
   async makeCocktail(cocktailId: string): Promise<{ success: boolean; message: string }> {
+    await this.loadCocktailsAndConfig() // Ensure latest state
+    const cocktail = this.cocktails.find((c) => c.id === cocktailId)
+
+    if (!cocktail) {
+      return { success: false, message: "Cocktail nicht gefunden." }
+    }
+
+    console.log(`Zubereite Cocktail: ${cocktail.name}`)
+
     try {
-      const cocktail = await this.getCocktailById(cocktailId)
-      if (!cocktail) {
-        return { success: false, message: "Cocktail nicht gefunden" }
-      }
-
-      console.log(`Making cocktail: ${cocktail.name}`)
-
-      // Simulate cocktail making process
       for (const ingredient of cocktail.ingredients) {
-        console.log(`Adding ${ingredient.amount}ml of ${ingredient.name}`)
-        // Here you would control the actual pumps
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const pump = this.pumpConfig.pumps.find((p) => p.ingredient === ingredient.name)
+        if (!pump) {
+          console.warn(`Pumpe für Zutat ${ingredient.name} nicht konfiguriert.`)
+          continue
+        }
+
+        const durationMs = ingredient.amount * pump.flowRate
+        console.log(`Aktiviere Pumpe ${pump.pin} für ${durationMs}ms für ${ingredient.name}`)
+        await this.gpioController.activatePumpForDuration(pump.pin, durationMs)
       }
-
-      // Update statistics
-      const statsService = CocktailStatsService.getInstance()
-      await statsService.incrementCocktail(cocktail.id, cocktail.name)
-
+      console.log(`Cocktail ${cocktail.name} erfolgreich zubereitet.`)
       return { success: true, message: `${cocktail.name} wurde erfolgreich zubereitet!` }
     } catch (error) {
-      console.error("Error making cocktail:", error)
-      return { success: false, message: "Fehler beim Zubereiten des Cocktails" }
+      console.error(`Fehler beim Zubereiten von ${cocktail.name}:`, error)
+      return { success: false, message: `Fehler beim Zubereiten von ${cocktail.name}.` }
     }
   }
 
-  async activatePumpForDuration(pumpId: number, duration: number): Promise<{ success: boolean; message: string }> {
+  async makeSingleShot(pumpPin: number, durationMs: number): Promise<{ success: boolean; message: string }> {
     try {
-      console.log(`Activating pump ${pumpId} for ${duration}ms`)
-
-      // Here you would control the actual pump
-      await new Promise((resolve) => setTimeout(resolve, duration))
-
-      return { success: true, message: `Pumpe ${pumpId} für ${duration}ms aktiviert` }
+      console.log(`Aktiviere Pumpe ${pumpPin} für ${durationMs}ms für Einzelschuss.`)
+      await this.gpioController.activatePumpForDuration(pumpPin, durationMs)
+      return { success: true, message: `Einzelschuss erfolgreich ausgeführt.` }
     } catch (error) {
-      console.error("Error activating pump:", error)
-      return { success: false, message: "Fehler beim Aktivieren der Pumpe" }
+      console.error(`Fehler beim Einzelschuss auf Pumpe ${pumpPin}:`, error)
+      return { success: false, message: `Fehler beim Einzelschuss auf Pumpe ${pumpPin}.` }
     }
   }
 
-  async makeSingleShot(ingredientName: string, amount: number): Promise<{ success: boolean; message: string }> {
-    try {
-      console.log(`Making single shot: ${amount}ml of ${ingredientName}`)
-
-      // Here you would control the actual pump for the ingredient
-      await new Promise((resolve) => setTimeout(resolve, amount * 10)) // Simulate time based on amount
-
-      return { success: true, message: `${amount}ml ${ingredientName} wurde ausgegeben` }
-    } catch (error) {
-      console.error("Error making single shot:", error)
-      return { success: false, message: "Fehler beim Ausgeben des Shots" }
-    }
+  async activatePumpForDuration(pin: number, duration: number): Promise<void> {
+    await this.gpioController.activatePumpForDuration(pin, duration)
   }
 
-  async getPumpConfig(): Promise<PumpConfig[]> {
-    try {
-      if (await fs.exists(PUMP_CONFIG_FILE)) {
-        const data = await fs.readFile(PUMP_CONFIG_FILE, "utf-8")
-        return JSON.parse(data) as PumpConfig[]
-      }
-
-      // Fallback on standard configuration
-      const { pumpConfig } = await import("@/data/pump-config")
-      return pumpConfig
-    } catch (error) {
-      console.error("Error loading pump configuration:", error)
-      const { pumpConfig } = await import("@/data/pump-config")
-      return pumpConfig
-    }
+  async startPump(pin: number): Promise<void> {
+    await this.gpioController.startPump(pin)
   }
 
-  async savePumpConfig(config: PumpConfig[]): Promise<void> {
+  async stopPump(pin: number): Promise<void> {
+    await this.gpioController.stopPump(pin)
+  }
+
+  async cleanPump(pin: number, durationMs: number): Promise<{ success: boolean; message: string }> {
     try {
-      await fs.writeFile(PUMP_CONFIG_FILE, JSON.stringify(config, null, 2))
-      console.log("Pump configuration saved")
+      console.log(`Starte Reinigung für Pumpe ${pin} für ${durationMs}ms.`)
+      await this.gpioController.activatePumpForDuration(pin, durationMs)
+      console.log(`Reinigung für Pumpe ${pin} abgeschlossen.`)
+      return { success: true, message: `Pumpe ${pin} erfolgreich gereinigt.` }
     } catch (error) {
-      console.error("Error saving pump configuration:", error)
-      throw error
+      console.error(`Fehler bei der Reinigung von Pumpe ${pin}:`, error)
+      return { success: false, message: `Fehler bei der Reinigung von Pumpe ${pin}.` }
     }
   }
 }

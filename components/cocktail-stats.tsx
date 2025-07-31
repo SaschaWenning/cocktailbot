@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { BarChart3, Trophy, Calendar, RotateCcw, Trash2 } from "lucide-react"
-import { type CocktailStat, CocktailStatsService } from "@/lib/cocktail-stats-service"
+import {
+  getStatsAction,
+  getTotalStatsAction,
+  resetCocktailStatsAction,
+  resetAllStatsAction,
+} from "@/app/actions/cocktail" // Import server actions
+import type { CocktailStat } from "@/lib/cocktail-stats-service" // Keep type import
 
 interface CocktailStatsProps {
   onPasswordRequired: (action: () => void) => void
@@ -23,8 +29,8 @@ export function CocktailStats({ onPasswordRequired }: CocktailStatsProps) {
 
   const loadStats = async () => {
     try {
-      const statsService = CocktailStatsService.getInstance()
-      const [cocktailStats, totals] = await Promise.all([statsService.getStats(), statsService.getTotalStats()])
+      // Use server actions to load stats
+      const [cocktailStats, totals] = await Promise.all([getStatsAction(), getTotalStatsAction()])
       setStats(cocktailStats)
       setTotalStats(totals)
     } catch (error) {
@@ -40,9 +46,9 @@ export function CocktailStats({ onPasswordRequired }: CocktailStatsProps) {
 
   const handleResetCocktail = async (cocktailId: string) => {
     try {
-      const statsService = CocktailStatsService.getInstance()
-      await statsService.resetCocktailStats(cocktailId)
-      await loadStats()
+      // Use server action to reset single cocktail stats
+      await resetCocktailStatsAction(cocktailId)
+      await loadStats() // Reload stats after reset
     } catch (error) {
       console.error("Error resetting cocktail stats:", error)
     }
@@ -50,9 +56,9 @@ export function CocktailStats({ onPasswordRequired }: CocktailStatsProps) {
 
   const handleResetAllStats = async () => {
     try {
-      const statsService = CocktailStatsService.getInstance()
-      await statsService.resetAllStats()
-      await loadStats()
+      // Use server action to reset all stats
+      await resetAllStatsAction()
+      await loadStats() // Reload stats after reset
     } catch (error) {
       console.error("Error resetting all stats:", error)
     }
@@ -180,7 +186,11 @@ export function CocktailStats({ onPasswordRequired }: CocktailStatsProps) {
                       </span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => handleResetCocktail(stat.id)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPasswordRequired(() => handleResetCocktail(stat.id))}
+                  >
                     <Trash2 className="w-4 h-4 mr-1" />
                     Reset
                   </Button>
