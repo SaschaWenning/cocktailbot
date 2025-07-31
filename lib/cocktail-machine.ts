@@ -1,16 +1,17 @@
 import { promises as fs } from "fs"
 import path from "path"
 import type { Cocktail } from "@/types/cocktail"
-import type { PumpConfig } from "@/types/pump-config"
+import type { PumpConfig } from "@/types/pump-config" // Corrected import path
 import { defaultCocktails } from "@/data/cocktails"
 import { defaultPumpConfig } from "@/data/pump-config"
 import { GpioController } from "./gpio-controller"
+import { updateLevelsAfterCocktail, updateLevelAfterShot } from "@/lib/ingredient-level-service" // Added this import
 
 export class CocktailMachine {
   private static instance: CocktailMachine
   private gpioController: GpioController
   private cocktails: Cocktail[] = []
-  private pumpConfig: PumpConfig = defaultPumpConfig
+  private pumpConfig: PumpConfig = defaultPumpConfig // Initialize with default
   private userCocktailsFile = path.join(process.cwd(), "data", "user-cocktails.json")
   private deletedCocktailsFile = path.join(process.cwd(), "data", "deleted-cocktails.json")
   private deletedCocktailIds: string[] = []
@@ -56,7 +57,17 @@ export class CocktailMachine {
       )
 
       this.cocktails = [...filteredDefaultCocktails, ...userCocktails]
-      this.pumpConfig = defaultPumpConfig // Assuming pump config is always default for now
+
+      // Load pump config
+      try {
+        const pumpConfigPath = path.join(process.cwd(), "data", "user-pump-config.json")
+        await fs.access(pumpConfigPath, fs.constants.F_OK) // Check if file exists
+        const pumpConfigData = await fs.readFile(pumpConfigPath, "utf-8")
+        this.pumpConfig = JSON.parse(pumpConfigData) as PumpConfig
+      } catch (error) {
+        console.warn("User pump configuration not found or invalid, loading default config:", error)
+        this.pumpConfig = defaultPumpConfig
+      }
     } catch (error) {
       console.error("Error loading cocktails or config:", error)
       this.cocktails = defaultCocktails // Fallback to default if error
@@ -141,6 +152,10 @@ export class CocktailMachine {
         await this.gpioController.activatePumpForDuration(pump.pin, durationMs)
       }
       console.log(`Cocktail ${cocktail.name} erfolgreich zubereitet.`)
+
+      // Update ingredient levels after making cocktail
+      await updateLevelsAfterCocktail(cocktail)
+
       return { success: true, message: `${cocktail.name} wurde erfolgreich zubereitet!` }
     } catch (error) {
       console.error(`Fehler beim Zubereiten von ${cocktail.name}:`, error)
@@ -152,6 +167,13 @@ export class CocktailMachine {
     try {
       console.log(`Aktiviere Pumpe ${pumpPin} für ${durationMs}ms für Einzelschuss.`)
       await this.gpioController.activatePumpForDuration(pumpPin, durationMs)
+
+      // Update ingredient level after single shot
+      const pump = this.pumpConfig.pumps.find((p) => p.pin === pumpPin)
+      if (pump) {
+        await updateLevelAfterShot(pump.ingredient, durationMs / pump.flowRate)
+      }
+
       return { success: true, message: `Einzelschuss erfolgreich ausgeführt.` }
     } catch (error) {
       console.error(`Fehler beim Einzelschuss auf Pumpe ${pumpPin}:`, error)
