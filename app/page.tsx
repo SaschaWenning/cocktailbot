@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
 import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock } from "lucide-react"
+import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock } from 'lucide-react'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
 import { cocktails as defaultCocktails } from "@/data/cocktails"
@@ -98,6 +98,17 @@ export default function Home() {
     const loadData = async () => {
       setLoading(true)
       try {
+        // Transform defaultCocktails to the new type structure if needed
+        const transformedDefaultCocktails = defaultCocktails.map(cocktail => ({
+          ...cocktail,
+          recipe: cocktail.recipe.map(item => ({
+            ...item,
+            type: (item as any).type || 'automatic', // Default to 'automatic'
+            instruction: (item as any).instruction || '' // Default to empty string
+          }))
+        }));
+        setCocktailsData(transformedDefaultCocktails);
+
         await Promise.all([loadIngredientLevels(), loadPumpConfig(), loadCocktails()])
       } catch (error) {
         console.error("Fehler beim Laden der Daten:", error)
@@ -112,7 +123,16 @@ export default function Home() {
   const loadCocktails = async () => {
     try {
       const cocktails = await getAllCocktails()
-      setCocktailsData(cocktails)
+      // Ensure loaded cocktails also conform to the new type
+      const transformedCocktails = cocktails.map(cocktail => ({
+        ...cocktail,
+        recipe: cocktail.recipe.map(item => ({
+          ...item,
+          type: (item as any).type || 'automatic',
+          instruction: (item as any).instruction || ''
+        }))
+      }));
+      setCocktailsData(transformedCocktails)
     } catch (error) {
       console.error("Fehler beim Laden der Cocktails:", error)
     }
@@ -297,6 +317,7 @@ export default function Home() {
   const getCurrentVolume = () => {
     const cocktail = cocktailsData.find((c) => c.id === selectedCocktail)
     if (!cocktail) return 0
+    // Summiere alle Mengen, unabhängig vom Typ (automatisch/manuell)
     return cocktail.recipe.reduce((total, item) => total + item.amount, 0)
   }
 
@@ -307,21 +328,35 @@ export default function Home() {
     const cocktail = cocktailsData.find((c) => c.id === selectedCocktail)
     if (!cocktail) return true
 
-    // Skaliere das Rezept auf die gewünschte Größe
-    const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
-    const scaleFactor = selectedSize / currentTotal
+    // Filtere nur automatische Zutaten für die Füllstandsprüfung
+    const automaticRecipe = cocktail.recipe.filter(item => item.type === 'automatic');
 
-    const scaledRecipe = cocktail.recipe.map((item) => ({
-      ...item,
-      amount: Math.round(item.amount * scaleFactor),
-    }))
+    // Wenn keine automatischen Zutaten vorhanden sind, ist der Cocktail verfügbar (nur manuelle Zutaten)
+    if (automaticRecipe.length === 0) return true;
 
-    // Prüfe, ob genügend von allen Zutaten vorhanden ist
-    for (const item of scaledRecipe) {
+    // Berechne das Gesamtvolumen des gesamten Rezepts (automatisch + manuell) für die Skalierung
+    const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0);
+
+    // Wenn das Gesamtvolumen 0 ist, aber es Zutaten gibt, ist etwas nicht in Ordnung
+    if (totalRecipeVolume === 0 && cocktail.recipe.length > 0) return false;
+
+    const scaleFactor = selectedSize / totalRecipeVolume;
+
+    // Prüfe nur automatische Zutaten auf Verfügbarkeit
+    for (const item of automaticRecipe) {
       const level = ingredientLevels.find((level) => level.ingredientId === item.ingredientId)
-      if (!level) continue
+      // KORREKTUR: Suche nach 'ingredient' statt 'ingredientId' in der Pumpenkonfiguration
+      const pump = pumpConfig.find((pc) => pc.ingredient === item.ingredientId);
 
-      if (level.currentAmount < item.amount) {
+      // Wenn keine Füllstandsdaten ODER keine Pumpenkonfiguration für eine automatische Zutat gefunden wird, ist sie nicht verfügbar
+      if (!level || !pump) {
+        console.warn(`Automatische Zutat ${item.ingredientId} ist nicht verfügbar (keine Füllstandsdaten oder Pumpenkonfiguration).`);
+        return false;
+      }
+
+      const scaledAmount = Math.round(item.amount * scaleFactor); // Skaliere die Menge für diese Zutat
+      if (level.currentAmount < scaledAmount) {
+        console.warn(`Nicht genügend ${item.ingredientId} vorhanden. Benötigt: ${scaledAmount}ml, Verfügbar: ${level.currentAmount}ml`);
         return false
       }
     }
@@ -532,12 +567,26 @@ export default function Home() {
                 <div>
                   <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
                   <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
-                    {cocktail.ingredients.map((ingredient, index) => (
-                      <li key={index} className="flex items-start bg-[hsl(var(--cocktail-card-bg))]/50 p-2 rounded-lg">
-                        <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
-                        <span>{ingredient}</span>
-                      </li>
-                    ))}
+                    {cocktail.recipe.map((item, index) => {
+                      const ingredient = ingredients.find((i) => i.id === item.ingredientId)
+                      const ingredientName = ingredient ? ingredient.name : item.ingredientId
+                      return (
+                        <li key={index} className="flex items-start bg-[hsl(var(--cocktail-card-bg))]/50 p-2 rounded-lg">
+                          <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
+                          <span>
+                            {item.amount}ml {ingredientName}
+                            {item.type === 'manual' && (
+                              <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
+                            )}
+                            {item.type === 'manual' && item.instruction && (
+                              <span className="block text-sm text-[hsl(var(--cocktail-text-muted))] italic mt-1">
+                                Anleitung: {item.instruction}
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               </div>
@@ -568,7 +617,7 @@ export default function Home() {
                   <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30 mb-6">
                     <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
                     <AlertDescription className="text-[hsl(var(--cocktail-error))] text-sm">
-                      Nicht genügend Zutaten vorhanden! Bitte fülle die Zutaten nach.
+                      Nicht genügend Zutaten vorhanden oder Pumpe nicht angeschlossen! Bitte fülle die Zutaten nach.
                     </AlertDescription>
                   </Alert>
                 )}
