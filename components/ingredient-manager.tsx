@@ -187,7 +187,7 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
                         Alkoholisch
                       </Label>
                     </div>
-                    <Button onClick={addIngredient} className="w-full bg-[#00ff00] text-black hover:bg-[#00cc00]">
+                    <Button onClick={addIngredient} className="h-8 px-4 bg-[#00ff00] text-black hover:bg-[#00cc00]">
                       <Plus className="w-4 h-4 mr-2" />
                       Zutat hinzufügen
                     </Button>
@@ -225,7 +225,7 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
                 )}
               </CardContent>
               <div className="flex-shrink-0 p-6 pt-0">
-                <Button onClick={handleClose} className="w-full bg-[#00ff00] text-black hover:bg-[#00cc00]">
+                <Button onClick={handleClose} className="h-8 px-4 bg-[#00ff00] text-black hover:bg-[#00cc00]">
                   Schließen
                 </Button>
               </div>

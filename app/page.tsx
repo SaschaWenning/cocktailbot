@@ -970,40 +970,40 @@ export default function Home() {
           <div className="flex overflow-x-auto space-x-3 pb-2">
             <Button
               onClick={() => handleTabChange("cocktails")}
-              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none ${
                 activeTab === "cocktails"
-                  ? "bg-[#00ff00] text-black scale-105"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
+                  ? "bg-[#00ff00] text-black scale-105 focus:bg-[#00ff00]"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102 focus:bg-[#00ff00] focus:text-black"
               }`}
             >
               Cocktails
             </Button>
             <Button
               onClick={() => handleTabChange("virgin")}
-              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none ${
                 activeTab === "virgin"
-                  ? "bg-[#00ff00] text-black scale-105"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
+                  ? "bg-[#00ff00] text-black scale-105 focus:bg-[#00ff00]"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102 focus:bg-[#00ff00] focus:text-black"
               }`}
             >
               Alkoholfrei
             </Button>
             <Button
               onClick={() => handleTabChange("shots")}
-              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none ${
                 activeTab === "shots"
-                  ? "bg-[#00ff00] text-black scale-105"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
+                  ? "bg-[#00ff00] text-black scale-105 focus:bg-[#00ff00]"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102 focus:bg-[#00ff00] focus:text-black"
               }`}
             >
               Shots
             </Button>
             <Button
               onClick={() => handleTabChange("service")}
-              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
+              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none ${
                 activeTab === "service"
-                  ? "bg-[#00ff00] text-black scale-105"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
+                  ? "bg-[#00ff00] text-black scale-105 focus:bg-[#00ff00]"
+                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102 focus:bg-[#00ff00] focus:text-black"
               }`}
             >
               Servicemenü
