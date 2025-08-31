@@ -14,6 +14,7 @@ export const ingredients: Ingredient[] = [
   { id: "brandy", name: "Brandy", alcoholic: true },
   { id: "cognac", name: "Cognac", alcoholic: true },
   { id: "apricot-brandy", name: "Aprikosen Brandy", alcoholic: true },
+  { id: "melon-liqueur", name: "Melonenlikör", alcoholic: true },
 
   // Alkoholische Getränke - Liköre
   { id: "malibu", name: "Malibu", alcoholic: true },
@@ -58,6 +59,7 @@ export const ingredients: Ingredient[] = [
   { id: "peach-juice", name: "Pfirsichsaft", alcoholic: false },
   { id: "cherry-juice", name: "Kirschsaft", alcoholic: false },
   { id: "pomegranate-juice", name: "Granatapfelsaft", alcoholic: false },
+  { id: "banana-juice", name: "Bananensaft", alcoholic: false },
 
   // Nicht-alkoholische Getränke - Zitrusfrüchte
   { id: "lime-juice", name: "Limettensaft", alcoholic: false },
@@ -65,14 +67,18 @@ export const ingredients: Ingredient[] = [
 
   // Nicht-alkoholische Getränke - Kohlensäurehaltige Getränke
   { id: "cola", name: "Cola", alcoholic: false },
+  { id: "fanta", name: "Fanta", alcoholic: false },
   { id: "soda-water", name: "Sprudelwasser", alcoholic: false },
   { id: "ginger-ale", name: "Ginger Ale", alcoholic: false },
   { id: "tonic-water", name: "Tonic Water", alcoholic: false },
+  { id: "water", name: "Wasser", alcoholic: false },
 
   // Nicht-alkoholische Getränke - Milchprodukte
   { id: "cream", name: "Sahne", alcoholic: false },
   { id: "coconut-cream", name: "Kokossahne", alcoholic: false },
   { id: "coconut-milk", name: "Kokosmilch", alcoholic: false },
+  { id: "creme-of-coconut", name: "Creme of Coconut", alcoholic: false },
+  { id: "milk", name: "Milch", alcoholic: false },
 
   // Sirupe
   { id: "sugar-syrup", name: "Zuckersirup", alcoholic: false },
@@ -83,4 +89,7 @@ export const ingredients: Ingredient[] = [
   { id: "maple-syrup", name: "Ahornsirup", alcoholic: false },
   { id: "caramel-syrup", name: "Karamellsirup", alcoholic: false },
   { id: "chocolate-syrup", name: "Schokoladensirup", alcoholic: false },
+  { id: "banana-syrup", name: "Bananensirup", alcoholic: false },
+  { id: "melon-syrup", name: "Melonensirup", alcoholic: false },
+  { id: "mango-syrup", name: "Mangosirup", alcoholic: false },
 ]

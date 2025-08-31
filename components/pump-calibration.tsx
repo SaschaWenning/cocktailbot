@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import type { PumpConfig } from "@/types/pump"
 import { savePumpConfig, calibratePump, getPumpConfig } from "@/lib/cocktail-machine"
-import { ingredients } from "@/data/ingredients"
+import { getAllIngredients } from "@/lib/ingredients"
 import { Loader2, Beaker, Save, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import VirtualKeyboard from "./virtual-keyboard"
@@ -28,11 +28,13 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
   const [showSuccess, setShowSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showInputDialog, setShowInputDialog] = useState(false)
+  const [allIngredients, setAllIngredients] = useState(getAllIngredients())
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Lade die gespeicherte Konfiguration beim ersten Rendern
   useEffect(() => {
     loadPumpConfig()
+    setAllIngredients(getAllIngredients())
   }, [])
 
   const loadPumpConfig = async () => {
@@ -232,7 +234,7 @@ export default function PumpCalibration({ pumpConfig: initialConfig, onConfigUpd
                       <SelectValue placeholder="Zutat wählen" />
                     </SelectTrigger>
                     <SelectContent className="bg-black text-white border-[hsl(var(--cocktail-card-border))]">
-                      {ingredients.map((ingredient) => (
+                      {allIngredients.map((ingredient) => (
                         <SelectItem key={ingredient.id} value={ingredient.id}>
                           {ingredient.name}
                         </SelectItem>

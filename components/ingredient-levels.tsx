@@ -171,11 +171,17 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
   }
 
   const getIngredientName = (id: string) => {
+    if (id.startsWith("custom-")) {
+      return id.replace(/^custom-\d+-/, "")
+    }
     const ingredient = ingredients.find((i) => i.id === id)
     return ingredient ? ingredient.name : id
   }
 
   const getIngredientIcon = (id: string) => {
+    if (id.startsWith("custom-")) {
+      return <Droplet className="h-4 w-4" />
+    }
     const ingredient = ingredients.find((i) => i.id === id)
     if (!ingredient) return <Droplet className="h-4 w-4" />
 

@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Cocktail } from "@/types/cocktail"
-import { ingredients } from "@/data/ingredients"
+import { getAllIngredients } from "@/lib/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Plus, Minus, FolderOpen, X, ArrowLeft, Check, ArrowUp, Lock } from "lucide-react"
 import FileBrowser from "./file-browser"
@@ -21,23 +21,31 @@ interface RecipeCreatorProps {
 export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreatorProps) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
+  const [recipe, setRecipe] = useState<
+    { ingredientId: string; amount: number; type: "automatic" | "manual"; instruction?: string }[]
+  >([])
   const [imageUrl, setImageUrl] = useState("")
   const [alcoholic, setAlcoholic] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [ingredients, setIngredients] = useState(getAllIngredients())
   const [errors, setErrors] = useState<{
     name?: string
     imageUrl?: string
   }>({})
-  const [showFileBrowser, setShowFileBrowser] = useState(false)
 
-  // Tastatur-States - INNERHALB des Dialogs
   const [showKeyboard, setShowKeyboard] = useState(false)
-  const [keyboardMode, setKeyboardMode] = useState<"name" | "description" | "imageUrl" | string>("name")
+  const [keyboardMode, setKeyboardMode] = useState("")
   const [keyboardValue, setKeyboardValue] = useState("")
   const [isNumericKeyboard, setIsNumericKeyboard] = useState(false)
   const [isShiftActive, setIsShiftActive] = useState(false)
   const [isCapsLockActive, setIsCapsLockActive] = useState(false)
+  const [showFileBrowser, setShowFileBrowser] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setIngredients(getAllIngredients())
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (recipe.length === 0) {
@@ -46,7 +54,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
   }, [recipe])
 
   // Tastatur öffnen
-  const openKeyboard = (mode: "name" | "description" | "imageUrl" | string, currentValue: string, numeric = false) => {
+  const openKeyboard = (
+    mode: "name" | "description" | "imageUrl" | "instruction" | string,
+    currentValue: string,
+    numeric = false,
+  ) => {
     setKeyboardMode(mode)
     setKeyboardValue(currentValue)
     setIsNumericKeyboard(numeric)
@@ -56,86 +68,14 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     setIsCapsLockActive(false)
   }
 
-  // Tastatur-Eingabe
-  const handleKeyPress = (key: string) => {
-    if (isNumericKeyboard) {
-      if (key === "." && keyboardValue.includes(".")) return
-      if (key === "00" && keyboardValue === "") {
-        setKeyboardValue("0")
-        return
-      }
-      setKeyboardValue((prev) => prev + key)
-    } else {
-      // Handle uppercase/lowercase for letters
-      let finalKey = key
-      if (key.match(/[a-zA-Z]/)) {
-        if (isShiftActive || isCapsLockActive) {
-          finalKey = key.toUpperCase()
-        } else {
-          finalKey = key.toLowerCase()
-        }
-      }
-
-      setKeyboardValue((prev) => prev + finalKey)
-
-      // Reset shift after typing (but not caps lock)
-      if (isShiftActive) {
-        setIsShiftActive(false)
-      }
-    }
-  }
-
-  const handleShift = () => {
-    setIsShiftActive(!isShiftActive)
-  }
-
-  const handleCapsLock = () => {
-    setIsCapsLockActive(!isCapsLockActive)
-    // Turn off shift when caps lock is toggled
+  const openInstructionKeyboard = (index: number, currentValue: string) => {
+    setKeyboardMode(`instruction-${index}`)
+    setKeyboardValue(currentValue || "")
+    setIsNumericKeyboard(false)
+    setShowKeyboard(true)
+    // Reset keyboard states when opening
     setIsShiftActive(false)
-  }
-
-  const handleBackspace = () => {
-    setKeyboardValue((prev) => prev.slice(0, -1))
-  }
-
-  const handleClear = () => {
-    setKeyboardValue("")
-  }
-
-  // Tastatur bestätigen
-  const handleKeyboardConfirm = () => {
-    if (keyboardMode === "name") {
-      setName(keyboardValue)
-    } else if (keyboardMode === "description") {
-      setDescription(keyboardValue)
-    } else if (keyboardMode === "imageUrl") {
-      setImageUrl(keyboardValue)
-    } else if (keyboardMode.startsWith("amount-")) {
-      const index = Number.parseInt(keyboardMode.replace("amount-", ""), 10)
-      const amount = Number.parseFloat(keyboardValue)
-      if (!isNaN(amount) && amount >= 0) {
-        handleAmountChange(index, amount)
-      }
-    }
-    setShowKeyboard(false)
-  }
-
-  // Tastatur abbrechen
-  const handleKeyboardCancel = () => {
-    setShowKeyboard(false)
-  }
-
-  const handleAmountChange = (index: number, amount: number) => {
-    const updatedRecipe = [...recipe]
-    updatedRecipe[index] = { ...updatedRecipe[index], amount }
-    setRecipe(updatedRecipe)
-  }
-
-  const handleIngredientChange = (index: number, ingredientId: string) => {
-    const updatedRecipe = [...recipe]
-    updatedRecipe[index] = { ...updatedRecipe[index], ingredientId }
-    setRecipe(updatedRecipe)
+    setIsCapsLockActive(false)
   }
 
   const addIngredient = () => {
@@ -144,26 +84,11 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     )
 
     if (availableIngredients.length > 0) {
-      setRecipe([...recipe, { ingredientId: availableIngredients[0].id, amount: 30 }])
+      setRecipe([
+        ...recipe,
+        { ingredientId: availableIngredients[0].id, amount: 30, type: "automatic", instruction: "" },
+      ])
     }
-  }
-
-  const removeIngredient = (index: number) => {
-    if (recipe.length > 1) {
-      const updatedRecipe = recipe.filter((_, i) => i !== index)
-      setRecipe(updatedRecipe)
-    }
-  }
-
-  const validateForm = () => {
-    const newErrors: { name?: string; imageUrl?: string } = {}
-
-    if (!name.trim()) {
-      newErrors.name = "Name ist erforderlich"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
   }
 
   const handleSave = async () => {
@@ -182,7 +107,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
         recipe: recipe,
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
-          return `${item.amount}ml ${ingredient?.name || item.ingredientId}`
+          const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
+          return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
         }),
       }
 
@@ -192,7 +118,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
       // Reset
       setName("")
       setDescription("")
-      setRecipe([])
+      setRecipe([]) // Reset to empty, useEffect will add default
       setImageUrl("")
       setAlcoholic(true)
       setErrors({})
@@ -208,12 +134,132 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     setShowFileBrowser(false)
   }
 
+  const handleIngredientChange = (index: number, value: string) => {
+    const updatedRecipe = recipe.map((item, i) => {
+      if (i === index) {
+        return { ...item, ingredientId: value }
+      }
+      return item
+    })
+    setRecipe(updatedRecipe)
+  }
+
+  const handleTypeChange = (index: number, value: "automatic" | "manual") => {
+    const updatedRecipe = recipe.map((item, i) => {
+      if (i === index) {
+        return { ...item, type: value }
+      }
+      return item
+    })
+    setRecipe(updatedRecipe)
+  }
+
+  const removeIngredient = (index: number) => {
+    const updatedRecipe = recipe.filter((_, i) => i !== index)
+    setRecipe(updatedRecipe)
+  }
+
+  const handleKeyPress = (key: string) => {
+    let newValue = keyboardValue
+    if (key === "Backspace") {
+      newValue = newValue.slice(0, -1)
+    } else {
+      let processedKey = key
+      if (key.length === 1 && key.match(/[A-Za-z]/)) {
+        // Für Buchstaben: prüfe Shift und Caps Lock Status
+        const shouldBeUppercase = (isShiftActive && !isCapsLockActive) || (!isShiftActive && isCapsLockActive)
+        processedKey = shouldBeUppercase ? key.toUpperCase() : key.toLowerCase()
+      }
+      newValue += processedKey
+    }
+    setKeyboardValue(newValue)
+
+    if (isShiftActive && !isCapsLockActive) {
+      setIsShiftActive(false)
+    }
+  }
+
+  const handleShift = () => {
+    setIsShiftActive(!isShiftActive)
+  }
+
+  const handleCapsLock = () => {
+    setIsCapsLockActive(!isCapsLockActive)
+  }
+
+  const handleBackspace = () => {
+    setKeyboardValue(keyboardValue.slice(0, -1))
+  }
+
+  const handleClear = () => {
+    setKeyboardValue("")
+  }
+
+  const handleKeyboardCancel = () => {
+    setShowKeyboard(false)
+  }
+
+  const handleKeyboardConfirm = () => {
+    switch (keyboardMode) {
+      case "name":
+        setName(keyboardValue)
+        break
+      case "description":
+        setDescription(keyboardValue)
+        break
+      case "imageUrl":
+        setImageUrl(keyboardValue)
+        break
+      default:
+        if (keyboardMode.startsWith("amount-")) {
+          const index = Number.parseInt(keyboardMode.split("-")[1])
+          const updatedRecipe = recipe.map((item, i) => {
+            if (i === index) {
+              return { ...item, amount: Number.parseFloat(keyboardValue) }
+            }
+            return item
+          })
+          setRecipe(updatedRecipe)
+        } else if (keyboardMode.startsWith("instruction-")) {
+          const index = Number.parseInt(keyboardMode.split("-")[1])
+          const updatedRecipe = recipe.map((item, i) => {
+            if (i === index) {
+              return { ...item, instruction: keyboardValue }
+            }
+            return item
+          })
+          setRecipe(updatedRecipe)
+        }
+        break
+    }
+    setShowKeyboard(false)
+  }
+
+  const validateForm = () => {
+    let valid = true
+    const newErrors: typeof errors = {}
+
+    if (!name.trim()) {
+      newErrors.name = "Name ist erforderlich"
+      valid = false
+    }
+
+    if (imageUrl && !imageUrl.trim().startsWith("/")) {
+      newErrors.imageUrl = "Bild-Pfad muss mit / beginnen"
+      valid = false
+    }
+
+    setErrors(newErrors)
+    return valid
+  }
+
   // Tastaturen definieren
   const alphaKeys = [
     ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-    ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
-    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-    ["Y", "X", "C", "V", "B", "N", "M"],
+    ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p"],
+    ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+    ["y", "x", "c", "v", "b", "n", "m"],
+    ["ä", "ö", "ü", "ß"],
     [" ", "-", "_", ".", "/"],
   ]
 
@@ -230,14 +276,10 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && !showFileBrowser && onClose()}>
         <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white sm:max-w-4xl max-h-[95vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>Neues Rezept erstellen</DialogTitle>
-          </DialogHeader>
-
           {!showKeyboard ? (
             // FORMULAR-ANSICHT
-            <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
-              <div className="space-y-2">
+            <div className="space-y-2 my-2 max-h-[40vh] overflow-y-auto pr-2">
+              <div className="space-y-1">
                 <Label className="text-white">Name</Label>
                 <Input
                   value={name}
@@ -249,7 +291,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 {errors.name && <p className="text-red-400 text-xs">{errors.name}</p>}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label className="text-white">Beschreibung</Label>
                 <Input
                   value={description}
@@ -260,7 +302,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label className="flex items-center gap-2 text-white">
                   <ImageIcon className="h-4 w-4" />
                   Bild-Pfad (optional)
@@ -294,7 +336,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label className="text-white">Alkoholisch</Label>
                 <Select value={alcoholic ? "true" : "false"} onValueChange={(value) => setAlcoholic(value === "true")}>
                   <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
@@ -311,8 +353,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 </Select>
               </div>
 
-              <div className="pt-2">
-                <div className="flex justify-between items-center mb-2">
+              <div className="pt-1">
+                <div className="flex justify-between items-center mb-1">
                   <Label className="text-white">Zutaten</Label>
                   <Button
                     type="button"
@@ -332,7 +374,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   key={index}
                   className="grid grid-cols-12 gap-2 items-center p-2 bg-[hsl(var(--cocktail-card-bg))] rounded border border-[hsl(var(--cocktail-card-border))]"
                 >
-                  <div className="col-span-6">
+                  <div className="col-span-4">
                     <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
                       <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
                         <SelectValue />
@@ -350,7 +392,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="col-span-3">
+                  <div className="col-span-2">
                     <Input
                       value={item.amount}
                       onClick={() => openKeyboard(`amount-${index}`, item.amount.toString(), true)}
@@ -358,7 +400,25 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                       className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
                     />
                   </div>
-                  <div className="col-span-2 text-sm text-white">ml</div>
+                  <div className="col-span-1 text-sm text-white">ml</div>
+                  <div className="col-span-3">
+                    <Select
+                      value={item.type}
+                      onValueChange={(value: "automatic" | "manual") => handleTypeChange(index, value)}
+                    >
+                      <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
+                        <SelectItem value="automatic" className="text-black hover:bg-gray-100 cursor-pointer">
+                          Automatisch
+                        </SelectItem>
+                        <SelectItem value="manual" className="text-black hover:bg-gray-100 cursor-pointer">
+                          Manuell
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="col-span-1">
                     <Button
                       type="button"
@@ -371,12 +431,23 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                       <Minus className="h-4 w-4" />
                     </Button>
                   </div>
+                  {item.type === "manual" && (
+                    <div className="col-span-12 mt-2">
+                      <Input
+                        value={item.instruction || ""}
+                        onClick={() => openInstructionKeyboard(index, item.instruction)}
+                        readOnly
+                        className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                        placeholder="Anleitung (z.B. 'mit Eiswürfeln auffüllen')"
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
             // TASTATUR-ANSICHT - Tastatur links, Action-Buttons rechts
-            <div className="flex gap-3 my-4 h-[70vh]">
+            <div className="flex gap-3 my-4 h-[75vh]">
               {/* Tastatur links */}
               <div className="flex-1 flex flex-col">
                 <div className="text-center mb-3">
@@ -385,6 +456,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                     {keyboardMode === "description" && "Beschreibung eingeben"}
                     {keyboardMode === "imageUrl" && "Bild-Pfad eingeben"}
                     {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
+                    {keyboardMode === "instruction" && "Anleitung eingeben"}
                   </h3>
                   <div className="bg-white text-black text-lg p-3 rounded mb-4 min-h-[50px] break-all">
                     {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
@@ -394,16 +466,25 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                 <div className="flex-1 flex flex-col gap-2">
                   {keys.map((row, rowIndex) => (
                     <div key={rowIndex} className="flex gap-1 justify-center flex-1">
-                      {row.map((key) => (
-                        <Button
-                          key={key}
-                          type="button"
-                          onClick={() => handleKeyPress(key)}
-                          className="flex-1 text-lg bg-gray-700 hover:bg-gray-600 text-white min-h-0 h-full"
-                        >
-                          {key}
-                        </Button>
-                      ))}
+                      {row.map((key) => {
+                        let displayKey = key
+                        if (key.length === 1 && key.match(/[a-z]/)) {
+                          const shouldShowUppercase =
+                            (isShiftActive && !isCapsLockActive) || (!isShiftActive && isCapsLockActive)
+                          displayKey = shouldShowUppercase ? key.toUpperCase() : key.toLowerCase()
+                        }
+
+                        return (
+                          <Button
+                            key={key}
+                            type="button"
+                            onClick={() => handleKeyPress(key)}
+                            className="flex-1 text-lg bg-gray-700 hover:bg-gray-600 text-white min-h-0 h-full"
+                          >
+                            {displayKey}
+                          </Button>
+                        )
+                      })}
                     </div>
                   ))}
                 </div>
@@ -473,7 +554,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
           )}
 
           {!showKeyboard && (
-            <DialogFooter className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 mt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -492,7 +573,7 @@ export default function RecipeCreator({ isOpen, onClose, onSave }: RecipeCreator
                   "Speichern"
                 )}
               </Button>
-            </DialogFooter>
+            </div>
           )}
         </DialogContent>
       </Dialog>

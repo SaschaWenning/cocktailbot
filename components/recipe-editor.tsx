@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Cocktail } from "@/types/cocktail"
-import { ingredients } from "@/data/ingredients"
+import { getAllIngredients } from "@/lib/ingredients"
 import { saveRecipe } from "@/lib/cocktail-machine"
 import { Loader2, ImageIcon, Trash2, Plus, Minus, FolderOpen, ArrowLeft } from "lucide-react"
 import VirtualKeyboard from "./virtual-keyboard"
@@ -48,13 +48,22 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const [description, setDescription] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [alcoholic, setAlcoholic] = useState(true)
-  const [recipe, setRecipe] = useState<{ ingredientId: string; amount: number }[]>([])
+  const [recipe, setRecipe] = useState<
+    { ingredientId: string; amount: number; type: "automatic" | "manual"; instruction?: string }[]
+  >([])
   const [saving, setSaving] = useState(false)
+  const [ingredients, setIngredients] = useState(getAllIngredients())
 
   // View states - genau wie beim RecipeCreator
   const [currentView, setCurrentView] = useState<"form" | "keyboard" | "imageBrowser">("form")
   const [activeInput, setActiveInput] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState("")
+
+  useEffect(() => {
+    if (isOpen) {
+      setIngredients(getAllIngredients())
+    }
+  }, [isOpen])
 
   // Lade die Cocktail-Daten beim Öffnen
   useEffect(() => {
@@ -62,7 +71,14 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       setName(cocktail.name)
       setDescription(cocktail.description)
       setAlcoholic(cocktail.alcoholic)
-      setRecipe([...cocktail.recipe])
+      // Map existing recipe to include 'type' and 'instruction' for backward compatibility
+      setRecipe(
+        cocktail.recipe.map((item) => ({
+          ...item,
+          type: item.type || "automatic", // Default to 'automatic' if not present
+          instruction: item.instruction || "", // Default to empty string
+        })),
+      )
 
       // Normalize image path
       let imagePath = cocktail.image || ""
@@ -126,6 +142,9 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           if (!isNaN(amount) && amount >= 0) {
             handleAmountChange(index, amount)
           }
+        } else if (activeInput.startsWith("instruction-")) {
+          const index = Number.parseInt(activeInput.replace("instruction-", ""))
+          handleInstructionChange(index, inputValue)
         }
         break
     }
@@ -154,13 +173,28 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
     setRecipe(updatedRecipe)
   }
 
+  const handleTypeChange = (index: number, type: "automatic" | "manual") => {
+    const updatedRecipe = [...recipe]
+    updatedRecipe[index] = { ...updatedRecipe[index], type }
+    setRecipe(updatedRecipe)
+  }
+
+  const handleInstructionChange = (index: number, instruction: string) => {
+    const updatedRecipe = [...recipe]
+    updatedRecipe[index] = { ...updatedRecipe[index], instruction }
+    setRecipe(updatedRecipe)
+  }
+
   const addIngredient = () => {
     const availableIngredients = ingredients.filter(
       (ingredient) => !recipe.some((item) => item.ingredientId === ingredient.id),
     )
 
     if (availableIngredients.length > 0) {
-      setRecipe([...recipe, { ingredientId: availableIngredients[0].id, amount: 30 }])
+      setRecipe([
+        ...recipe,
+        { ingredientId: availableIngredients[0].id, amount: 30, type: "automatic", instruction: "" },
+      ])
     }
   }
 
@@ -192,7 +226,8 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         recipe: recipe,
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
-          return `${item.amount}ml ${ingredient?.name || item.ingredientId}`
+          const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
+          return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
         }),
       }
 
@@ -213,7 +248,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const getIngredientName = (id: string) => {
     const ingredient = ingredients.find((i) => i.id === id)
-    return ingredient ? ingredient.name : id
+    return ingredient ? ingredient.name : id.replace(/^custom-\d+-/, "")
   }
 
   // Form View - genau wie beim RecipeCreator
@@ -315,7 +350,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             key={index}
             className="grid grid-cols-12 gap-2 items-center p-3 bg-[hsl(var(--cocktail-card-bg))] rounded-lg border border-[hsl(var(--cocktail-card-border))]"
           >
-            <div className="col-span-6">
+            <div className="col-span-4">
               <Select value={item.ingredientId} onValueChange={(value) => handleIngredientChange(index, value)}>
                 <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
                   <SelectValue />
@@ -333,7 +368,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-3">
+            <div className="col-span-2">
               <Input
                 type="text"
                 value={item.amount}
@@ -342,7 +377,25 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer text-center"
               />
             </div>
-            <div className="col-span-2 text-sm text-white">ml</div>
+            <div className="col-span-1 text-sm text-white">ml</div>
+            <div className="col-span-3">
+              <Select
+                value={item.type}
+                onValueChange={(value: "automatic" | "manual") => handleTypeChange(index, value)}
+              >
+                <SelectTrigger className="bg-white border-[hsl(var(--cocktail-card-border))] text-black">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-[hsl(var(--cocktail-card-border))]">
+                  <SelectItem value="automatic" className="text-black hover:bg-gray-100 cursor-pointer">
+                    Automatisch
+                  </SelectItem>
+                  <SelectItem value="manual" className="text-black hover:bg-gray-100 cursor-pointer">
+                    Manuell
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="col-span-1">
               <Button
                 type="button"
@@ -355,6 +408,17 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 <Minus className="h-4 w-4" />
               </Button>
             </div>
+            {item.type === "manual" && (
+              <div className="col-span-12 mt-2">
+                <Input
+                  value={item.instruction || ""}
+                  onClick={() => handleInputFocus(`instruction-${index}`, item.instruction || "")}
+                  readOnly
+                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                  placeholder="Anleitung (z.B. 'mit Eiswürfeln auffüllen')"
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -378,6 +442,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           {activeInput === "description" && "Beschreibung eingeben"}
           {activeInput === "imageUrl" && "Bild-URL eingeben"}
           {activeInput?.startsWith("amount-") && "Menge eingeben (ml)"}
+          {activeInput?.startsWith("instruction-") && "Anleitung eingeben"}
         </h3>
       </div>
 
@@ -393,7 +458,9 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 ? "Beschreibung..."
                 : activeInput === "imageUrl"
                   ? "https://..."
-                  : "Menge in ml"
+                  : activeInput?.startsWith("amount-")
+                    ? "Menge in ml"
+                    : "Anleitung..."
           }
         />
       </div>
