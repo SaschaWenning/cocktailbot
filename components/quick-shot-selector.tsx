@@ -1,15 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Check, AlertCircle, GlassWater } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
-import { ingredients } from "@/data/ingredients"
-import { makeSingleShot } from "@/lib/cocktail-machine"
+import { getAllIngredients } from "@/lib/ingredients"
 import type { IngredientLevel } from "@/types/ingredient-level"
+import { makeSingleShot } from "@/lib/cocktail-machine" // Declare the makeSingleShot variable
 
 interface QuickShotSelectorProps {
   pumpConfig: PumpConfig[]
@@ -24,16 +24,26 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
   const [showSuccess, setShowSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [currentIngredient, setCurrentIngredient] = useState<string>("")
+  const [allIngredients, setAllIngredients] = useState<any[]>([])
+
+  useEffect(() => {
+    const loadIngredients = async () => {
+      const ingredients = await getAllIngredients()
+      setAllIngredients(ingredients)
+    }
+    loadIngredients()
+  }, [])
 
   const shotSize = 20 // Feste Größe: 20ml
 
-  // Erstelle eine Liste aller verfügbaren Zutaten
   const getAllAvailableIngredients = () => {
     return pumpConfig.map((pump) => {
-      const ingredient = ingredients.find((i) => i.id === pump.ingredient)
+      const ingredient = allIngredients.find((i) => i.id === pump.ingredient)
+      const ingredientName = ingredient?.name || pump.ingredient.replace(/^custom-\d+-/, "")
+
       return {
         id: pump.ingredient,
-        name: ingredient?.name || pump.ingredient,
+        name: ingredientName,
         alcoholic: ingredient?.alcoholic || false,
         pumpId: pump.id,
         hasPump: true,
@@ -43,7 +53,6 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
 
   const allAvailableIngredients = getAllAvailableIngredients()
 
-  // Gruppiere Zutaten nach alkoholisch und nicht-alkoholisch
   const alcoholicIngredients = allAvailableIngredients.filter((i) => i.alcoholic)
   const nonAlcoholicIngredients = allAvailableIngredients.filter((i) => !i.alcoholic)
 
@@ -53,7 +62,9 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
   }
 
   const handleQuickShot = async (ingredientId: string) => {
-    const ingredientName = ingredients.find((i) => i.id === ingredientId)?.name || ingredientId
+    const ingredient = allIngredients.find((i) => i.id === ingredientId)
+    const ingredientName = ingredient?.name || ingredientId.replace(/^custom-\d+-/, "")
+
     setCurrentIngredient(ingredientName)
     setIsMaking(true)
     setProgress(0)
@@ -63,7 +74,6 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
     let intervalId: NodeJS.Timeout
 
     try {
-      // Simuliere den Fortschritt
       intervalId = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
@@ -74,15 +84,13 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
         })
       }, 200)
 
-      // Bereite den Shot zu
-      await makeSingleShot(ingredientId, shotSize)
+      await makeSingleShot(ingredientId, shotSize, pumpConfig)
 
       clearInterval(intervalId)
       setProgress(100)
       setStatusMessage(`${ingredientName} fertig!`)
       setShowSuccess(true)
 
-      // Aktualisiere die Füllstände nach erfolgreicher Zubereitung
       await onShotComplete()
 
       setTimeout(() => {

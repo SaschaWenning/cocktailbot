@@ -680,7 +680,7 @@ export default function Home() {
                         onClick={() => setSelectedSize(size)}
                         className={`py-3 px-4 rounded-lg transition-all duration-200 font-medium ${
                           selectedSize === size
-                            ? "bg-[hsl(var(--cocktail-primary))] text-black shadow-lg scale-105"
+                            ? "bg-[#00ff00] text-black shadow-lg scale-105"
                             : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
                         }`}
                       >
@@ -704,7 +704,7 @@ export default function Home() {
                   <Button
                     onClick={handleMakeCocktail}
                     disabled={!checkIngredientsAvailable()}
-                    className="w-full py-3 text-lg bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                    className="w-full py-3 text-lg bg-[#00ff00] hover:bg-[#00ff00] text-black font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     Cocktail zubereiten ({selectedSize}ml)
                   </Button>
@@ -767,7 +767,7 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-primary))] text-black border-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
+          className="h-10 w-10 p-0 bg-[#00ff00] text-black border-[#00ff00] hover:bg-[#00ff00] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -779,7 +779,7 @@ export default function Home() {
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="h-10 w-10 p-0 bg-[hsl(var(--cocktail-primary))] text-black border-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
+          className="h-10 w-10 p-0 bg-[#00ff00] text-black border-[#00ff00] hover:bg-[#00ff00] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
@@ -972,7 +972,7 @@ export default function Home() {
               onClick={() => handleTabChange("cocktails")}
               className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "cocktails"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  ? "bg-[#00ff00] text-black scale-105"
                   : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
@@ -982,7 +982,7 @@ export default function Home() {
               onClick={() => handleTabChange("virgin")}
               className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "virgin"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  ? "bg-[#00ff00] text-black scale-105"
                   : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
@@ -992,7 +992,7 @@ export default function Home() {
               onClick={() => handleTabChange("shots")}
               className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "shots"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  ? "bg-[#00ff00] text-black scale-105"
                   : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
@@ -1002,7 +1002,7 @@ export default function Home() {
               onClick={() => handleTabChange("service")}
               className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
                 activeTab === "service"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
+                  ? "bg-[#00ff00] text-black scale-105"
                   : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
