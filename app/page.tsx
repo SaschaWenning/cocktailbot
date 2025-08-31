@@ -4,19 +4,16 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { pumpConfig as initialPumpConfig } from "@/data/pump-config"
-import { makeCocktail, getPumpConfig, saveRecipe, deleteRecipe, getAllCocktails } from "@/lib/cocktail-machine"
-import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus, Lock } from "lucide-react"
+import { makeCocktail, getPumpConfig, saveRecipe, getAllCocktails } from "@/lib/cocktail-machine"
+import { AlertCircle, Edit, ChevronLeft, ChevronRight, Trash2, Check, Plus } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Cocktail } from "@/types/cocktail"
-import { cocktails as defaultCocktails } from "@/data/cocktails"
 import { getIngredientLevels } from "@/lib/ingredient-level-service"
 import type { IngredientLevel } from "@/types/ingredient-level"
-import { ingredients } from "@/data/ingredients"
 import type { PumpConfig } from "@/types/pump"
 import { Badge } from "@/components/ui/badge"
 import CocktailCard from "@/components/cocktail-card"
 import PumpCleaning from "@/components/pump-cleaning"
-import PumpCalibration from "@/components/pump-calibration"
 import IngredientLevels from "@/components/ingredient-levels"
 import ShotSelector from "@/components/shot-selector"
 import PasswordModal from "@/components/password-modal"
@@ -27,6 +24,8 @@ import { Progress } from "@/components/ui/progress"
 import ImageEditor from "@/components/image-editor"
 import QuickShotSelector from "@/components/quick-shot-selector"
 import { toast } from "@/components/ui/use-toast"
+import ServiceMenu from "@/components/service-menu"
+import { getAllIngredients } from "@/lib/ingredients"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -42,18 +41,18 @@ export default function Home() {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showRecipeEditor, setShowRecipeEditor] = useState(false)
   const [showRecipeCreator, setShowRecipeCreator] = useState(false)
+  const [showRecipeCreatorPasswordModal, setShowRecipeCreatorPasswordModal] = useState(false)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [cocktailToEdit, setCocktailToEdit] = useState<string | null>(null)
   const [cocktailToDelete, setCocktailToDelete] = useState<Cocktail | null>(null)
-  const [cocktailsData, setCocktailsData] = useState<Cocktail[]>(defaultCocktails)
+  const [cocktailsData, setCocktailsData] = useState<Cocktail[]>([])
   const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [lowIngredients, setLowIngredients] = useState<string[]>([])
   const [pumpConfig, setPumpConfig] = useState<PumpConfig[]>(initialPumpConfig)
   const [loading, setLoading] = useState(true)
-  const [isCalibrationLocked, setIsCalibrationLocked] = useState(true)
-  const [passwordAction, setPasswordAction] = useState<"edit" | "calibration">("edit")
   const [showImageEditor, setShowImageEditor] = useState(false)
+  const [allIngredientsData, setAllIngredientsData] = useState<any[]>([]) // State für alle Zutaten (Standard + benutzerdefiniert) hinzugefügt
 
   // Kiosk-Modus Exit Zähler
   const [kioskExitClicks, setKioskExitClicks] = useState(0)
@@ -98,7 +97,7 @@ export default function Home() {
     const loadData = async () => {
       setLoading(true)
       try {
-        await Promise.all([loadIngredientLevels(), loadPumpConfig(), loadCocktails()])
+        await Promise.all([loadIngredientLevels(), loadPumpConfig(), loadCocktails(), loadAllIngredients()])
       } catch (error) {
         console.error("Fehler beim Laden der Daten:", error)
       } finally {
@@ -111,8 +110,32 @@ export default function Home() {
 
   const loadCocktails = async () => {
     try {
+      console.log("[v0] Loading cocktails...")
       const cocktails = await getAllCocktails()
-      setCocktailsData(cocktails)
+      console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
+
+      const hiddenCocktailsJson = localStorage.getItem("hiddenCocktails")
+      console.log("[v0] Hidden cocktails JSON from localStorage:", hiddenCocktailsJson)
+
+      const hiddenCocktails: string[] = hiddenCocktailsJson ? JSON.parse(hiddenCocktailsJson) : []
+      console.log("[v0] Parsed hidden cocktails:", hiddenCocktails)
+
+      const visibleCocktails = cocktails.filter((cocktail) => !hiddenCocktails.includes(cocktail.id))
+      console.log("[v0] Visible cocktails after filtering:", visibleCocktails.length)
+      console.log("[v0] Filtered out cocktails:", cocktails.length - visibleCocktails.length)
+
+      // Ensure loaded cocktails also conform to the new type
+      const transformedCocktails = visibleCocktails.map((cocktail) => ({
+        ...cocktail,
+        recipe: cocktail.recipe.map((item) => ({
+          ...item,
+          type: (item as any).type || "automatic",
+          instruction: (item as any).instruction || "",
+        })),
+      }))
+
+      console.log("[v0] Setting cocktails data with", transformedCocktails.length, "cocktails")
+      setCocktailsData(transformedCocktails)
     } catch (error) {
       console.error("Fehler beim Laden der Cocktails:", error)
     }
@@ -140,6 +163,15 @@ export default function Home() {
     }
   }
 
+  const loadAllIngredients = async () => {
+    try {
+      const ingredients = await getAllIngredients()
+      setAllIngredientsData(ingredients)
+    } catch (error) {
+      console.error("Fehler beim Laden der Zutaten:", error)
+    }
+  }
+
   const handleImageEditClick = (cocktailId: string) => {
     setCocktailToEdit(cocktailId)
     setShowImageEditor(true)
@@ -154,18 +186,22 @@ export default function Home() {
   }
 
   const handleCalibrationClick = () => {
-    setPasswordAction("calibration")
+    setActiveTab("service")
     setShowPasswordModal(true)
   }
 
   const handlePasswordSuccess = () => {
     setShowPasswordModal(false)
-    if (passwordAction === "edit") {
+    if (activeTab === "cocktails" || activeTab === "virgin") {
       setShowRecipeEditor(true)
-    } else if (passwordAction === "calibration") {
-      setIsCalibrationLocked(false)
-      setActiveTab("calibration")
+    } else if (activeTab === "service") {
+      setActiveTab("service")
     }
+  }
+
+  const handleRecipeCreatorPasswordSuccess = () => {
+    setShowRecipeCreatorPasswordModal(false)
+    setShowRecipeCreator(true)
   }
 
   const handleImageSave = async (updatedCocktail: Cocktail) => {
@@ -223,19 +259,32 @@ export default function Home() {
     if (!cocktailToDelete) return
 
     try {
-      await deleteRecipe(cocktailToDelete.id)
+      console.log("[v0] Deleting/hiding cocktail:", cocktailToDelete.id)
 
-      // Aktualisiere die lokale Liste
+      const hiddenCocktailsJson = localStorage.getItem("hiddenCocktails")
+      const hiddenCocktails: string[] = hiddenCocktailsJson ? JSON.parse(hiddenCocktailsJson) : []
+      console.log("[v0] Current hidden cocktails before adding:", hiddenCocktails)
+
+      // Füge die Cocktail-ID zur Liste der ausgeblendeten Cocktails hinzu
+      if (!hiddenCocktails.includes(cocktailToDelete.id)) {
+        hiddenCocktails.push(cocktailToDelete.id)
+        localStorage.setItem("hiddenCocktails", JSON.stringify(hiddenCocktails))
+        console.log("[v0] Updated hidden cocktails in localStorage:", hiddenCocktails)
+      } else {
+        console.log("[v0] Cocktail already in hidden list")
+      }
+
       setCocktailsData((prev) => prev.filter((c) => c.id !== cocktailToDelete.id))
+      console.log("[v0] Removed cocktail from local state")
 
-      // Wenn der gelöschte Cocktail ausgewählt war, setze die Auswahl zurück
+      // Wenn der ausgeblendete Cocktail ausgewählt war, setze die Auswahl zurück
       if (selectedCocktail === cocktailToDelete.id) {
         setSelectedCocktail(null)
       }
 
       setCocktailToDelete(null)
     } catch (error) {
-      console.error("Fehler beim Löschen des Cocktails:", error)
+      console.error("Fehler beim Ausblenden des Cocktails:", error)
       throw error
     }
   }
@@ -297,6 +346,7 @@ export default function Home() {
   const getCurrentVolume = () => {
     const cocktail = cocktailsData.find((c) => c.id === selectedCocktail)
     if (!cocktail) return 0
+    // Summiere alle Mengen, unabhängig vom Typ (automatisch/manuell)
     return cocktail.recipe.reduce((total, item) => total + item.amount, 0)
   }
 
@@ -307,21 +357,48 @@ export default function Home() {
     const cocktail = cocktailsData.find((c) => c.id === selectedCocktail)
     if (!cocktail) return true
 
-    // Skaliere das Rezept auf die gewünschte Größe
-    const currentTotal = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
-    const scaleFactor = selectedSize / currentTotal
+    if (!pumpConfig || pumpConfig.length === 0) {
+      console.warn("Pumpenkonfiguration ist nicht geladen oder leer.")
+      return false // Oder true, je nach gewünschtem Verhalten, wenn keine Pumpen konfiguriert sind
+    }
 
-    const scaledRecipe = cocktail.recipe.map((item) => ({
-      ...item,
-      amount: Math.round(item.amount * scaleFactor),
-    }))
+    const automaticRecipe = cocktail.recipe.filter((item) => {
+      // Eine Zutat ist automatisch, wenn:
+      // 1. manual explizit false ist ODER
+      // 2. manual undefined/nicht gesetzt ist UND type nicht "manual" ist
+      return item.manual === false || (item.manual !== true && item.type !== "manual")
+    })
 
-    // Prüfe, ob genügend von allen Zutaten vorhanden ist
-    for (const item of scaledRecipe) {
+    // Wenn keine automatischen Zutaten vorhanden sind, ist der Cocktail verfügbar (nur manuelle Zutaten)
+    if (automaticRecipe.length === 0) return true
+
+    // Berechne das Gesamtvolumen des gesamten Rezepts (automatisch + manuell) für die Skalierung
+    const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
+
+    // Wenn das Gesamtvolumen 0 ist, aber es Zutaten gibt, ist etwas nicht in Ordnung
+    if (totalRecipeVolume === 0 && cocktail.recipe.length > 0) return false
+
+    const scaleFactor = selectedSize / totalRecipeVolume
+
+    // Prüfe nur automatische Zutaten auf Verfügbarkeit
+    for (const item of automaticRecipe) {
       const level = ingredientLevels.find((level) => level.ingredientId === item.ingredientId)
-      if (!level) continue
+      // KORREKTUR: Suche nach 'ingredient' statt 'ingredientId' in der Pumpenkonfiguration
+      const pump = pumpConfig.find((pc) => pc.ingredient === item.ingredientId)
 
-      if (level.currentAmount < item.amount) {
+      // Wenn keine Füllstandsdaten ODER keine Pumpenkonfiguration für eine automatische Zutat gefunden wird, ist sie nicht verfügbar
+      if (!level || !pump) {
+        console.warn(
+          `Automatische Zutat ${item.ingredientId} ist nicht verfügbar (keine Füllstandsdaten oder Pumpenkonfiguration).`,
+        )
+        return false
+      }
+
+      const scaledAmount = Math.round(item.amount * scaleFactor) // Skaliere die Menge für diese Zutat
+      if (level.currentAmount < scaledAmount) {
+        console.warn(
+          `Nicht genügend ${item.ingredientId} vorhanden. Benötigt: ${scaledAmount}ml, Verfügbar: ${level.currentAmount}ml`,
+        )
         return false
       }
     }
@@ -330,7 +407,7 @@ export default function Home() {
   }
 
   const getIngredientName = (id: string) => {
-    const ingredient = ingredients.find((i) => i.id === id)
+    const ingredient = allIngredientsData.find((i) => i.id === id)
     return ingredient ? ingredient.name : id
   }
 
@@ -532,12 +609,34 @@ export default function Home() {
                 <div>
                   <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
                   <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
-                    {cocktail.ingredients.map((ingredient, index) => (
-                      <li key={index} className="flex items-start bg-[hsl(var(--cocktail-card-bg))]/50 p-2 rounded-lg">
-                        <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
-                        <span>{ingredient}</span>
-                      </li>
-                    ))}
+                    {cocktail.recipe.map((item, index) => {
+                      const ingredient = allIngredientsData.find((i) => i.id === item.ingredientId)
+                      let ingredientName = ingredient ? ingredient.name : item.ingredientId
+
+                      if (!ingredient && item.ingredientId.startsWith("custom-")) {
+                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
+                      }
+
+                      return (
+                        <li
+                          key={index}
+                          className="flex items-start bg-[hsl(var(--cocktail-card-bg))]/50 p-2 rounded-lg"
+                        >
+                          <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
+                          <span>
+                            {item.amount}ml {ingredientName}
+                            {(item.manual === true || item.type === "manual") && (
+                              <span className="text-[hsl(var(--cocktail-text-muted))] ml-2">(manuell)</span>
+                            )}
+                            {(item.manual === true || item.type === "manual") && item.instruction && (
+                              <span className="block text-sm text-[hsl(var(--cocktail-text-muted))] italic mt-1">
+                                Anleitung: {item.instruction}
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               </div>
@@ -568,7 +667,7 @@ export default function Home() {
                   <Alert className="bg-[hsl(var(--cocktail-error))]/10 border-[hsl(var(--cocktail-error))]/30 mb-6">
                     <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
                     <AlertDescription className="text-[hsl(var(--cocktail-error))] text-sm">
-                      Nicht genügend Zutaten vorhanden! Bitte fülle die Zutaten nach.
+                      Nicht genügend Zutaten vorhanden oder Pumpe nicht angeschlossen! Bitte fülle die Zutaten nach.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -705,7 +804,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => setShowRecipeCreator(true)}
+                onClick={() => setShowRecipeCreatorPasswordModal(true)}
                 className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -732,7 +831,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => setShowRecipeCreator(true)}
+                onClick={() => setShowRecipeCreatorPasswordModal(true)}
                 className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -775,27 +874,16 @@ export default function Home() {
         return <IngredientLevels pumpConfig={pumpConfig} onLevelsUpdated={loadIngredientLevels} />
       case "cleaning":
         return <PumpCleaning pumpConfig={pumpConfig} />
-      case "calibration":
-        return isCalibrationLocked ? (
-          <div className="text-center py-12">
-            <div className="bg-[hsl(var(--cocktail-card-bg))] rounded-2xl p-8 max-w-md mx-auto shadow-2xl border border-[hsl(var(--cocktail-card-border))]">
-              <Lock className="h-16 w-16 mx-auto mb-6 text-[hsl(var(--cocktail-warning))]" />
-              <h2 className="text-2xl font-semibold mb-4 text-[hsl(var(--cocktail-text))]">
-                Kalibrierung ist passwortgeschützt
-              </h2>
-              <p className="text-[hsl(var(--cocktail-text-muted))] mb-6 leading-relaxed">
-                Bitte gib das Passwort ein, um die Pumpenkalibrierung zu bearbeiten.
-              </p>
-              <Button
-                onClick={handleCalibrationClick}
-                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold py-3 px-6 shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                Passwort eingeben
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <PumpCalibration pumpConfig={pumpConfig} onConfigUpdate={loadPumpConfig} />
+      case "service":
+        return (
+          <ServiceMenu
+            pumpConfig={pumpConfig}
+            ingredientLevels={ingredientLevels}
+            onLevelsUpdated={loadIngredientLevels}
+            onConfigUpdate={loadPumpConfig}
+            onShotComplete={loadIngredientLevels}
+            availableIngredients={getAvailableIngredientsFromCocktails()}
+          />
         )
       default:
         return null
@@ -848,44 +936,14 @@ export default function Home() {
               Shots
             </Button>
             <Button
-              onClick={() => handleTabChange("quickshots")}
+              onClick={() => handleTabChange("service")}
               className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
-                activeTab === "quickshots"
+                activeTab === "service"
                   ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
                   : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
               }`}
             >
-              Entlüften
-            </Button>
-            <Button
-              onClick={() => handleTabChange("levels")}
-              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
-                activeTab === "levels"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
-              }`}
-            >
-              Füllstände
-            </Button>
-            <Button
-              onClick={() => handleTabChange("cleaning")}
-              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
-                activeTab === "cleaning"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
-              }`}
-            >
-              Reinigung
-            </Button>
-            <Button
-              onClick={() => handleTabChange("calibration")}
-              className={`flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl ${
-                activeTab === "calibration"
-                  ? "bg-[hsl(var(--cocktail-primary))] text-black scale-105"
-                  : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))] hover:scale-102"
-              }`}
-            >
-              Kalibrierung
+              Servicemenü
             </Button>
           </div>
         </nav>
@@ -898,6 +956,12 @@ export default function Home() {
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
         onSuccess={handlePasswordSuccess}
+      />
+
+      <PasswordModal
+        isOpen={showRecipeCreatorPasswordModal}
+        onClose={() => setShowRecipeCreatorPasswordModal(false)}
+        onSuccess={handleRecipeCreatorPasswordSuccess}
       />
 
       <RecipeEditor
