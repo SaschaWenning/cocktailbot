@@ -53,6 +53,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [allIngredientsData, setAllIngredientsData] = useState<any[]>([]) // State für alle Zutaten (Standard + benutzerdefiniert) hinzugefügt
+  const [manualIngredients, setManualIngredients] = useState<
+    Array<{ ingredientId: string; amount: number; instructions?: string }>
+  >([]) // State für manuelle Zutaten hinzugefügt
 
   // Kiosk-Modus Exit Zähler
   const [kioskExitClicks, setKioskExitClicks] = useState(0)
@@ -299,10 +302,22 @@ export default function Home() {
     setProgress(0)
     setStatusMessage("Bereite Cocktail vor...")
     setErrorMessage(null)
+    setManualIngredients([]) // Reset manuelle Zutaten
 
     try {
       // Lade die aktuellste Pumpenkonfiguration
       const currentPumpConfig = await getPumpConfig()
+
+      const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
+      const scaleFactor = selectedSize / totalRecipeVolume
+
+      const manualRecipeItems = cocktail.recipe
+        .filter((item) => item.manual === true || item.type === "manual")
+        .map((item) => ({
+          ingredientId: item.ingredientId,
+          amount: Math.round(item.amount * scaleFactor),
+          instructions: item.instructions || item.instruction,
+        }))
 
       // Simuliere den Fortschritt
       let intervalId: NodeJS.Timeout
@@ -321,23 +336,37 @@ export default function Home() {
 
       clearInterval(intervalId)
       setProgress(100)
-      setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
+
+      if (manualRecipeItems.length > 0) {
+        setManualIngredients(manualRecipeItems)
+        setStatusMessage(
+          `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
+        )
+      } else {
+        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
+      }
+
       setShowSuccess(true)
 
       // Aktualisiere die Füllstände nach erfolgreicher Zubereitung
       await loadIngredientLevels()
 
-      setTimeout(() => {
-        setIsMaking(false)
-        setShowSuccess(false)
-        setSelectedCocktail(null)
-      }, 3000)
+      setTimeout(
+        () => {
+          setIsMaking(false)
+          setShowSuccess(false)
+          setSelectedCocktail(null)
+          setManualIngredients([]) // Reset manuelle Zutaten nach Timeout
+        },
+        manualRecipeItems.length > 0 ? 8000 : 3000,
+      ) // Längere Anzeige bei manuellen Zutaten
     } catch (error) {
       let intervalId: NodeJS.Timeout
       clearInterval(intervalId)
       setProgress(0)
       setStatusMessage("Fehler bei der Zubereitung!")
       setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
+      setManualIngredients([]) // Reset bei Fehler
       setTimeout(() => setIsMaking(false), 3000)
     }
   }
@@ -777,6 +806,40 @@ export default function Home() {
                   <AlertCircle className="h-4 w-4 text-[hsl(var(--cocktail-error))]" />
                   <AlertDescription className="text-[hsl(var(--cocktail-error))]">{errorMessage}</AlertDescription>
                 </Alert>
+              )}
+
+              {showSuccess && manualIngredients.length > 0 && (
+                <div className="bg-[hsl(var(--cocktail-card-bg))]/50 p-6 rounded-lg border border-[hsl(var(--cocktail-card-border))]">
+                  <h3 className="text-lg font-semibold mb-4 text-[hsl(var(--cocktail-primary))]">
+                    Bitte folgende Zutaten manuell hinzufügen:
+                  </h3>
+                  <ul className="space-y-3">
+                    {manualIngredients.map((item, index) => {
+                      const ingredient = allIngredientsData.find((i) => i.id === item.ingredientId)
+                      let ingredientName = ingredient ? ingredient.name : item.ingredientId
+
+                      if (!ingredient && item.ingredientId.startsWith("custom-")) {
+                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
+                      }
+
+                      return (
+                        <li key={index} className="flex items-start bg-[hsl(var(--cocktail-card-bg))]/30 p-3 rounded">
+                          <span className="mr-3 text-[hsl(var(--cocktail-primary))] font-bold">•</span>
+                          <div>
+                            <span className="font-medium text-[hsl(var(--cocktail-text))]">
+                              {item.amount}ml {ingredientName}
+                            </span>
+                            {item.instructions && (
+                              <p className="text-sm text-[hsl(var(--cocktail-text-muted))] mt-1 italic">
+                                {item.instructions}
+                              </p>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
               )}
 
               {showSuccess && (
