@@ -170,6 +170,18 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     }
   }
 
+  const handleEmpty = (ingredientId: string) => {
+    setActiveButton(`${ingredientId}-empty`)
+    setTimeout(() => setActiveButton(null), 300)
+
+    setRefillAmounts((prev) => ({
+      ...prev,
+      [ingredientId]: "0",
+    }))
+
+    handleRefill(ingredientId)
+  }
+
   const getIngredientName = (id: string) => {
     if (id.startsWith("custom-")) {
       return id.replace(/^custom-\d+-/, "")
@@ -428,7 +440,38 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
                           {/* Schnellauswahl-Buttons */}
                           <div className="grid grid-cols-4 gap-2 mb-3">
-                            {commonSizes.map((size) => (
+                            <Button
+                              key="empty"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEmpty(level.ingredientId)}
+                              className={`bg-gray-900 text-white border-gray-700 hover:bg-[#ff3b30] hover:text-white hover:border-[#ff3b30] transition-all duration-200 ${
+                                activeButton === `${level.ingredientId}-empty`
+                                  ? "bg-[#ff3b30] text-white border-[#ff3b30]"
+                                  : ""
+                              }`}
+                            >
+                              Leer
+                            </Button>
+                            {commonSizes.slice(0, 3).map((size) => (
+                              <Button
+                                key={size}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleQuickFill(level.ingredientId, size)}
+                                className={`bg-gray-900 text-white border-gray-700 hover:bg-[#00ff00] hover:text-black hover:border-[#00ff00] transition-all duration-200 ${
+                                  activeButton === `${level.ingredientId}-${size}`
+                                    ? "bg-[#00ff00] text-black border-[#00ff00]"
+                                    : ""
+                                }`}
+                              >
+                                {size}ml
+                              </Button>
+                            ))}
+                          </div>
+
+                          <div className="grid grid-cols-4 gap-2 mb-3">
+                            {commonSizes.slice(3).map((size) => (
                               <Button
                                 key={size}
                                 variant="outline"
@@ -532,7 +575,8 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
               onBackspace={handleBackspace}
               onClear={handleClear}
               onConfirm={confirmInput}
-              allowDecimal={false}
+              onCancel={cancelInput}
+              layout="numeric"
             />
           </div>
 
