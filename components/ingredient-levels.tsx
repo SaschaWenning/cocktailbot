@@ -100,10 +100,10 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
   const handleRefill = async (ingredientId: string) => {
     const amountStr = refillAmounts[ingredientId]
-    if (!amountStr) return
+    if (!amountStr && amountStr !== "0") return
 
     const newTotalAmount = Number.parseInt(amountStr, 10)
-    if (isNaN(newTotalAmount) || newTotalAmount <= 0) return
+    if (isNaN(newTotalAmount) || newTotalAmount < 0) return
 
     setSaving(true)
     try {
