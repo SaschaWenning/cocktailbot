@@ -760,18 +760,12 @@ export default function Home() {
     totalPages: number
     onPageChange: (page: number) => void
   }) {
-    const handlePageChange = (page: number) => {
-      onPageChange(page)
-      // Nach oben scrollen nach Seitenwechsel
-      window.scrollTo({ top: 0, behavior: "smooth" })
-    }
-
     return (
       <div className="flex justify-center items-center gap-3 mt-8">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handlePageChange(currentPage - 1)}
+          onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           className="h-10 w-10 p-0 bg-[#00ff00] text-black border-[#00ff00] hover:bg-[#00ff00] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
         >
@@ -783,7 +777,7 @@ export default function Home() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handlePageChange(currentPage + 1)}
+          onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           className="h-10 w-10 p-0 bg-[#00ff00] text-black border-[#00ff00] hover:bg-[#00ff00] disabled:opacity-50 disabled:bg-[hsl(var(--cocktail-card-bg))] disabled:text-[hsl(var(--cocktail-text))] disabled:border-[hsl(var(--cocktail-card-border))] shadow-lg"
         >
