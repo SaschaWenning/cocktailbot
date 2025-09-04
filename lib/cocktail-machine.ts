@@ -6,6 +6,7 @@ import { cocktails as defaultCocktails } from "@/data/cocktails"
 
 // In-memory storage for demonstration purposes
 const DELETED_COCKTAILS_KEY = "deleted-cocktails"
+const CUSTOM_COCKTAILS_KEY = "custom-cocktails"
 
 // Funktion zum Laden der gelöschten Cocktail-IDs aus localStorage
 const getDeletedCocktailIds = (): string[] => {
@@ -19,6 +20,26 @@ const getDeletedCocktailIds = (): string[] => {
   }
 }
 
+const getCustomCocktails = (): Cocktail[] => {
+  if (typeof window === "undefined") return []
+  try {
+    const custom = localStorage.getItem(CUSTOM_COCKTAILS_KEY)
+    return custom ? JSON.parse(custom) : []
+  } catch (error) {
+    console.error("Fehler beim Laden der benutzerdefinierten Cocktails:", error)
+    return []
+  }
+}
+
+const saveCustomCocktails = (customCocktails: Cocktail[]): void => {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(CUSTOM_COCKTAILS_KEY, JSON.stringify(customCocktails))
+  } catch (error) {
+    console.error("Fehler beim Speichern der benutzerdefinierten Cocktails:", error)
+  }
+}
+
 // Funktion zum Speichern der gelöschten Cocktail-IDs in localStorage
 const saveDeletedCocktailIds = (deletedIds: string[]): void => {
   if (typeof window === "undefined") return
@@ -29,16 +50,19 @@ const saveDeletedCocktailIds = (deletedIds: string[]): void => {
   }
 }
 
-let currentCocktails: Cocktail[] = defaultCocktails
-  .filter((cocktail) => !getDeletedCocktailIds().includes(cocktail.id))
-  .map((cocktail) => ({
-    ...cocktail,
-    recipe: cocktail.recipe.map((item) => ({
-      ...item,
-      type: (item as any).type || "automatic",
-      instruction: (item as any).instruction || "",
+let currentCocktails: Cocktail[] = [
+  ...defaultCocktails
+    .filter((cocktail) => !getDeletedCocktailIds().includes(cocktail.id))
+    .map((cocktail) => ({
+      ...cocktail,
+      recipe: cocktail.recipe.map((item) => ({
+        ...item,
+        type: (item as any).type || "automatic",
+        instruction: (item as any).instruction || "",
+      })),
     })),
-  }))
+  ...getCustomCocktails(),
+]
 
 let currentPumpConfig: PumpConfig[] = defaultPumpConfig
 
@@ -54,9 +78,9 @@ export const getAllCocktails = async (): Promise<Cocktail[]> => {
     setTimeout(() => {
       console.log("Fetching all cocktails (simulated)")
       const deletedIds = getDeletedCocktailIds()
+      const customCocktails = getCustomCocktails()
 
-      // Immer von den ursprünglichen defaultCocktails ausgehen und gelöschte herausfiltern
-      const filteredCocktails = defaultCocktails
+      const filteredDefaultCocktails = defaultCocktails
         .filter((cocktail) => !deletedIds.includes(cocktail.id))
         .map((cocktail) => ({
           ...cocktail,
@@ -67,10 +91,12 @@ export const getAllCocktails = async (): Promise<Cocktail[]> => {
           })),
         }))
 
-      // Aktualisiere auch currentCocktails für Konsistenz
-      currentCocktails = filteredCocktails
+      const allCocktails = [...filteredDefaultCocktails, ...customCocktails]
 
-      resolve(filteredCocktails)
+      // Aktualisiere auch currentCocktails für Konsistenz
+      currentCocktails = allCocktails
+
+      resolve(allCocktails)
     }, 500)
   })
 }
@@ -88,6 +114,9 @@ export const saveRecipe = async (cocktail: Cocktail): Promise<void> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       const index = currentCocktails.findIndex((c) => c.id === cocktail.id)
+
+      const isDefaultCocktail = defaultCocktails.some((c) => c.id === cocktail.id)
+
       if (index > -1) {
         currentCocktails[index] = cocktail
         console.log(`Cocktail "${cocktail.name}" updated (simulated)`)
@@ -95,6 +124,13 @@ export const saveRecipe = async (cocktail: Cocktail): Promise<void> => {
         currentCocktails.push(cocktail)
         console.log(`Cocktail "${cocktail.name}" added (simulated)`)
       }
+
+      if (!isDefaultCocktail) {
+        const customCocktails = currentCocktails.filter((c) => !defaultCocktails.some((dc) => dc.id === c.id))
+        saveCustomCocktails(customCocktails)
+        console.log(`Benutzerdefinierter Cocktail "${cocktail.name}" in localStorage gespeichert`)
+      }
+
       resolve()
     }, 500)
   })
@@ -103,10 +139,20 @@ export const saveRecipe = async (cocktail: Cocktail): Promise<void> => {
 export const deleteRecipe = async (cocktailId: string): Promise<void> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      const deletedIds = getDeletedCocktailIds()
-      if (!deletedIds.includes(cocktailId)) {
-        deletedIds.push(cocktailId)
-        saveDeletedCocktailIds(deletedIds)
+      const isDefaultCocktail = defaultCocktails.some((c) => c.id === cocktailId)
+
+      if (isDefaultCocktail) {
+        // Standard-Cocktail: Zur gelöschten Liste hinzufügen
+        const deletedIds = getDeletedCocktailIds()
+        if (!deletedIds.includes(cocktailId)) {
+          deletedIds.push(cocktailId)
+          saveDeletedCocktailIds(deletedIds)
+        }
+      } else {
+        // Benutzerdefinierter Cocktail: Aus localStorage entfernen
+        const customCocktails = getCustomCocktails().filter((c) => c.id !== cocktailId)
+        saveCustomCocktails(customCocktails)
+        console.log(`Benutzerdefinierter Cocktail mit ID "${cocktailId}" aus localStorage entfernt`)
       }
 
       // Entferne auch aus der aktuellen Liste
