@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, Droplets, Check, AlertTriangle, Settings } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
 import { cleanPump } from "@/lib/cocktail-machine"
-import { getAllIngredients } from "@/lib/ingredients"
 
 interface PumpCleaningProps {
   pumpConfig: PumpConfig[]
@@ -20,16 +19,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
   const [progress, setProgress] = useState(0)
   const [pumpsDone, setPumpsDone] = useState<number[]>([])
   const [manualCleaningPumps, setManualCleaningPumps] = useState<Set<number>>(new Set())
-  const [allIngredients, setAllIngredients] = useState<any[]>([])
   const cleaningProcessRef = useRef<{ cancel: boolean }>({ cancel: false })
-
-  useEffect(() => {
-    const loadIngredients = async () => {
-      const ingredients = await getAllIngredients()
-      setAllIngredients(ingredients)
-    }
-    loadIngredients()
-  }, [])
 
   const startCleaning = async () => {
     // Reinigungsprozess starten
@@ -106,15 +96,6 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
         return newSet
       })
     }
-  }
-
-  const getIngredientName = (ingredientId: string) => {
-    const ingredient = allIngredients.find((ing) => ing.id === ingredientId)
-    if (ingredient) {
-      return ingredient.name
-    }
-    // Clean custom ingredient IDs by removing timestamp and custom prefix
-    return ingredientId.replace(/^custom-\d+-/, "").replace(/-/g, " ")
   }
 
   return (
@@ -285,9 +266,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
                 </Button>
                 <span className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
                   Pumpe {pump.id}
-                  {pump.ingredient && (
-                    <div className="text-[10px] opacity-70">{getIngredientName(pump.ingredient)}</div>
-                  )}
+                  {pump.ingredient && <div className="text-[10px] opacity-70">{pump.ingredient}</div>}
                 </span>
               </div>
             ))}
