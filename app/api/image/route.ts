@@ -18,17 +18,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Bildpfad ist erforderlich" }, { status: 400 })
     }
 
-    if (!isPathSafe(imagePath)) {
-      return NextResponse.json({ error: "Ungültiger Pfad" }, { status: 400 })
-    }
-
-    // Convert absolute paths to relative public paths
     let publicPath = imagePath
-    if (imagePath.startsWith("/public/")) {
+
+    // Handle absolute filesystem paths from Raspberry Pi
+    if (imagePath.includes("/home/pi/cocktailbot/cocktailbot-main/public/")) {
+      publicPath = imagePath.split("/home/pi/cocktailbot/cocktailbot-main/public")[1]
+    }
+    // Handle relative paths starting with /public/
+    else if (imagePath.startsWith("/public/")) {
       publicPath = imagePath.substring(7) // Remove "/public" prefix
     }
+    // Ensure path starts with /
+    if (!publicPath.startsWith("/")) {
+      publicPath = "/" + publicPath
+    }
 
-    console.log("[v0] Redirecting to public path:", publicPath)
+    console.log("[v0] Converted to public path:", publicPath)
+
+    if (!isPathSafe(publicPath)) {
+      return NextResponse.json({ error: "Ungültiger Pfad" }, { status: 400 })
+    }
 
     // Redirect to the actual image in the public folder
     return NextResponse.redirect(new URL(publicPath, request.url))
