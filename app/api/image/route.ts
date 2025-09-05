@@ -1,30 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server"
-import fs from "fs"
-import path from "path"
+
+export const dynamic = "force-dynamic"
 
 function isPathSafe(requestedPath: string): boolean {
-  const normalizedPath = path.normalize(requestedPath)
-  return !normalizedPath.includes("..")
-}
-
-function getMimeType(filename: string): string {
-  const ext = path.extname(filename).toLowerCase()
-  const mimeTypes: { [key: string]: string } = {
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".png": "image/png",
-    ".gif": "image/gif",
-    ".bmp": "image/bmp",
-    ".webp": "image/webp",
-    ".svg": "image/svg+xml",
-  }
-  return mimeTypes[ext] || "application/octet-stream"
+  return !requestedPath.includes("..") && requestedPath.startsWith("/")
 }
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("[v0] Image API called")
     const { searchParams } = new URL(request.url)
     const imagePath = searchParams.get("path")
+
+    console.log("[v0] Requested image path:", imagePath)
 
     if (!imagePath) {
       return NextResponse.json({ error: "Bildpfad ist erforderlich" }, { status: 400 })
@@ -34,30 +22,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Ungültiger Pfad" }, { status: 400 })
     }
 
-    if (!fs.existsSync(imagePath)) {
-      return NextResponse.json({ error: "Bild nicht gefunden" }, { status: 404 })
+    // Convert absolute paths to relative public paths
+    let publicPath = imagePath
+    if (imagePath.startsWith("/public/")) {
+      publicPath = imagePath.substring(7) // Remove "/public" prefix
     }
 
-    const stats = fs.statSync(imagePath)
-    if (!stats.isFile()) {
-      return NextResponse.json({ error: "Pfad ist keine Datei" }, { status: 400 })
-    }
+    console.log("[v0] Redirecting to public path:", publicPath)
 
-    // Lese die Bilddatei
-    const imageBuffer = fs.readFileSync(imagePath)
-    const mimeType = getMimeType(imagePath)
-
-    // Erstelle Response mit korrekten Headers
-    return new NextResponse(imageBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": mimeType,
-        "Content-Length": imageBuffer.length.toString(),
-        "Cache-Control": "public, max-age=3600", // 1 Stunde Cache
-      },
-    })
+    // Redirect to the actual image in the public folder
+    return NextResponse.redirect(new URL(publicPath, request.url))
   } catch (error) {
-    console.error("Image API Error:", error)
-    return NextResponse.json({ error: "Fehler beim Laden des Bildes" }, { status: 500 })
+    console.error("[v0] Image API Error:", error)
+    return NextResponse.json(
+      {
+        error: "Fehler beim Laden des Bildes",
+        details: error instanceof Error ? error.message : "Unbekannter Fehler",
+      },
+      { status: 500 },
+    )
   }
 }

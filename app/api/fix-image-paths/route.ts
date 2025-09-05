@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { readFileSync, writeFileSync, readdirSync } from "fs"
 import { join } from "path"
 
+export const dynamic = "force-dynamic"
+
 export async function POST(request: NextRequest) {
   try {
     // Lade die aktuelle cocktails.ts Datei
