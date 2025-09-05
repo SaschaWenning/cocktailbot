@@ -42,81 +42,115 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Ungültiger Pfad" }, { status: 400 })
     }
 
-    const mockItems: FileItem[] = [
-      {
-        name: "public",
-        path: "/public",
-        isDirectory: true,
-        isFile: false,
-        size: 0,
-        modified: new Date().toISOString(),
-        isImage: false,
-      },
-      {
-        name: "images",
-        path: "/public/images",
-        isDirectory: true,
-        isFile: false,
-        size: 0,
-        modified: new Date().toISOString(),
-        isImage: false,
-      },
-      {
-        name: "cocktails",
-        path: "/public/images/cocktails",
-        isDirectory: true,
-        isFile: false,
-        size: 0,
-        modified: new Date().toISOString(),
-        isImage: false,
-      },
-      {
-        name: "mojito.jpg",
-        path: "/public/images/cocktails/mojito.jpg",
-        isDirectory: false,
-        isFile: true,
-        size: 45678,
-        modified: new Date().toISOString(),
-        isImage: true,
-      },
-      {
-        name: "long_island_iced_tea.jpg",
-        path: "/public/images/cocktails/long_island_iced_tea.jpg",
-        isDirectory: false,
-        isFile: true,
-        size: 52341,
-        modified: new Date().toISOString(),
-        isImage: true,
-      },
-    ]
+    let items: FileItem[] = []
+    let parentPath: string | null = null
 
-    // Filter items based on current path
-    let filteredItems = mockItems
-    if (requestedPath === "/") {
-      filteredItems = mockItems.filter((item) => item.path === "/public")
-    } else if (requestedPath === "/public") {
-      filteredItems = mockItems.filter((item) => item.path === "/public/images")
-    } else if (requestedPath === "/public/images") {
-      filteredItems = mockItems.filter((item) => item.path === "/public/images/cocktails")
-    } else if (requestedPath === "/public/images/cocktails") {
-      filteredItems = mockItems.filter((item) => item.path.startsWith("/public/images/cocktails/") && item.isFile)
-    }
+    try {
+      // Try to import fs dynamically (only works on server with Node.js)
+      const fs = await import("fs").then((m) => m.promises)
+      const path = await import("path")
 
-    const parentPath =
-      requestedPath === "/"
-        ? null
-        : requestedPath === "/public"
-          ? "/"
+      // Map web path to actual filesystem path
+      const basePath = process.cwd()
+      const actualPath =
+        requestedPath === "/"
+          ? path.join(basePath, "public")
+          : path.join(basePath, "public", requestedPath.replace(/^\/public/, ""))
+
+      console.log("[v0] Reading actual filesystem path:", actualPath)
+
+      const entries = await fs.readdir(actualPath, { withFileTypes: true })
+
+      items = entries.map((entry) => {
+        const fullPath = requestedPath === "/" ? `/public/${entry.name}` : `${requestedPath}/${entry.name}`
+
+        return {
+          name: entry.name,
+          path: fullPath,
+          isDirectory: entry.isDirectory(),
+          isFile: entry.isFile(),
+          size: entry.isFile() ? 0 : 0, // Could get actual size with fs.stat if needed
+          modified: new Date().toISOString(),
+          isImage: entry.isFile() && isImageFile(entry.name),
+        }
+      })
+
+      // Calculate parent path
+      if (requestedPath === "/") {
+        parentPath = null
+      } else {
+        const pathParts = requestedPath.split("/").filter((p) => p)
+        pathParts.pop()
+        parentPath = pathParts.length === 0 ? "/" : "/" + pathParts.join("/")
+      }
+
+      console.log("[v0] Successfully read real filesystem, found", items.length, "items")
+    } catch (fsError) {
+      console.log("[v0] Real filesystem not available, using mock data:", fsError)
+
+      // Fallback to mock data for v0 environment
+      const mockItems: FileItem[] = [
+        {
+          name: "images",
+          path: "/public/images",
+          isDirectory: true,
+          isFile: false,
+          size: 0,
+          modified: new Date().toISOString(),
+          isImage: false,
+        },
+        {
+          name: "cocktails",
+          path: "/public/images/cocktails",
+          isDirectory: true,
+          isFile: false,
+          size: 0,
+          modified: new Date().toISOString(),
+          isImage: false,
+        },
+        {
+          name: "mojito.jpg",
+          path: "/public/images/cocktails/mojito.jpg",
+          isDirectory: false,
+          isFile: true,
+          size: 45678,
+          modified: new Date().toISOString(),
+          isImage: true,
+        },
+        {
+          name: "long_island_iced_tea.jpg",
+          path: "/public/images/cocktails/long_island_iced_tea.jpg",
+          isDirectory: false,
+          isFile: true,
+          size: 52341,
+          modified: new Date().toISOString(),
+          isImage: true,
+        },
+      ]
+
+      // Filter items based on current path
+      if (requestedPath === "/") {
+        items = [mockItems[0]] // Only show "images" folder
+      } else if (requestedPath === "/public/images") {
+        items = [mockItems[1]] // Only show "cocktails" folder
+      } else if (requestedPath === "/public/images/cocktails") {
+        items = mockItems.filter((item) => item.path.startsWith("/public/images/cocktails/") && item.isFile)
+      }
+
+      parentPath =
+        requestedPath === "/"
+          ? null
           : requestedPath === "/public/images"
-            ? "/public"
+            ? "/"
             : requestedPath === "/public/images/cocktails"
               ? "/public/images"
               : "/"
+    }
 
     const response: FileBrowserData = {
       currentPath: requestedPath,
       parentPath,
-      items: filteredItems,
+      items,
     }
 
     console.log("[v0] Returning filesystem data:", response)
