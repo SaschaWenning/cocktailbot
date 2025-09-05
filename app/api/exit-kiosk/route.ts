@@ -1,8 +1,6 @@
 import { exec } from "child_process"
 import { NextResponse } from "next/server"
 
-export const dynamic = "force-dynamic"
-
 export async function POST() {
   try {
     // Führe den Befehl aus, um den Kiosk-Modus zu beenden
