@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
+import fs from "fs"
+import path from "path"
 
 interface FileItem {
   name: string
@@ -19,114 +21,78 @@ interface FileBrowserData {
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg"]
 
 function isImageFile(filename: string): boolean {
-  const ext = filename.toLowerCase().substring(filename.lastIndexOf("."))
+  const ext = path.extname(filename).toLowerCase()
   return IMAGE_EXTENSIONS.includes(ext)
 }
 
 function isPathSafe(requestedPath: string): boolean {
-  return !requestedPath.includes("..") && requestedPath.startsWith("/")
+  // Verhindere Directory Traversal Angriffe
+  const normalizedPath = path.normalize(requestedPath)
+  return !normalizedPath.includes("..")
 }
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[v0] Filesystem API called")
     const { searchParams } = new URL(request.url)
     const requestedPath = searchParams.get("path") || "/"
 
-    console.log("[v0] Requested path:", requestedPath)
-
     if (!isPathSafe(requestedPath)) {
-      console.log("[v0] Unsafe path detected:", requestedPath)
       return NextResponse.json({ error: "Ungültiger Pfad" }, { status: 400 })
     }
 
-    const mockItems: FileItem[] = [
-      {
-        name: "public",
-        path: "/public",
-        isDirectory: true,
-        isFile: false,
-        size: 0,
-        modified: new Date().toISOString(),
-        isImage: false,
-      },
-      {
-        name: "images",
-        path: "/public/images",
-        isDirectory: true,
-        isFile: false,
-        size: 0,
-        modified: new Date().toISOString(),
-        isImage: false,
-      },
-      {
-        name: "cocktails",
-        path: "/public/images/cocktails",
-        isDirectory: true,
-        isFile: false,
-        size: 0,
-        modified: new Date().toISOString(),
-        isImage: false,
-      },
-      {
-        name: "mojito.jpg",
-        path: "/public/images/cocktails/mojito.jpg",
-        isDirectory: false,
-        isFile: true,
-        size: 45678,
-        modified: new Date().toISOString(),
-        isImage: true,
-      },
-      {
-        name: "long_island_iced_tea.jpg",
-        path: "/public/images/cocktails/long_island_iced_tea.jpg",
-        isDirectory: false,
-        isFile: true,
-        size: 52341,
-        modified: new Date().toISOString(),
-        isImage: true,
-      },
-    ]
-
-    // Filter items based on current path
-    let filteredItems = mockItems
-    if (requestedPath === "/") {
-      filteredItems = mockItems.filter((item) => item.path === "/public")
-    } else if (requestedPath === "/public") {
-      filteredItems = mockItems.filter((item) => item.path === "/public/images")
-    } else if (requestedPath === "/public/images") {
-      filteredItems = mockItems.filter((item) => item.path === "/public/images/cocktails")
-    } else if (requestedPath === "/public/images/cocktails") {
-      filteredItems = mockItems.filter((item) => item.path.startsWith("/public/images/cocktails/") && item.isFile)
+    // Überprüfe ob der Pfad existiert
+    if (!fs.existsSync(requestedPath)) {
+      return NextResponse.json({ error: "Pfad nicht gefunden" }, { status: 404 })
     }
 
-    const parentPath =
-      requestedPath === "/"
-        ? null
-        : requestedPath === "/public"
-          ? "/"
-          : requestedPath === "/public/images"
-            ? "/public"
-            : requestedPath === "/public/images/cocktails"
-              ? "/public/images"
-              : "/"
+    const stats = fs.statSync(requestedPath)
+
+    if (!stats.isDirectory()) {
+      return NextResponse.json({ error: "Pfad ist kein Verzeichnis" }, { status: 400 })
+    }
+
+    // Lese Verzeichnisinhalt
+    const items = fs.readdirSync(requestedPath)
+    const fileItems: FileItem[] = []
+
+    for (const item of items) {
+      try {
+        const itemPath = path.join(requestedPath, item)
+        const itemStats = fs.statSync(itemPath)
+
+        fileItems.push({
+          name: item,
+          path: itemPath,
+          isDirectory: itemStats.isDirectory(),
+          isFile: itemStats.isFile(),
+          size: itemStats.size,
+          modified: itemStats.mtime.toISOString(),
+          isImage: itemStats.isFile() && isImageFile(item),
+        })
+      } catch (error) {
+        // Überspringe Dateien, die nicht gelesen werden können
+        console.warn(`Kann Datei nicht lesen: ${item}`, error)
+      }
+    }
+
+    // Sortiere: Verzeichnisse zuerst, dann Dateien
+    fileItems.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1
+      if (!a.isDirectory && b.isDirectory) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+    const parentPath = requestedPath === "/" ? null : path.dirname(requestedPath)
 
     const response: FileBrowserData = {
       currentPath: requestedPath,
       parentPath,
-      items: filteredItems,
+      items: fileItems,
     }
 
-    console.log("[v0] Returning filesystem data:", response)
     return NextResponse.json(response)
   } catch (error) {
-    console.error("[v0] Filesystem API Error:", error)
-    return NextResponse.json(
-      {
-        error: "Fehler beim Lesen des Verzeichnisses",
-        details: error instanceof Error ? error.message : "Unbekannter Fehler",
-      },
-      { status: 500 },
-    )
+    console.error("Filesystem API Error:", error)
+    return NextResponse.json({ error: "Fehler beim Lesen des Verzeichnisses" }, { status: 500 })
   }
 }
