@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Requested path:", requestedPath)
 
-    if (!isPathSafe(requestedPath)) {
+    if (requestedPath.includes("..")) {
       console.log("[v0] Unsafe path detected:", requestedPath)
       return NextResponse.json({ error: "Ungültiger Pfad" }, { status: 400 })
     }
@@ -55,84 +55,95 @@ export async function GET(request: NextRequest) {
         const fs = require("fs").promises
         const path = require("path")
 
-        const basePath = process.cwd()
-        console.log("[v0] Base path (cwd):", basePath)
+        let actualPath: string
 
-        // Versuche verschiedene Pfade basierend auf der Umgebung
-        const possibleBasePaths = [
-          path.join(basePath, "public"), // Standard Next.js public Ordner
-          "/home/pi/cocktailbot/cocktailbot-main/public", // Raspberry Pi spezifischer Pfad
-          basePath, // Aktuelles Arbeitsverzeichnis
-        ]
-
-        let actualPath: string | null = null
-        let workingBasePath: string | null = null
-
-        // Finde den ersten existierenden Basispfad
-        for (const testBasePath of possibleBasePaths) {
-          try {
-            const testPath = requestedPath === "/" ? testBasePath : path.join(testBasePath, requestedPath)
-            await fs.access(testPath)
-            actualPath = testPath
-            workingBasePath = testBasePath
-            console.log("[v0] Found working base path:", workingBasePath)
-            break
-          } catch (accessError) {
-            console.log("[v0] Base path not accessible:", testBasePath)
-          }
-        }
-
-        if (!actualPath || !workingBasePath) {
-          throw new Error("No accessible base path found")
+        if (requestedPath === "/") {
+          // Für Root-Verzeichnis, zeige wichtige System-Ordner
+          actualPath = "/"
+        } else {
+          // Für alle anderen Pfade, verwende den direkten Pfad
+          actualPath = requestedPath
         }
 
         console.log("[v0] Using actual filesystem path:", actualPath)
 
-        // Check if path exists and is directory
-        const stats = await fs.stat(actualPath)
-        console.log("[v0] Path exists, is directory:", stats.isDirectory())
+        if (requestedPath === "/") {
+          // Für Root-Verzeichnis, zeige nur wichtige Ordner
+          const rootItems = [
+            { name: "home", path: "/home", isDir: true },
+            { name: "usr", path: "/usr", isDir: true },
+            { name: "var", path: "/var", isDir: true },
+            { name: "etc", path: "/etc", isDir: true },
+            { name: "opt", path: "/opt", isDir: true },
+            { name: "tmp", path: "/tmp", isDir: true },
+          ]
 
-        if (!stats.isDirectory()) {
-          throw new Error("Path is not a directory")
-        }
-
-        const entries = await fs.readdir(actualPath, { withFileTypes: true })
-        console.log("[v0] Successfully read directory, found", entries.length, "entries")
-
-        items = await Promise.all(
-          entries.map(async (entry) => {
-            let webPath: string
-            if (requestedPath === "/") {
-              webPath = `/${entry.name}`
-            } else {
-              webPath = `${requestedPath}/${entry.name}`
-            }
-
-            // Get actual file size and modification time
-            let size = 0
-            let modified = new Date().toISOString()
+          items = []
+          for (const item of rootItems) {
             try {
-              if (entry.isFile()) {
-                const entryPath = path.join(actualPath!, entry.name)
-                const entryStats = await fs.stat(entryPath)
-                size = entryStats.size
-                modified = entryStats.mtime.toISOString()
+              const stats = await fs.stat(item.path)
+              if (stats.isDirectory()) {
+                items.push({
+                  name: item.name,
+                  path: item.path,
+                  isDirectory: true,
+                  isFile: false,
+                  size: 0,
+                  modified: stats.mtime.toISOString(),
+                  isImage: false,
+                })
               }
-            } catch (sizeError) {
-              console.log("[v0] Could not get stats for", entry.name, ":", sizeError)
+            } catch (error) {
+              console.log("[v0] Could not access", item.path)
+            }
+          }
+        } else {
+          // Für alle anderen Pfade, lese das Verzeichnis normal
+          try {
+            const stats = await fs.stat(actualPath)
+            console.log("[v0] Path exists, is directory:", stats.isDirectory())
+
+            if (!stats.isDirectory()) {
+              throw new Error("Path is not a directory")
             }
 
-            return {
-              name: entry.name,
-              path: webPath,
-              isDirectory: entry.isDirectory(),
-              isFile: entry.isFile(),
-              size,
-              modified,
-              isImage: entry.isFile() && isImageFile(entry.name),
-            }
-          }),
-        )
+            const entries = await fs.readdir(actualPath, { withFileTypes: true })
+            console.log("[v0] Successfully read directory, found", entries.length, "entries")
+
+            items = await Promise.all(
+              entries.map(async (entry) => {
+                const webPath = path.join(requestedPath, entry.name)
+
+                // Get actual file size and modification time
+                let size = 0
+                let modified = new Date().toISOString()
+                try {
+                  if (entry.isFile()) {
+                    const entryPath = path.join(actualPath, entry.name)
+                    const entryStats = await fs.stat(entryPath)
+                    size = entryStats.size
+                    modified = entryStats.mtime.toISOString()
+                  }
+                } catch (sizeError) {
+                  console.log("[v0] Could not get stats for", entry.name, ":", sizeError)
+                }
+
+                return {
+                  name: entry.name,
+                  path: webPath,
+                  isDirectory: entry.isDirectory(),
+                  isFile: entry.isFile(),
+                  size,
+                  modified,
+                  isImage: entry.isFile() && isImageFile(entry.name),
+                }
+              }),
+            )
+          } catch (readError) {
+            console.log("[v0] Could not read directory:", actualPath, readError)
+            throw readError
+          }
+        }
 
         // Calculate parent path
         if (requestedPath === "/") {
