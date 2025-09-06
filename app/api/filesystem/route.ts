@@ -55,33 +55,45 @@ export async function GET(request: NextRequest) {
         const fs = require("fs").promises
         const path = require("path")
 
-        // Map web path to actual filesystem path
         const basePath = process.cwd()
         console.log("[v0] Base path (cwd):", basePath)
 
-        let actualPath: string
+        // Versuche verschiedene Pfade basierend auf der Umgebung
+        const possibleBasePaths = [
+          path.join(basePath, "public"), // Standard Next.js public Ordner
+          "/home/pi/cocktailbot/cocktailbot-main/public", // Raspberry Pi spezifischer Pfad
+          basePath, // Aktuelles Arbeitsverzeichnis
+        ]
 
-        if (requestedPath === "/") {
-          actualPath = path.join(basePath, "public")
-        } else if (requestedPath.startsWith("/public")) {
-          actualPath = path.join(basePath, requestedPath)
-        } else {
-          actualPath = path.join(basePath, "public", requestedPath)
+        let actualPath: string | null = null
+        let workingBasePath: string | null = null
+
+        // Finde den ersten existierenden Basispfad
+        for (const testBasePath of possibleBasePaths) {
+          try {
+            const testPath = requestedPath === "/" ? testBasePath : path.join(testBasePath, requestedPath)
+            await fs.access(testPath)
+            actualPath = testPath
+            workingBasePath = testBasePath
+            console.log("[v0] Found working base path:", workingBasePath)
+            break
+          } catch (accessError) {
+            console.log("[v0] Base path not accessible:", testBasePath)
+          }
         }
 
-        console.log("[v0] Mapped to actual filesystem path:", actualPath)
+        if (!actualPath || !workingBasePath) {
+          throw new Error("No accessible base path found")
+        }
 
-        // Check if path exists
-        try {
-          const stats = await fs.stat(actualPath)
-          console.log("[v0] Path exists, is directory:", stats.isDirectory())
+        console.log("[v0] Using actual filesystem path:", actualPath)
 
-          if (!stats.isDirectory()) {
-            throw new Error("Path is not a directory")
-          }
-        } catch (statError) {
-          console.log("[v0] Path stat failed:", statError)
-          throw statError
+        // Check if path exists and is directory
+        const stats = await fs.stat(actualPath)
+        console.log("[v0] Path exists, is directory:", stats.isDirectory())
+
+        if (!stats.isDirectory()) {
+          throw new Error("Path is not a directory")
         }
 
         const entries = await fs.readdir(actualPath, { withFileTypes: true })
@@ -89,34 +101,34 @@ export async function GET(request: NextRequest) {
 
         items = await Promise.all(
           entries.map(async (entry) => {
-            let fullPath: string
+            let webPath: string
             if (requestedPath === "/") {
-              fullPath = `/${entry.name}`
-            } else if (requestedPath.startsWith("/public")) {
-              fullPath = `${requestedPath}/${entry.name}`
+              webPath = `/${entry.name}`
             } else {
-              fullPath = `${requestedPath}/${entry.name}`
+              webPath = `${requestedPath}/${entry.name}`
             }
 
-            // Get actual file size
+            // Get actual file size and modification time
             let size = 0
+            let modified = new Date().toISOString()
             try {
               if (entry.isFile()) {
-                const entryPath = path.join(actualPath, entry.name)
+                const entryPath = path.join(actualPath!, entry.name)
                 const entryStats = await fs.stat(entryPath)
                 size = entryStats.size
+                modified = entryStats.mtime.toISOString()
               }
             } catch (sizeError) {
-              console.log("[v0] Could not get size for", entry.name, ":", sizeError)
+              console.log("[v0] Could not get stats for", entry.name, ":", sizeError)
             }
 
             return {
               name: entry.name,
-              path: fullPath,
+              path: webPath,
               isDirectory: entry.isDirectory(),
               isFile: entry.isFile(),
               size,
-              modified: new Date().toISOString(),
+              modified,
               isImage: entry.isFile() && isImageFile(entry.name),
             }
           }),
