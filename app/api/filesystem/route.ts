@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-export const dynamic = "force-dynamic"
+import fs from "fs"
+import path from "path"
 
 interface FileItem {
   name: string
@@ -21,138 +21,78 @@ interface FileBrowserData {
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg"]
 
 function isImageFile(filename: string): boolean {
-  const ext = filename.toLowerCase().substring(filename.lastIndexOf("."))
+  const ext = path.extname(filename).toLowerCase()
   return IMAGE_EXTENSIONS.includes(ext)
+}
+
+function isPathSafe(requestedPath: string): boolean {
+  // Verhindere Directory Traversal Angriffe
+  const normalizedPath = path.normalize(requestedPath)
+  return !normalizedPath.includes("..")
 }
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[v0] Filesystem API called")
     const { searchParams } = new URL(request.url)
     const requestedPath = searchParams.get("path") || "/"
 
-    console.log("[v0] Requested path:", requestedPath)
-
-    if (requestedPath.includes("..")) {
-      console.log("[v0] Unsafe path detected:", requestedPath)
+    if (!isPathSafe(requestedPath)) {
       return NextResponse.json({ error: "Ungültiger Pfad" }, { status: 400 })
     }
 
-    let items: FileItem[] = []
-    let parentPath: string | null = null
+    // Überprüfe ob der Pfad existiert
+    if (!fs.existsSync(requestedPath)) {
+      return NextResponse.json({ error: "Pfad nicht gefunden" }, { status: 404 })
+    }
 
-    try {
-      if (typeof process !== "undefined" && process.versions && process.versions.node) {
-        console.log("[v0] Node.js environment detected")
+    const stats = fs.statSync(requestedPath)
 
-        const fs = require("fs").promises
-        const path = require("path")
+    if (!stats.isDirectory()) {
+      return NextResponse.json({ error: "Pfad ist kein Verzeichnis" }, { status: 400 })
+    }
 
-        let actualPath: string
-        if (requestedPath === "/") {
-          actualPath = path.join(process.cwd(), "public")
-        } else {
-          actualPath = path.join(process.cwd(), "public", requestedPath.substring(1))
-        }
+    // Lese Verzeichnisinhalt
+    const items = fs.readdirSync(requestedPath)
+    const fileItems: FileItem[] = []
 
-        console.log("[v0] Reading directory:", actualPath)
+    for (const item of items) {
+      try {
+        const itemPath = path.join(requestedPath, item)
+        const itemStats = fs.statSync(itemPath)
 
-        const entries = await fs.readdir(actualPath, { withFileTypes: true })
-        console.log("[v0] Found", entries.length, "entries")
-
-        items = await Promise.all(
-          entries.map(async (entry) => {
-            const webPath = requestedPath === "/" ? `/${entry.name}` : `${requestedPath}/${entry.name}`
-
-            let size = 0
-            let modified = new Date().toISOString()
-
-            if (entry.isFile()) {
-              try {
-                const entryPath = path.join(actualPath, entry.name)
-                const entryStats = await fs.stat(entryPath)
-                size = entryStats.size
-                modified = entryStats.mtime.toISOString()
-              } catch (error) {
-                console.log("[v0] Could not get stats for", entry.name)
-              }
-            }
-
-            return {
-              name: entry.name,
-              path: webPath,
-              isDirectory: entry.isDirectory(),
-              isFile: entry.isFile(),
-              size,
-              modified,
-              isImage: entry.isFile() && isImageFile(entry.name),
-            }
-          }),
-        )
-
-        if (requestedPath === "/") {
-          parentPath = null
-        } else {
-          const pathParts = requestedPath.split("/").filter((p) => p)
-          pathParts.pop()
-          parentPath = pathParts.length === 0 ? "/" : "/" + pathParts.join("/")
-        }
-
-        console.log("[v0] Successfully read filesystem, found", items.length, "items")
-      } else {
-        throw new Error("Not in Node.js environment")
-      }
-    } catch (fsError) {
-      console.log("[v0] Filesystem reading failed, using fallback")
-
-      const mockData = {
-        "/": [
-          { name: "images", isDir: true },
-          { name: "placeholder.svg", isDir: false },
-          { name: "malibu_sunrise.jpg", isDir: false },
-          { name: "solero.jpg", isDir: false },
-          { name: "big_john.jpg", isDir: false },
-        ],
-        "/images": [{ name: "cocktails", isDir: true }],
-        "/images/cocktails": [
-          { name: "mojito.jpg", isDir: false },
-          { name: "malibu_sunrise.jpg", isDir: false },
-          { name: "malibu_ananas.jpg", isDir: false },
-          { name: "long_island_iced_tea.jpg", isDir: false },
-        ],
-      }
-
-      const mockItems = mockData[requestedPath as keyof typeof mockData] || []
-
-      items = mockItems.map((item) => ({
-        name: item.name,
-        path: requestedPath === "/" ? `/${item.name}` : `${requestedPath}/${item.name}`,
-        isDirectory: item.isDir,
-        isFile: !item.isDir,
-        size: item.isDir ? 0 : 50000,
-        modified: new Date().toISOString(),
-        isImage: !item.isDir && isImageFile(item.name),
-      }))
-
-      if (requestedPath === "/") {
-        parentPath = null
-      } else {
-        const pathParts = requestedPath.split("/").filter((p) => p)
-        pathParts.pop()
-        parentPath = pathParts.length === 0 ? "/" : "/" + pathParts.join("/")
+        fileItems.push({
+          name: item,
+          path: itemPath,
+          isDirectory: itemStats.isDirectory(),
+          isFile: itemStats.isFile(),
+          size: itemStats.size,
+          modified: itemStats.mtime.toISOString(),
+          isImage: itemStats.isFile() && isImageFile(item),
+        })
+      } catch (error) {
+        // Überspringe Dateien, die nicht gelesen werden können
+        console.warn(`Kann Datei nicht lesen: ${item}`, error)
       }
     }
+
+    // Sortiere: Verzeichnisse zuerst, dann Dateien
+    fileItems.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1
+      if (!a.isDirectory && b.isDirectory) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+    const parentPath = requestedPath === "/" ? null : path.dirname(requestedPath)
 
     const response: FileBrowserData = {
       currentPath: requestedPath,
       parentPath,
-      items,
+      items: fileItems,
     }
 
-    console.log("[v0] Returning", items.length, "items for path:", requestedPath)
     return NextResponse.json(response)
   } catch (error) {
-    console.error("[v0] Filesystem API Error:", error)
+    console.error("Filesystem API Error:", error)
     return NextResponse.json({ error: "Fehler beim Lesen des Verzeichnisses" }, { status: 500 })
   }
 }
