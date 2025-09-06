@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { existsSync } from "fs"
 import { join } from "path"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const imagePath = searchParams.get("path")
