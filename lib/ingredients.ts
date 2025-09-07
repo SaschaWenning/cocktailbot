@@ -3,6 +3,10 @@ import type { Ingredient } from "@/types/pump"
 
 export function getAllIngredients(): Ingredient[] {
   try {
+    if (typeof window === "undefined") {
+      return defaultIngredients
+    }
+
     const customIngredients = localStorage.getItem("customIngredients")
     const custom: Ingredient[] = customIngredients ? JSON.parse(customIngredients) : []
     return [...defaultIngredients, ...custom]
