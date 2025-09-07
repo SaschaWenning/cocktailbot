@@ -113,35 +113,27 @@ export default function Home() {
   }, [])
 
   const loadCocktails = async () => {
+    console.log("[v0] Loading cocktails...")
+    const cocktails = await getAllCocktails()
+    console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
+
+    // Load hidden cocktails from API instead of localStorage
     try {
-      console.log("[v0] Loading cocktails...")
-      const cocktails = await getAllCocktails()
-      console.log("[v0] Loaded cocktails from getAllCocktails:", cocktails.length)
-
-      const hiddenCocktailsJson = localStorage.getItem("hiddenCocktails")
-      console.log("[v0] Hidden cocktails JSON from localStorage:", hiddenCocktailsJson)
-
-      const hiddenCocktails: string[] = hiddenCocktailsJson ? JSON.parse(hiddenCocktailsJson) : []
-      console.log("[v0] Parsed hidden cocktails:", hiddenCocktails)
+      const response = await fetch("/api/hidden-cocktails")
+      const data = await response.json()
+      const hiddenCocktails: string[] = data.hiddenCocktails || []
+      console.log("[v0] Hidden cocktails from API:", hiddenCocktails)
 
       const visibleCocktails = cocktails.filter((cocktail) => !hiddenCocktails.includes(cocktail.id))
       console.log("[v0] Visible cocktails after filtering:", visibleCocktails.length)
       console.log("[v0] Filtered out cocktails:", cocktails.length - visibleCocktails.length)
 
-      // Ensure loaded cocktails also conform to the new type
-      const transformedCocktails = visibleCocktails.map((cocktail) => ({
-        ...cocktail,
-        recipe: cocktail.recipe.map((item) => ({
-          ...item,
-          type: (item as any).type || "automatic",
-          instruction: (item as any).instruction || "",
-        })),
-      }))
-
-      console.log("[v0] Setting cocktails data with", transformedCocktails.length, "cocktails")
-      setCocktailsData(transformedCocktails)
+      setCocktailsData(visibleCocktails)
+      console.log("[v0] Setting cocktails data with", visibleCocktails.length, "cocktails")
     } catch (error) {
-      console.error("Fehler beim Laden der Cocktails:", error)
+      console.error("[v0] Error loading hidden cocktails:", error)
+      // Fallback to showing all cocktails if API fails
+      setCocktailsData(cocktails)
     }
   }
 
@@ -270,15 +262,25 @@ export default function Home() {
     try {
       console.log("[v0] Deleting/hiding cocktail:", cocktailToDelete.id)
 
-      const hiddenCocktailsJson = localStorage.getItem("hiddenCocktails")
-      const hiddenCocktails: string[] = hiddenCocktailsJson ? JSON.parse(hiddenCocktailsJson) : []
+      // Get current hidden cocktails from API
+      const response = await fetch("/api/hidden-cocktails")
+      const data = await response.json()
+      const hiddenCocktails: string[] = data.hiddenCocktails || []
       console.log("[v0] Current hidden cocktails before adding:", hiddenCocktails)
 
-      // Füge die Cocktail-ID zur Liste der ausgeblendeten Cocktails hinzu
+      // Add cocktail ID to hidden list if not already there
       if (!hiddenCocktails.includes(cocktailToDelete.id)) {
         hiddenCocktails.push(cocktailToDelete.id)
-        localStorage.setItem("hiddenCocktails", JSON.stringify(hiddenCocktails))
-        console.log("[v0] Updated hidden cocktails in localStorage:", hiddenCocktails)
+
+        // Save updated list to API
+        await fetch("/api/hidden-cocktails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ hiddenCocktails }),
+        })
+        console.log("[v0] Updated hidden cocktails via API:", hiddenCocktails)
       } else {
         console.log("[v0] Cocktail already in hidden list")
       }
@@ -286,7 +288,7 @@ export default function Home() {
       setCocktailsData((prev) => prev.filter((c) => c.id !== cocktailToDelete.id))
       console.log("[v0] Removed cocktail from local state")
 
-      // Wenn der ausgeblendete Cocktail ausgewählt war, setze die Auswahl zurück
+      // If the hidden cocktail was selected, reset selection
       if (selectedCocktail === cocktailToDelete.id) {
         setSelectedCocktail(null)
       }
