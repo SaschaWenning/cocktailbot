@@ -28,13 +28,15 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
   const [refillAmounts, setRefillAmounts] = useState<Record<string, string>>({})
+  const [capacityAmounts, setCapacityAmounts] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
   const [activeInput, setActiveInput] = useState<string | null>(null)
+  const [inputType, setInputType] = useState<"capacity" | "fill">("fill")
   const [showInputDialog, setShowInputDialog] = useState(false)
   const [currentIngredientName, setCurrentIngredientName] = useState("")
   const [activeButton, setActiveButton] = useState<string | null>(null)
 
-  // Häufige Gebindegrößen
+  // Häufige Füllmengen
   const commonSizes = [500, 700, 750, 1000, 1500, 1750, 2000]
 
   useEffect(() => {
@@ -53,6 +55,15 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     }
   }
 
+  const handleCapacityAmountChange = (ingredientId: string, value: string) => {
+    if (/^\d*$/.test(value) || value === "") {
+      setCapacityAmounts((prev) => ({
+        ...prev,
+        [ingredientId]: value,
+      }))
+    }
+  }
+
   const handleRefillAmountChange = (ingredientId: string, value: string) => {
     if (/^\d*$/.test(value) || value === "") {
       setRefillAmounts((prev) => ({
@@ -66,81 +77,170 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     if (!activeInput) return
 
     if (/^\d$/.test(key)) {
-      setRefillAmounts((prev) => ({
-        ...prev,
-        [activeInput]: (prev[activeInput] || "") + key,
-      }))
+      if (inputType === "capacity") {
+        setCapacityAmounts((prev) => ({
+          ...prev,
+          [activeInput]: (prev[activeInput] || "") + key,
+        }))
+      } else {
+        setRefillAmounts((prev) => ({
+          ...prev,
+          [activeInput]: (prev[activeInput] || "") + key,
+        }))
+      }
     }
   }
 
   const handleBackspace = () => {
     if (!activeInput) return
 
-    setRefillAmounts((prev) => ({
-      ...prev,
-      [activeInput]: (prev[activeInput] || "").slice(0, -1),
-    }))
+    if (inputType === "capacity") {
+      setCapacityAmounts((prev) => ({
+        ...prev,
+        [activeInput]: (prev[activeInput] || "").slice(0, -1),
+      }))
+    } else {
+      setRefillAmounts((prev) => ({
+        ...prev,
+        [activeInput]: (prev[activeInput] || "").slice(0, -1),
+      }))
+    }
   }
 
   const handleClear = () => {
     if (!activeInput) return
 
-    setRefillAmounts((prev) => ({
-      ...prev,
-      [activeInput]: "",
-    }))
+    if (inputType === "capacity") {
+      setCapacityAmounts((prev) => ({
+        ...prev,
+        [activeInput]: "",
+      }))
+    } else {
+      setRefillAmounts((prev) => ({
+        ...prev,
+        [activeInput]: "",
+      }))
+    }
   }
 
-  const handleInputFocus = (ingredientId: string) => {
+  const handleCapacityInputFocus = (ingredientId: string) => {
     const ingredient = ingredients.find((i) => i.id === ingredientId)
     setCurrentIngredientName(ingredient ? ingredient.name : ingredientId)
     setActiveInput(ingredientId)
+    setInputType("capacity")
+    setShowInputDialog(true)
+  }
+
+  const handleFillInputFocus = (ingredientId: string) => {
+    const ingredient = ingredients.find((i) => i.id === ingredientId)
+    setCurrentIngredientName(ingredient ? ingredient.name : ingredientId)
+    setActiveInput(ingredientId)
+    setInputType("fill")
     setShowInputDialog(true)
   }
 
   const handleRefill = async (ingredientId: string) => {
-    const amountStr = refillAmounts[ingredientId]
-    if (!amountStr && amountStr !== "0") return
+    if (inputType === "capacity") {
+      const capacityStr = capacityAmounts[ingredientId]
+      if (!capacityStr) return
 
-    const newTotalAmount = Number.parseInt(amountStr, 10)
-    if (isNaN(newTotalAmount) || newTotalAmount < 0) return
+      const newCapacity = Number.parseInt(capacityStr, 10)
+      if (isNaN(newCapacity) || newCapacity <= 0) return
 
-    setSaving(true)
-    try {
-      const updatedLevel = await updateIngredientLevel(ingredientId, newTotalAmount)
+      setSaving(true)
+      try {
+        const currentLevel = levels.find((l) => l.ingredientId === ingredientId)
+        const currentFill = currentLevel?.currentAmount || 0
 
-      setLevels((prev) => {
-        const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
-        if (existingIndex >= 0) {
-          // Update existing
-          return prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level))
-        } else {
-          // Add new
-          return [...prev, updatedLevel]
+        const updatedLevel = await updateIngredientLevel(ingredientId, Math.min(currentFill, newCapacity))
+        updatedLevel.capacity = newCapacity
+
+        setLevels((prev) => {
+          const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
+          if (existingIndex >= 0) {
+            return prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level))
+          } else {
+            return [...prev, updatedLevel]
+          }
+        })
+
+        setCapacityAmounts((prev) => ({
+          ...prev,
+          [ingredientId]: "",
+        }))
+
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 3000)
+
+        if (onLevelsUpdated) {
+          onLevelsUpdated()
         }
-      })
-
-      setRefillAmounts((prev) => ({
-        ...prev,
-        [ingredientId]: "",
-      }))
-
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
-
-      if (onLevelsUpdated) {
-        onLevelsUpdated()
+      } catch (error) {
+        console.error("Fehler beim Aktualisieren der Kapazität:", error)
+      } finally {
+        setSaving(false)
+        setShowInputDialog(false)
+        setActiveInput(null)
       }
-    } catch (error) {
-      console.error("Fehler beim Nachfüllen:", error)
-    } finally {
-      setSaving(false)
-      setShowInputDialog(false)
-      setActiveInput(null)
+    } else {
+      const amountStr = refillAmounts[ingredientId]
+      if (!amountStr && amountStr !== "0") return
+
+      const newFillAmount = Number.parseInt(amountStr, 10)
+      if (isNaN(newFillAmount) || newFillAmount < 0) return
+
+      const currentLevel = levels.find((l) => l.ingredientId === ingredientId)
+      const capacity = currentLevel?.capacity || 1000
+
+      if (newFillAmount > capacity) {
+        alert(`Füllmenge (${newFillAmount}ml) kann nicht größer als die Kapazität (${capacity}ml) sein!`)
+        return
+      }
+
+      setSaving(true)
+      try {
+        const updatedLevel = await updateIngredientLevel(ingredientId, newFillAmount)
+        updatedLevel.capacity = capacity
+
+        setLevels((prev) => {
+          const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
+          if (existingIndex >= 0) {
+            return prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level))
+          } else {
+            return [...prev, updatedLevel]
+          }
+        })
+
+        setRefillAmounts((prev) => ({
+          ...prev,
+          [ingredientId]: "",
+        }))
+
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 3000)
+
+        if (onLevelsUpdated) {
+          onLevelsUpdated()
+        }
+      } catch (error) {
+        console.error("Fehler beim Nachfüllen:", error)
+      } finally {
+        setSaving(false)
+        setShowInputDialog(false)
+        setActiveInput(null)
+      }
     }
   }
 
   const handleQuickFill = (ingredientId: string, amount: number) => {
+    const currentLevel = levels.find((l) => l.ingredientId === ingredientId)
+    const capacity = currentLevel?.capacity || 1000
+
+    if (amount > capacity) {
+      alert(`Füllmenge (${amount}ml) kann nicht größer als die Kapazität (${capacity}ml) sein!`)
+      return
+    }
+
     setActiveButton(`${ingredientId}-${amount}`)
     setTimeout(() => setActiveButton(null), 300)
 
@@ -149,7 +249,27 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
       [ingredientId]: amount.toString(),
     }))
 
-    handleRefill(ingredientId)
+    setSaving(true)
+    updateIngredientLevel(ingredientId, amount)
+      .then((updatedLevel) => {
+        updatedLevel.capacity = capacity
+        setLevels((prev) => {
+          const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
+          if (existingIndex >= 0) {
+            return prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level))
+          } else {
+            return [...prev, updatedLevel]
+          }
+        })
+        setSaving(false)
+        if (onLevelsUpdated) {
+          onLevelsUpdated()
+        }
+      })
+      .catch((error) => {
+        console.error("Fehler beim Nachfüllen:", error)
+        setSaving(false)
+      })
   }
 
   const handleRefillAll = async () => {
@@ -184,7 +304,12 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
   const getIngredientName = (id: string) => {
     if (id.startsWith("custom-")) {
-      return id.replace(/^custom-\d+-/, "")
+      const cleanName = id.replace(/^custom-\d+-/, "").trim()
+      try {
+        return decodeURIComponent(cleanName)
+      } catch {
+        return cleanName
+      }
     }
     const ingredient = ingredients.find((i) => i.id === id)
     return ingredient ? ingredient.name : id
@@ -217,20 +342,17 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
   const connectedIngredientIds = pumpConfig.map((pump) => pump.ingredient)
 
-  // Erstelle eine feste Liste basierend auf den Pumpen
   const pumpBasedLevels = pumpConfig.map((pump) => {
-    // Suche den existierenden Füllstand für diese Zutat
     const existingLevel = levels.find((level) => level.ingredientId === pump.ingredient)
 
-    // Falls kein Füllstand existiert, erstelle einen temporären
     if (!existingLevel) {
       return {
         ingredientId: pump.ingredient,
         currentAmount: 0,
         capacity: 1000,
         lastRefill: new Date(),
-        pumpId: pump.id, // Füge Pumpen-ID hinzu für Sortierung
-        isNew: true, // Markiere als neu
+        pumpId: pump.id,
+        isNew: true,
       }
     }
 
@@ -241,10 +363,8 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     }
   })
 
-  // Sortiere nach Pumpen-ID
   const sortedLevels = pumpBasedLevels.sort((a, b) => a.pumpId - b.pumpId)
 
-  // Filtere basierend auf dem aktiven Tab
   const filteredLevels = sortedLevels.filter((level) => {
     if (activeTab === "all") return true
     if (activeTab === "low" && level.currentAmount < 100) return true
@@ -293,7 +413,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
             </div>
           ) : (
             <>
-              {/* Tab-Navigation */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid grid-cols-4 bg-black border border-gray-800 h-12 p-1">
                   <TabsTrigger
@@ -328,7 +447,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                 </TabsList>
               </Tabs>
 
-              {/* Zutaten-Cards */}
               <div className="space-y-4">
                 {filteredLevels.length === 0 ? (
                   <Card className="bg-black border border-gray-800">
@@ -344,7 +462,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                     const isCritical = level.currentAmount < 50
                     const isNew = level.isNew || false
 
-                    // Bestimme die Farbe basierend auf dem Zustand
                     const ingredient = ingredients.find((i) => i.id === level.ingredientId)
                     const isAlcoholic = ingredient?.alcoholic
 
@@ -368,7 +485,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                         className={`bg-black ${cardBorderColor} transition-all duration-300 hover:shadow-lg`}
                       >
                         <CardContent className="p-6">
-                          {/* Header mit Icon und Name */}
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                               {getIngredientIcon(level.ingredientId)}
@@ -397,7 +513,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                             </Badge>
                           </div>
 
-                          {/* Progress Bar */}
                           <div className="mb-4">
                             <Progress
                               value={percentage}
@@ -406,7 +521,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                             />
                           </div>
 
-                          {/* Warnung bei niedrigem Füllstand */}
                           {isLow && (
                             <Alert
                               className={`mb-4 ${
@@ -426,19 +540,31 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                             </Alert>
                           )}
 
-                          {/* Eingabefeld */}
-                          <div className="mb-4">
-                            <Input
-                              type="text"
-                              placeholder="Neue Gesamtmenge in ml"
-                              value={refillAmounts[level.ingredientId] || ""}
-                              className="bg-gray-900 border-gray-700 text-white text-center text-lg placeholder:text-gray-500 focus:border-[#00ff00] focus:ring-[#00ff00]/20"
-                              readOnly
-                              onClick={() => handleInputFocus(level.ingredientId)}
-                            />
+                          <div className="space-y-3 mb-4">
+                            <div>
+                              <label className="text-sm text-gray-400 mb-1 block">Behälterkapazität (ml)</label>
+                              <Input
+                                type="text"
+                                placeholder="z.B. 1000, 2000, 5000"
+                                value={capacityAmounts[level.ingredientId] || level.capacity.toString()}
+                                className="bg-gray-900 border-gray-700 text-white text-center text-lg placeholder:text-gray-500 focus:border-[#ff9500] focus:ring-[#ff9500]/20"
+                                readOnly
+                                onClick={() => handleCapacityInputFocus(level.ingredientId)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm text-gray-400 mb-1 block">Aktueller Füllstand (ml)</label>
+                              <Input
+                                type="text"
+                                placeholder="Füllstand eingeben"
+                                value={refillAmounts[level.ingredientId] || ""}
+                                className="bg-gray-900 border-gray-700 text-white text-center text-lg placeholder:text-gray-500 focus:border-[#00ff00] focus:ring-[#00ff00]/20"
+                                readOnly
+                                onClick={() => handleFillInputFocus(level.ingredientId)}
+                              />
+                            </div>
                           </div>
 
-                          {/* Schnellauswahl-Buttons */}
                           <div className="grid grid-cols-4 gap-2 mb-3">
                             <Button
                               key="empty"
@@ -487,16 +613,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                               </Button>
                             ))}
                           </div>
-
-                          {/* Manuell-Button */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleInputFocus(level.ingredientId)}
-                            className="w-full bg-gray-900 text-white border-gray-700 hover:bg-[#00ff00] hover:text-black hover:border-[#00ff00] transition-all duration-200"
-                          >
-                            📝 Manuell eingeben
-                          </Button>
                         </CardContent>
                       </Card>
                     )
@@ -504,7 +620,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                 )}
               </div>
 
-              {/* Alle auffüllen Button */}
               <Card className="bg-black border border-[#00ff00]/30">
                 <CardContent className="p-4">
                   <Button
@@ -527,7 +642,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                 </CardContent>
               </Card>
 
-              {/* Erfolgs-Meldung */}
               {showSuccess && (
                 <Alert className="bg-[#00ff00]/10 border-[#00ff00]/30 animate-in slide-in-from-top-2 duration-300">
                   <AlertDescription className="text-[#00ff00] font-medium">
@@ -540,7 +654,6 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
         </CardContent>
       </Card>
 
-      {/* Dialog für manuelle Eingabe */}
       <Dialog open={showInputDialog} onOpenChange={(open) => !open && cancelInput()}>
         <DialogContent className="bg-black border-gray-800 sm:max-w-md text-white">
           <DialogHeader>
@@ -553,16 +666,31 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
                 <Droplet className="h-8 w-8 text-[#00ff00]" />
               </div>
               <p className="text-gray-300">
-                Neue Gesamtmenge für <span className="font-semibold text-white">{currentIngredientName}</span>:
+                {inputType === "capacity" ? "Behälterkapazität" : "Füllstand"} für{" "}
+                <span className="font-semibold text-white">{currentIngredientName}</span>:
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <Input
                 type="text"
-                value={activeInput ? refillAmounts[activeInput] || "" : ""}
-                onChange={(e) => activeInput && handleRefillAmountChange(activeInput, e.target.value)}
-                placeholder="Menge eingeben"
+                value={
+                  activeInput
+                    ? inputType === "capacity"
+                      ? capacityAmounts[activeInput] || ""
+                      : refillAmounts[activeInput] || ""
+                    : ""
+                }
+                onChange={(e) => {
+                  if (activeInput) {
+                    if (inputType === "capacity") {
+                      handleCapacityAmountChange(activeInput, e.target.value)
+                    } else {
+                      handleRefillAmountChange(activeInput, e.target.value)
+                    }
+                  }
+                }}
+                placeholder={inputType === "capacity" ? "Kapazität eingeben" : "Füllstand eingeben"}
                 className="text-2xl h-14 text-center text-black bg-white font-bold"
                 autoFocus
                 readOnly
@@ -590,7 +718,10 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
             </Button>
             <Button
               onClick={confirmInput}
-              disabled={!activeInput || !refillAmounts[activeInput || ""]}
+              disabled={
+                !activeInput ||
+                !(inputType === "capacity" ? capacityAmounts[activeInput || ""] : refillAmounts[activeInput || ""])
+              }
               className="bg-[#00ff00] text-black font-semibold hover:bg-[#00cc00]"
             >
               Speichern
