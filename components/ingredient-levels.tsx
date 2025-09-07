@@ -145,7 +145,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
       if (!capacityStr) return
 
       const newCapacity = Number.parseInt(capacityStr, 10)
-      if (isNaN(newCapacity) || newCapacity < 0) return
+      if (isNaN(newCapacity) || newCapacity <= 0) return
 
       setSaving(true)
       try {
@@ -190,7 +190,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
       if (isNaN(newFillAmount) || newFillAmount < 0) return
 
       const currentLevel = levels.find((l) => l.ingredientId === ingredientId)
-      const capacity = currentLevel?.capacity || 10000
+      const capacity = currentLevel?.capacity || 1000
 
       if (newFillAmount > capacity) {
         alert(`Füllmenge (${newFillAmount}ml) kann nicht größer als die Kapazität (${capacity}ml) sein!`)
@@ -234,7 +234,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
 
   const handleQuickFill = (ingredientId: string, amount: number) => {
     const currentLevel = levels.find((l) => l.ingredientId === ingredientId)
-    const capacity = currentLevel?.capacity || 10000
+    const capacity = currentLevel?.capacity || 1000
 
     if (amount > capacity) {
       alert(`Füllmenge (${amount}ml) kann nicht größer als die Kapazität (${capacity}ml) sein!`)
@@ -294,30 +294,12 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
     setActiveButton(`${ingredientId}-empty`)
     setTimeout(() => setActiveButton(null), 300)
 
-    const currentLevel = levels.find((l) => l.ingredientId === ingredientId)
-    const capacity = currentLevel?.capacity || 10000
+    setRefillAmounts((prev) => ({
+      ...prev,
+      [ingredientId]: "0",
+    }))
 
-    setSaving(true)
-    updateIngredientLevel(ingredientId, 0)
-      .then((updatedLevel) => {
-        updatedLevel.capacity = capacity
-        setLevels((prev) => {
-          const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
-          if (existingIndex >= 0) {
-            return prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level))
-          } else {
-            return [...prev, updatedLevel]
-          }
-        })
-        setSaving(false)
-        if (onLevelsUpdated) {
-          onLevelsUpdated()
-        }
-      })
-      .catch((error) => {
-        console.error("Fehler beim Leeren:", error)
-        setSaving(false)
-      })
+    handleRefill(ingredientId)
   }
 
   const getIngredientName = (id: string) => {
@@ -367,7 +349,7 @@ export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: Ingred
       return {
         ingredientId: pump.ingredient,
         currentAmount: 0,
-        capacity: 10000,
+        capacity: 1000,
         lastRefill: new Date(),
         pumpId: pump.id,
         isNew: true,
