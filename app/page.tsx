@@ -56,6 +56,7 @@ export default function Home() {
   const [manualIngredients, setManualIngredients] = useState<
     Array<{ ingredientId: string; amount: number; instructions?: string }>
   >([]) // State für manuelle Zutaten hinzugefügt
+  const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false) // Neues State für Image Editor Passwort-Modal
 
   // Kiosk-Modus Exit Zähler
   const [kioskExitClicks, setKioskExitClicks] = useState(0)
@@ -177,7 +178,7 @@ export default function Home() {
 
   const handleImageEditClick = (cocktailId: string) => {
     setCocktailToEdit(cocktailId)
-    setShowImageEditor(true)
+    setShowImageEditorPasswordModal(true)
   }
 
   const handleDeleteClick = (cocktailId: string) => {
@@ -205,6 +206,11 @@ export default function Home() {
   const handleRecipeCreatorPasswordSuccess = () => {
     setShowRecipeCreatorPasswordModal(false)
     setShowRecipeCreator(true)
+  }
+
+  const handleImageEditorPasswordSuccess = () => {
+    setShowImageEditorPasswordModal(false)
+    setShowImageEditor(true)
   }
 
   const handleImageSave = async (updatedCocktail: Cocktail) => {
@@ -1019,6 +1025,12 @@ export default function Home() {
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
         onSuccess={handlePasswordSuccess}
+      />
+
+      <PasswordModal
+        isOpen={showImageEditorPasswordModal}
+        onClose={() => setShowImageEditorPasswordModal(false)}
+        onSuccess={handleImageEditorPasswordSuccess}
       />
 
       <PasswordModal

@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import fs from "fs"
 import path from "path"
 
+export const dynamic = "force-dynamic"
+
 function isPathSafe(requestedPath: string): boolean {
   const normalizedPath = path.normalize(requestedPath)
   return !normalizedPath.includes("..")
