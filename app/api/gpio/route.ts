@@ -4,6 +4,8 @@ import { promisify } from "util"
 import fs from "fs"
 import path from "path"
 
+export const dynamic = "force-dynamic"
+
 const execAsync = promisify(exec)
 
 // Pfad zum Python-Skript
