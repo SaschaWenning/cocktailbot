@@ -39,7 +39,11 @@ export async function getIngredientLevels(): Promise<IngredientLevel[]> {
 }
 
 // Füllstand für eine bestimmte Zutat aktualisieren
-export async function updateIngredientLevel(ingredientId: string, newAmount: number): Promise<IngredientLevel> {
+export async function updateIngredientLevel(
+  ingredientId: string,
+  newAmount: number,
+  newCapacity?: number,
+): Promise<IngredientLevel> {
   const index = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
   if (index === -1) {
@@ -47,14 +51,17 @@ export async function updateIngredientLevel(ingredientId: string, newAmount: num
     const newLevel: IngredientLevel = {
       ingredientId,
       currentAmount: newAmount,
-      capacity: Math.max(newAmount, 1000), // Kapazität mindestens so groß wie die neue Menge
+      capacity: newCapacity ?? Math.max(newAmount, 1000), // Entferne 500ml Mindestbegrenzung
       lastRefill: new Date(),
     }
     ingredientLevels.push(newLevel)
     return newLevel
   }
 
-  // Stelle sicher, dass die neue Menge nicht größer als die Kapazität ist
+  if (newCapacity) {
+    ingredientLevels[index].capacity = newCapacity
+  }
+
   const cappedAmount = Math.min(newAmount, ingredientLevels[index].capacity)
 
   const updatedLevel = {
@@ -65,27 +72,6 @@ export async function updateIngredientLevel(ingredientId: string, newAmount: num
 
   ingredientLevels[index] = updatedLevel
   return updatedLevel
-}
-
-// Füge eine Funktion hinzu, um Füllstände für neu angeschlossene Zutaten zu initialisieren
-export async function initializeNewIngredientLevel(ingredientId: string): Promise<IngredientLevel> {
-  // Prüfe, ob bereits ein Füllstand für diese Zutat existiert
-  const existingIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
-
-  if (existingIndex !== -1) {
-    return ingredientLevels[existingIndex]
-  }
-
-  // Erstelle einen neuen Füllstand für diese Zutat
-  const newLevel: IngredientLevel = {
-    ingredientId,
-    currentAmount: 700, // Standard-Startmenge
-    capacity: 1000, // Standard-Kapazität
-    lastRefill: new Date(),
-  }
-
-  ingredientLevels.push(newLevel)
-  return newLevel
 }
 
 // Füllstand nach Cocktailzubereitung aktualisieren
@@ -215,7 +201,14 @@ export async function updateIngredientCapacity(ingredientId: string, capacity: n
   const index = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
 
   if (index === -1) {
-    throw new Error(`Zutat mit ID ${ingredientId} nicht gefunden`)
+    const newLevel: IngredientLevel = {
+      ingredientId,
+      currentAmount: 0,
+      capacity,
+      lastRefill: new Date(),
+    }
+    ingredientLevels.push(newLevel)
+    return newLevel
   }
 
   const updatedLevel = {
@@ -232,4 +225,25 @@ export async function updateIngredientCapacity(ingredientId: string, capacity: n
 export async function resetIngredientLevels(): Promise<IngredientLevel[]> {
   ingredientLevels = [...initialIngredientLevels]
   return ingredientLevels
+}
+
+// Füge eine Funktion hinzu, um Füllstände für neu angeschlossene Zutaten zu initialisieren
+export async function initializeNewIngredientLevel(ingredientId: string, capacity = 1000): Promise<IngredientLevel> {
+  // Prüfe, ob bereits ein Füllstand für diese Zutat existiert
+  const existingIndex = ingredientLevels.findIndex((level) => level.ingredientId === ingredientId)
+
+  if (existingIndex !== -1) {
+    return ingredientLevels[existingIndex]
+  }
+
+  // Erstelle einen neuen Füllstand für diese Zutat
+  const newLevel: IngredientLevel = {
+    ingredientId,
+    currentAmount: Math.min(700, capacity), // Startmenge nicht größer als Kapazität
+    capacity, // Verwende übergebene Kapazität
+    lastRefill: new Date(),
+  }
+
+  ingredientLevels.push(newLevel)
+  return newLevel
 }
