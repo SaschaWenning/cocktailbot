@@ -3,6 +3,7 @@ export interface PumpConfig {
   pin: number
   ingredient: string
   flowRate: number // ml pro Sekunde
+  enabled: boolean // Hinzugefügt für Aktivierung/Deaktivierung
 }
 
 export interface Ingredient {
