@@ -29,7 +29,7 @@ interface FileBrowserProps {
 }
 
 export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrowserProps) {
-  const [currentPath, setCurrentPath] = useState("/")
+  const [currentPath, setCurrentPath] = useState("/home/pi")
   const [browserData, setBrowserData] = useState<FileBrowserData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -78,7 +78,10 @@ export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrow
   // Lade Root-Verzeichnis beim Öffnen
   useEffect(() => {
     if (isOpen) {
-      loadDirectory(currentPath)
+      loadDirectory("/home/pi").catch(() => {
+        console.log("Fallback to root directory")
+        loadDirectory("/")
+      })
     }
   }, [isOpen])
 
@@ -109,11 +112,25 @@ export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrow
   }
 
   const goToHome = () => {
-    loadDirectory("/home")
+    loadDirectory("/home/pi").catch(() => {
+      loadDirectory("/home")
+    })
   }
 
   const goToMedia = () => {
     loadDirectory("/media")
+  }
+
+  const goToOpt = () => {
+    loadDirectory("/opt")
+  }
+
+  const goToVar = () => {
+    loadDirectory("/var")
+  }
+
+  const goToEtc = () => {
+    loadDirectory("/etc")
   }
 
   return (
@@ -125,7 +142,7 @@ export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrow
 
         <div className="flex flex-col h-[70vh]">
           {/* Navigation Bar */}
-          <div className="flex items-center gap-2 p-2 bg-[hsl(var(--cocktail-card-bg))] rounded-md mb-4">
+          <div className="flex items-center gap-2 p-2 bg-[hsl(var(--cocktail-card-bg))] rounded-md mb-4 flex-wrap">
             <Button
               variant="ghost"
               size="sm"
@@ -152,6 +169,33 @@ export default function FileBrowser({ isOpen, onClose, onSelectImage }: FileBrow
             >
               <Folder className="h-4 w-4 mr-1" />
               Media
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToOpt}
+              className="text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+            >
+              <Folder className="h-4 w-4 mr-1" />
+              Opt
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToVar}
+              className="text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+            >
+              <Folder className="h-4 w-4 mr-1" />
+              Var
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToEtc}
+              className="text-white hover:bg-[hsl(var(--cocktail-card-border))]"
+            >
+              <Folder className="h-4 w-4 mr-1" />
+              Etc
             </Button>
             {browserData?.parentPath && (
               <Button

@@ -1,549 +1,451 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { useState, useEffect, useRef } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Loader2, RefreshCw, AlertTriangle, Droplet, Wine, Coffee } from "lucide-react"
-import type { IngredientLevel } from "@/types/ingredient-level"
-import { ingredients } from "@/data/ingredients"
+import { Bug } from "lucide-react"
+import { ArrowLeft, X } from "lucide-react"
+import { pumpConfig } from "@/data/pump-config"
 import {
   getIngredientLevels,
-  refillAllIngredients,
   updateIngredientLevel,
-  updateIngredientCapacity,
+  updateContainerSize,
+  updateIngredientName,
+  resetAllLevels,
+  onIngredientLevelsUpdated,
+  setIngredientLevels,
+  type IngredientLevel,
 } from "@/lib/ingredient-level-service"
-import type { PumpConfig } from "@/types/pump-config"
-import { getAllIngredients } from "@/lib/ingredients"
-import { VirtualKeyboard } from "@/components/virtual-keyboard"
+import { getIngredientById } from "@/lib/ingredients"
 
-interface IngredientLevelsProps {
-  pumpConfig: PumpConfig[]
-  onLevelsUpdated?: () => void
-}
-
-export default function IngredientLevels({ pumpConfig, onLevelsUpdated }: IngredientLevelsProps) {
+export function IngredientLevels() {
   const [levels, setLevels] = useState<IngredientLevel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState("all")
-  const [showSuccess, setShowSuccess] = useState(false)
-  const [allIngredients, setAllIngredients] = useState<any[]>([])
+  const [editingLevel, setEditingLevel] = useState<number | null>(null)
+  const [editingSize, setEditingSize] = useState<number | null>(null)
+  const [editingName, setEditingName] = useState<number | null>(null)
+  const [tempValue, setTempValue] = useState("")
   const [showKeyboard, setShowKeyboard] = useState(false)
-  const [keyboardValue, setKeyboardValue] = useState("")
-  const [keyboardType, setKeyboardType] = useState<"capacity" | "fill">("capacity")
-  const [editingIngredient, setEditingIngredient] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showDebug, setShowDebug] = useState(false)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+  const [isFilling, setIsFilling] = useState(false)
 
-  const commonSizes = [500, 700, 750, 1000, 1500, 1750, 2000]
+  // Auto-Refresh während der Bearbeitung pausieren, danach fortsetzen
+  const isEditing = editingLevel !== null || editingSize !== null || editingName !== null
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const unsubscribeRef = useRef<(() => void) | null>(null)
+  const fillingRef = useRef(false)
+  const editingRef = useRef(false)
+  const skipReloadUntil = useRef(0) // ts (ms). Solange now < ts: Reloads skippen
 
   useEffect(() => {
-    loadData()
-  }, [])
+    fillingRef.current = isFilling
+  }, [isFilling])
+  useEffect(() => {
+    editingRef.current = isEditing
+  }, [isEditing])
 
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      console.log("[v0] Loading ingredient levels...")
-      const [levelsData, ingredientsData] = await Promise.all([getIngredientLevels(), getAllIngredients()])
-      setLevels(levelsData)
-      setAllIngredients(ingredientsData)
-      console.log("[v0] Loaded levels:", levelsData.length, "ingredients:", ingredientsData.length)
-    } catch (error) {
-      console.error("[v0] Error loading data:", error)
-    } finally {
-      setLoading(false)
-    }
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setDebugLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)])
   }
 
-  const updateCapacity = async (ingredientId: string, newCapacity: number) => {
-    if (newCapacity <= 0) {
-      alert("Kapazität muss größer als 0ml sein!")
-      return
-    }
-
-    setSaving(ingredientId)
-    try {
-      console.log("[v0] Updating capacity for", ingredientId, "to", newCapacity)
-
-      const updatedLevel = await updateIngredientCapacity(ingredientId, newCapacity)
-
-      setLevels((prev) => {
-        const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
-        if (existingIndex >= 0) {
-          return prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level))
-        } else {
-          return [...prev, updatedLevel]
-        }
-      })
-
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 2000)
-
-      if (onLevelsUpdated) onLevelsUpdated()
-    } catch (error) {
-      console.error("[v0] Error updating capacity:", error)
-      alert("Fehler beim Aktualisieren der Kapazität!")
-    } finally {
-      setSaving(null)
-    }
-  }
-
-  const updateFillLevel = async (ingredientId: string, newAmount: number) => {
-    if (newAmount < 0) {
-      alert("Füllstand kann nicht negativ sein!")
-      return
-    }
-
-    const currentLevel = levels.find((l) => l.ingredientId === ingredientId)
-    const capacity = currentLevel?.capacity || 1000
-
-    if (newAmount > capacity) {
-      alert(`Füllstand (${newAmount}ml) kann nicht größer als die Kapazität (${capacity}ml) sein!`)
-      return
-    }
-
-    setSaving(ingredientId)
-    try {
-      console.log("[v0] Updating fill level for", ingredientId, "to", newAmount)
-
-      const updatedLevel = await updateIngredientLevel(ingredientId, newAmount)
-      updatedLevel.capacity = capacity
-
-      setLevels((prev) => {
-        const existingIndex = prev.findIndex((level) => level.ingredientId === ingredientId)
-        if (existingIndex >= 0) {
-          return prev.map((level) => (level.ingredientId === ingredientId ? updatedLevel : level))
-        } else {
-          return [...prev, updatedLevel]
-        }
-      })
-
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 2000)
-
-      if (onLevelsUpdated) onLevelsUpdated()
-    } catch (error) {
-      console.error("[v0] Error updating fill level:", error)
-      alert("Fehler beim Aktualisieren des Füllstands!")
-    } finally {
-      setSaving(null)
-    }
-  }
-
-  const handleQuickFill = (ingredientId: string, amount: number) => {
-    updateFillLevel(ingredientId, amount)
-  }
-
-  const handleEmpty = (ingredientId: string) => {
-    updateFillLevel(ingredientId, 0)
-  }
-
-  const handleRefillAll = async () => {
-    setSaving("all")
-    try {
-      console.log("[v0] Refilling all ingredients...")
-      const updatedLevels = await refillAllIngredients()
-      setLevels(updatedLevels)
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
-
-      if (onLevelsUpdated) onLevelsUpdated()
-    } catch (error) {
-      console.error("[v0] Error refilling all:", error)
-      alert("Fehler beim Nachfüllen aller Zutaten!")
-    } finally {
-      setSaving(null)
-    }
-  }
-
-  const getIngredientName = (id: string) => {
-    if (id.startsWith("custom-")) {
-      const cleanName = id.replace(/^custom-\d+-/, "").trim()
+  useEffect(() => {
+    if (unsubscribeRef.current) {
       try {
-        return decodeURIComponent(cleanName)
-      } catch {
-        return cleanName
+        unsubscribeRef.current()
+      } catch {}
+      unsubscribeRef.current = null
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+
+    if (isEditing || isFilling) {
+      return
+    }
+
+    loadLevels()
+    unsubscribeRef.current = onIngredientLevelsUpdated(loadLevels)
+    intervalRef.current = setInterval(loadLevels, 10000)
+
+    return () => {
+      if (unsubscribeRef.current) {
+        try {
+          unsubscribeRef.current()
+        } catch {}
+        unsubscribeRef.current = null
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
       }
     }
+  }, [editingLevel, editingSize, editingName, isFilling])
 
-    const ingredient = allIngredients.find((i) => i.id === id) || ingredients.find((i) => i.id === id)
-    return ingredient ? ingredient.name : id
-  }
-
-  const getIngredientIcon = (id: string) => {
-    if (id.startsWith("custom-")) {
-      return <Droplet className="h-4 w-4" />
+  const loadLevels = async () => {
+    const nowTs = Date.now()
+    if (fillingRef.current || editingRef.current || nowTs < skipReloadUntil.current) {
+      return
     }
+    try {
+      const response = await fetch("/api/ingredient-levels")
 
-    const ingredient = allIngredients.find((i) => i.id === id) || ingredients.find((i) => i.id === id)
-    if (!ingredient) return <Droplet className="h-4 w-4" />
+      if (response.ok) {
+        const data = await response.json()
 
-    if (ingredient.alcoholic) {
-      return <Wine className="h-4 w-4 text-[#ff9500]" />
-    } else {
-      return <Coffee className="h-4 w-4 text-[#00ff00]" />
-    }
-  }
-
-  const connectedIngredientIds = pumpConfig.map((pump) => pump.ingredient)
-
-  const pumpBasedLevels = pumpConfig.map((pump) => {
-    const existingLevel = levels.find((level) => level.ingredientId === pump.ingredient)
-
-    if (!existingLevel) {
-      return {
-        ingredientId: pump.ingredient,
-        currentAmount: 0,
-        capacity: 1000,
-        lastRefill: new Date(),
-        pumpId: pump.id,
-        isNew: true,
+        if (data.success && data.levels) {
+          setLevels(data.levels)
+          await setIngredientLevels(data.levels)
+          return
+        }
       }
-    }
+    } catch (error) {}
 
-    return {
-      ...existingLevel,
-      pumpId: pump.id,
-      isNew: false,
-    }
-  })
-
-  const sortedLevels = pumpBasedLevels.sort((a, b) => a.pumpId - b.pumpId)
-
-  const filteredLevels = sortedLevels.filter((level) => {
-    if (activeTab === "all") return true
-    if (activeTab === "low" && level.currentAmount < 100) return true
-    if (activeTab === "alcoholic") {
-      const ingredient =
-        allIngredients.find((i) => i.id === level.ingredientId) || ingredients.find((i) => i.id === level.ingredientId)
-      return ingredient?.alcoholic
-    }
-    if (activeTab === "non-alcoholic") {
-      const ingredient =
-        allIngredients.find((i) => i.id === level.ingredientId) || ingredients.find((i) => i.id === level.ingredientId)
-      return !ingredient?.alcoholic
-    }
-    return false
-  })
-
-  const lowLevelsCount = levels.filter(
-    (level) => level.currentAmount < 100 && connectedIngredientIds.includes(level.ingredientId),
-  ).length
-
-  const openKeyboard = (ingredientId: string, type: "capacity" | "fill", currentValue: number) => {
-    setEditingIngredient(ingredientId)
-    setKeyboardType(type)
-    setKeyboardValue(currentValue.toString())
-    setShowKeyboard(true)
+    const currentLevels = getIngredientLevels()
+    setLevels(currentLevels)
   }
 
-  const handleKeyboardConfirm = () => {
-    const value = Number.parseInt(keyboardValue) || 0
-    if (editingIngredient && keyboardType === "capacity") {
-      updateCapacity(editingIngredient, value)
-    } else if (editingIngredient && keyboardType === "fill") {
-      updateFillLevel(editingIngredient, value)
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true)
+    await loadLevels()
+    setTimeout(() => setIsRefreshing(false), 500)
+  }
+
+  const getIngredientDisplayName = (ingredientId: string) => {
+    const ingredient = getIngredientById(ingredientId)
+    if (ingredient) {
+      return ingredient.name
     }
+
+    return ingredientId
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+  }
+
+  const handleLevelEdit = (pumpId: number) => {
+    const level = levels.find((l) => l.pumpId === pumpId)
+    if (level) {
+      setTempValue(level.currentLevel.toString())
+      setEditingLevel(pumpId)
+      setShowKeyboard(true)
+    }
+  }
+
+  const handleSizeEdit = (pumpId: number) => {
+    const level = levels.find((l) => l.pumpId === pumpId)
+    if (level) {
+      setTempValue(level.containerSize.toString())
+      setEditingSize(pumpId)
+      setShowKeyboard(true)
+    }
+  }
+
+  const handleNameEdit = (pumpId: number) => {
+    const level = levels.find((l) => l.pumpId === pumpId)
+    if (level) {
+      setTempValue(level.ingredient)
+      setEditingName(pumpId)
+      setShowKeyboard(true)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      if (editingLevel) {
+        const newLevel = Number.parseInt(tempValue) || 0
+        await updateIngredientLevel(editingLevel, newLevel)
+      } else if (editingSize) {
+        const newSize = Number.parseInt(tempValue) || 100
+        await updateContainerSize(editingSize, newSize)
+      } else if (editingName) {
+        await updateIngredientName(editingName, tempValue)
+      }
+
+      await loadLevels()
+
+      console.log("[v0] Ingredient-Levels: Triggering cocktail data refresh")
+      window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
+
+      handleCancel()
+    } catch (error) {}
+  }
+
+  const handleCancel = () => {
+    setEditingLevel(null)
+    setEditingSize(null)
+    setEditingName(null)
+    setTempValue("")
     setShowKeyboard(false)
-    setEditingIngredient(null)
-    setKeyboardValue("")
   }
 
-  const handleKeyboardCancel = () => {
-    setShowKeyboard(false)
-    setEditingIngredient(null)
-    setKeyboardValue("")
+  const handleResetAll = async () => {
+    try {
+      await resetAllLevels()
+      await loadLevels()
+    } catch (error) {}
   }
+
+  const handleFillAll = async () => {
+    try {
+      setIsFilling(true)
+      const now = new Date()
+      const next = levels.map((l) => ({ ...l, currentLevel: Math.max(0, l.containerSize), lastUpdated: now }))
+      setLevels(next)
+      await setIngredientLevels(next)
+      skipReloadUntil.current = Date.now() + 800
+
+      console.log("[v0] Ingredient-Levels: Triggering cocktail data refresh after fill all")
+      window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
+    } catch (error) {
+    } finally {
+      setIsFilling(false)
+    }
+  }
+
+  const handleFillSingle = async (pumpId: number) => {
+    try {
+      setIsFilling(true)
+      const target = levels.find((l) => l.pumpId === pumpId)
+      if (!target) {
+        setIsFilling(false)
+        return
+      }
+      const now = new Date()
+      const next = levels.map((l) =>
+        l.pumpId === pumpId ? { ...l, currentLevel: Math.max(0, target.containerSize), lastUpdated: now } : l,
+      )
+      setLevels(next)
+      await setIngredientLevels(next)
+      skipReloadUntil.current = Date.now() + 800
+
+      console.log("[v0] Ingredient-Levels: Triggering cocktail data refresh after single fill")
+      window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
+    } catch (error) {
+    } finally {
+      setIsFilling(false)
+    }
+  }
+
+  const getProgressColor = (percentage: number) => {
+    if (percentage > 50) return "bg-[hsl(var(--cocktail-primary))]"
+    if (percentage > 20) return "bg-[hsl(var(--cocktail-warning))]"
+    return "bg-[hsl(var(--cocktail-error))]"
+  }
+
+  const enabledLevels = levels.filter((level) => {
+    const pump = pumpConfig.find((p) => p.id === level.pumpId)
+    return pump?.enabled !== false
+  })
 
   return (
-    <div className="space-y-6">
-      <Card className="bg-black border border-gray-800">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#00ff00]/20 rounded-lg">
-                <Droplet className="h-6 w-6 text-[#00ff00]" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl font-bold text-white">Füllstände</CardTitle>
-                <CardDescription className="text-gray-400">Verwalte deine Zutaten und Gebindegrößen</CardDescription>
-              </div>
-            </div>
-            <Badge variant="outline" className="bg-[#00ff00]/10 text-[#00ff00] border-[#00ff00]/30">
-              {filteredLevels.length} Zutaten
-            </Badge>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="text-center space-y-3">
-                <Loader2 className="h-8 w-8 animate-spin text-[#00ff00] mx-auto" />
-                <p className="text-gray-400">Lade Füllstände...</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid grid-cols-4 bg-black border border-gray-800 h-12 p-1">
-                  <TabsTrigger
-                    value="all"
-                    className="data-[state=active]:bg-[#00ff00] data-[state=active]:text-black text-white font-medium"
-                  >
-                    Alle
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="low"
-                    className="data-[state=active]:bg-[#ff3b30] data-[state=active]:text-white text-white font-medium relative"
-                  >
-                    Niedrig
-                    {lowLevelsCount > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-[#ff3b30] text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
-                        {lowLevelsCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="alcoholic"
-                    className="data-[state=active]:bg-[#ff9500] data-[state=active]:text-black text-white font-medium"
-                  >
-                    Alkoholisch
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="non-alcoholic"
-                    className="data-[state=active]:bg-[#00ff00] data-[state=active]:text-black text-white font-medium"
-                  >
-                    Alkoholfrei
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              <div className="space-y-4">
-                {filteredLevels.length === 0 ? (
-                  <Card className="bg-black border border-gray-800">
-                    <CardContent className="py-12 text-center">
-                      <Droplet className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400 text-lg">Keine Zutaten in dieser Kategorie</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  filteredLevels.map((level) => {
-                    const percentage = Math.round((level.currentAmount / level.capacity) * 100)
-                    const isLow = level.currentAmount < 100
-                    const isCritical = level.currentAmount < 50
-                    const isUpdating = saving === level.ingredientId
-
-                    const ingredient =
-                      allIngredients.find((i) => i.id === level.ingredientId) ||
-                      ingredients.find((i) => i.id === level.ingredientId)
-                    const isAlcoholic = ingredient?.alcoholic
-
-                    const cardBorderColor = isCritical
-                      ? "border-[#ff3b30]"
-                      : isLow
-                        ? "border-[#ff9500]"
-                        : "border-gray-800"
-
-                    const progressColor = isCritical
-                      ? "bg-[#ff3b30]"
-                      : isLow
-                        ? "bg-[#ff9500]"
-                        : isAlcoholic
-                          ? "bg-[#ff9500]"
-                          : "bg-[#00ff00]"
-
-                    return (
-                      <Card
-                        key={level.ingredientId}
-                        className={`bg-black ${cardBorderColor} transition-all duration-300 hover:shadow-lg`}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              {getIngredientIcon(level.ingredientId)}
-                              <div>
-                                <h3 className="font-semibold text-white text-lg">
-                                  Pumpe {level.pumpId}: {getIngredientName(level.ingredientId)}
-                                </h3>
-                                <p className="text-sm text-gray-400">
-                                  {level.currentAmount} / {level.capacity} ml
-                                </p>
-                              </div>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className={`${
-                                isCritical
-                                  ? "bg-[#ff3b30]/20 text-[#ff3b30] border-[#ff3b30]/50"
-                                  : isLow
-                                    ? "bg-[#ff9500]/20 text-[#ff9500] border-[#ff9500]/50"
-                                    : isAlcoholic
-                                      ? "bg-[#ff9500]/20 text-[#ff9500] border-[#ff9500]/50"
-                                      : "bg-[#00ff00]/20 text-[#00ff00] border-[#00ff00]/50"
-                              }`}
-                            >
-                              {percentage}%
-                            </Badge>
-                          </div>
-
-                          <div className="mb-4">
-                            <Progress
-                              value={percentage}
-                              className="h-3 bg-gray-800"
-                              indicatorClassName={`transition-all duration-500 ${progressColor}`}
-                            />
-                          </div>
-
-                          {isLow && (
-                            <Alert
-                              className={`mb-4 ${
-                                isCritical
-                                  ? "bg-[#ff3b30]/10 border-[#ff3b30]/30"
-                                  : "bg-[#ff9500]/10 border-[#ff9500]/30"
-                              }`}
-                            >
-                              <AlertTriangle
-                                className={`h-4 w-4 ${isCritical ? "text-[#ff3b30]" : "text-[#ff9500]"}`}
-                              />
-                              <AlertDescription
-                                className={`${isCritical ? "text-[#ff3b30]" : "text-[#ff9500]"} text-sm`}
-                              >
-                                {isCritical ? "Kritisch niedrig!" : "Füllstand niedrig!"} Bitte nachfüllen.
-                              </AlertDescription>
-                            </Alert>
-                          )}
-
-                          <div className="space-y-3 mb-4">
-                            <div className="flex gap-2">
-                              <div className="flex-1">
-                                <label className="text-sm text-gray-400 mb-1 block">Behälterkapazität (ml)</label>
-                                <div
-                                  onClick={() => openKeyboard(level.ingredientId, "capacity", level.capacity)}
-                                  className="bg-gray-900 border border-gray-700 text-white text-center text-lg p-2 rounded cursor-pointer hover:border-[#ff9500] transition-colors"
-                                >
-                                  {level.capacity}ml
-                                </div>
-                              </div>
-                              <div className="flex-1">
-                                <label className="text-sm text-gray-400 mb-1 block">Aktueller Füllstand (ml)</label>
-                                <div
-                                  onClick={() => openKeyboard(level.ingredientId, "fill", level.currentAmount)}
-                                  className="bg-gray-900 border border-gray-700 text-white text-center text-lg p-2 rounded cursor-pointer hover:border-[#00ff00] transition-colors"
-                                >
-                                  {level.currentAmount}ml
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-4 gap-2 mb-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEmpty(level.ingredientId)}
-                              className="bg-gray-900 text-white border-gray-700 hover:bg-[#ff3b30] hover:text-white hover:border-[#ff3b30] transition-all duration-200"
-                              disabled={isUpdating}
-                            >
-                              {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : "Leer"}
-                            </Button>
-                            {commonSizes.slice(0, 3).map((size) => (
-                              <Button
-                                key={size}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleQuickFill(level.ingredientId, size)}
-                                className="bg-gray-900 text-white border-gray-700 hover:bg-[#00ff00] hover:text-black hover:border-[#00ff00] transition-all duration-200"
-                                disabled={isUpdating || size > level.capacity}
-                              >
-                                {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : `${size}ml`}
-                              </Button>
-                            ))}
-                          </div>
-
-                          <div className="grid grid-cols-4 gap-2">
-                            {commonSizes.slice(3).map((size) => (
-                              <Button
-                                key={size}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleQuickFill(level.ingredientId, size)}
-                                className="bg-gray-900 text-white border-gray-700 hover:bg-[#00ff00] hover:text-black hover:border-[#00ff00] transition-all duration-200"
-                                disabled={isUpdating || size > level.capacity}
-                              >
-                                {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : `${size}ml`}
-                              </Button>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })
-                )}
-              </div>
-
-              <Card className="bg-black border border-[#00ff00]/30">
-                <CardContent className="p-4">
-                  <Button
-                    onClick={handleRefillAll}
-                    className="w-full bg-[#00ff00] hover:bg-[#00cc00] text-black font-semibold py-3 transition-all duration-200 shadow-lg"
-                    disabled={saving === "all"}
-                  >
-                    {saving === "all" ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Wird nachgefüllt...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-5 w-5" />
-                        Alle Zutaten vollständig auffüllen
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {showSuccess && (
-                <Alert className="bg-[#00ff00]/10 border-[#00ff00]/30 animate-in slide-in-from-top-2 duration-300">
-                  <AlertDescription className="text-[#00ff00] font-medium">
-                    ✅ Füllstände erfolgreich aktualisiert!
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {showKeyboard && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-black border border-gray-800 rounded-lg p-4 w-full max-w-md mx-4">
-            <h3 className="text-white text-lg font-semibold mb-4">
-              {keyboardType === "capacity" ? "Behälterkapazität eingeben" : "Füllstand eingeben"}
-            </h3>
-            <div className="mb-4">
-              <Input
-                value={keyboardValue}
-                readOnly
-                className="bg-gray-900 border-gray-700 text-white text-center text-xl"
-                placeholder="0"
-              />
-            </div>
-            <VirtualKeyboard
-              layout="numeric"
-              value={keyboardValue}
-              onChange={setKeyboardValue}
-              onConfirm={handleKeyboardConfirm}
-              onCancel={handleKeyboardCancel}
-            />
+    <div className="min-h-screen bg-[hsl(var(--cocktail-bg))] p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-4xl font-bold text-[hsl(var(--cocktail-text))]">Füllstände</h1>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleFillAll}
+              className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black px-6 py-3 rounded-xl font-semibold"
+            >
+              Alle auffüllen
+            </Button>
           </div>
         </div>
-      )}
+
+        {showDebug && (
+          <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
+            <CardHeader>
+              <CardTitle className="text-[hsl(var(--cocktail-text))] flex items-center gap-2">
+                <Bug className="h-5 w-5" />
+                Debug Logs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-black rounded-lg p-4 max-h-60 overflow-y-auto">
+                <div className="font-mono text-sm space-y-1">
+                  {debugLogs.length === 0 ? (
+                    <div className="text-gray-500">Keine Debug-Logs verfügbar</div>
+                  ) : (
+                    debugLogs.map((log, index) => (
+                      <div key={index} className="text-green-400">
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              <div className="mt-4 text-sm text-[hsl(var(--cocktail-text-muted))]">
+                Aktuelle Levels: {levels.length} | Letzte Aktualisierung: {new Date().toLocaleTimeString()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {enabledLevels.map((level) => {
+            const percentage = (level.currentLevel / level.containerSize) * 100
+            const displayName = getIngredientDisplayName(level.ingredient)
+
+            return (
+              <Card
+                key={level.pumpId}
+                className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))] transition-all duration-300"
+              >
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl text-[hsl(var(--cocktail-text))] font-bold flex justify-between items-center">
+                    <span className="truncate">{displayName}</span>
+                    <Button
+                      size="sm"
+                      onClick={() => handleFillSingle(level.pumpId)}
+                      className="h-8 px-3 bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black text-xs font-semibold"
+                    >
+                      Auffüllen
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
+                      <span>Füllstand:</span>
+                      <div className="flex items-center gap-2 ml-auto">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleLevelEdit(level.pumpId)}
+                          className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                        >
+                          {level.currentLevel}ml
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-[hsl(var(--cocktail-card-border))] rounded-full h-3 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 ${getProgressColor(percentage)}`}
+                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                      />
+                    </div>
+                    <div className="text-center text-sm text-[hsl(var(--cocktail-text-muted))]">
+                      {percentage.toFixed(0)}%
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between text-sm text-[hsl(var(--cocktail-text-muted))]">
+                    <span>Behältergröße:</span>
+                    <div className="ml-auto">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleSizeEdit(level.pumpId)}
+                        className="h-6 px-2 text-[hsl(var(--cocktail-text))] hover:bg-[hsl(var(--cocktail-card-border))]"
+                      >
+                        {level.containerSize}ml
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
+                    Aktualisiert: {new Date(level.lastUpdated).toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        {showKeyboard && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-1">
+            <div className="bg-[hsl(var(--cocktail-card-bg))] border border-[hsl(var(--cocktail-card-border))] rounded-xl shadow-2xl max-w-sm w-full mx-1 max-h-[95vh] overflow-hidden flex flex-col">
+              <div className="bg-[hsl(var(--cocktail-primary))] p-3 flex-shrink-0">
+                <h3 className="text-base font-bold text-black">
+                  {editingLevel && "Füllstand bearbeiten"}
+                  {editingSize && "Behältergröße bearbeiten"}
+                  {editingName && "Zutat bearbeiten"}
+                </h3>
+              </div>
+
+              <div className="p-4 space-y-4 overflow-y-auto flex-1">
+                <Input
+                  value={tempValue}
+                  readOnly
+                  className="text-lg text-center font-bold border-2 focus:border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-bg))] text-[hsl(var(--cocktail-text))] h-12 text-2xl"
+                />
+
+                <div className="space-y-2">
+                  <div className="bg-black border border-[hsl(var(--cocktail-card-border))] rounded-lg p-2 shadow-lg w-full">
+                    <div className="space-y-1">
+                      {(editingName
+                        ? [
+                            ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                            ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
+                            ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+                            ["Y", "X", "C", "V", "B", "N", "M"],
+                            [" ", "-", "_", ".", "@", "#", "&"],
+                          ]
+                        : [
+                            ["1", "2", "3"],
+                            ["4", "5", "6"],
+                            ["7", "8", "9"],
+                            [".", "0", "00"],
+                          ]
+                      ).map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex justify-center gap-1">
+                          {row.map((key) => (
+                            <Button
+                              key={key}
+                              onClick={() => setTempValue(tempValue + key)}
+                              className="flex-1 h-6 text-sm bg-[hsl(var(--cocktail-card-bg))] text-white hover:bg-[hsl(var(--cocktail-card-border))] min-w-0"
+                            >
+                              {key}
+                            </Button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center gap-1">
+                    <Button
+                      onClick={() => setTempValue("")}
+                      className="flex-1 h-8 text-sm bg-red-600 text-white hover:bg-red-700"
+                      title="Löschen"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => setTempValue(tempValue.slice(0, -1))}
+                      className="flex-1 h-8 text-sm bg-gray-600 text-white hover:bg-gray-700"
+                      title="Zurück"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={handleCancel}
+                      className="flex-1 h-8 text-sm bg-orange-600 text-white hover:bg-orange-700"
+                      title="Abbrechen"
+                    >
+                      Abb
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      className="flex-1 h-8 text-sm bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-bold"
+                      title="Speichern"
+                    >
+                      Speichern
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
+
+export default IngredientLevels

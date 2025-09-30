@@ -329,3 +329,5 @@ export function IngredientManager({ onClose }: IngredientManagerProps) {
     </>
   )
 }
+
+export default IngredientManager

@@ -21,6 +21,8 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
   const [manualCleaningPumps, setManualCleaningPumps] = useState<Set<number>>(new Set())
   const cleaningProcessRef = useRef<{ cancel: boolean }>({ cancel: false })
 
+  const enabledPumps = pumpConfig.filter((pump) => pump.enabled)
+
   const startCleaning = async () => {
     // Reinigungsprozess starten
     setCleaningStatus("preparing")
@@ -35,8 +37,8 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
     setCleaningStatus("cleaning")
 
     // Jede Pumpe nacheinander reinigen
-    for (let i = 0; i < pumpConfig.length; i++) {
-      const pump = pumpConfig[i]
+    for (let i = 0; i < enabledPumps.length; i++) {
+      const pump = enabledPumps[i]
       setCurrentPump(pump.id)
 
       // Prüfen, ob der Prozess pausiert oder abgebrochen wurde
@@ -52,7 +54,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
         setPumpsDone((prev) => [...prev, pump.id])
 
         // Fortschritt aktualisieren
-        setProgress(Math.round(((i + 1) / pumpConfig.length) * 100))
+        setProgress(Math.round(((i + 1) / enabledPumps.length) * 100))
       } catch (error) {
         console.error(`Fehler beim Reinigen der Pumpe ${pump.id}:`, error)
         if (cleaningProcessRef.current.cancel) return
@@ -152,7 +154,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
 
               <div className="flex justify-between items-center">
                 <span className="text-sm text-[hsl(var(--cocktail-text-muted))]">
-                  {pumpsDone.length} von {pumpConfig.length} Pumpen gereinigt
+                  {pumpsDone.length} von {enabledPumps.length} Pumpen gereinigt
                 </span>
                 <span className="text-sm font-medium">{progress}%</span>
               </div>
@@ -169,7 +171,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
               )}
 
               <div className="grid grid-cols-5 gap-2">
-                {pumpConfig.map((pump) => (
+                {enabledPumps.map((pump) => (
                   <div
                     key={pump.id}
                     className={`p-2 rounded-md text-center ${
@@ -247,7 +249,7 @@ export default function PumpCleaning({ pumpConfig }: PumpCleaningProps) {
           </Alert>
 
           <div className="grid grid-cols-5 gap-3">
-            {pumpConfig.map((pump) => (
+            {enabledPumps.map((pump) => (
               <div key={pump.id} className="flex flex-col items-center space-y-2">
                 <Button
                   onClick={() => cleanSinglePump(pump.id)}

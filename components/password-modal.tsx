@@ -3,9 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Lock } from "lucide-react"
 import AlphaKeyboard from "./alpha-keyboard"
@@ -20,20 +19,27 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
   const [password, setPassword] = useState("")
   const [error, setError] = useState(false)
   const [showKeyboard, setShowKeyboard] = useState(true)
+  const [customPassword, setCustomPassword] = useState("")
 
-  // Reset password when dialog opens
   useEffect(() => {
     if (isOpen) {
       setPassword("")
       setError(false)
       setShowKeyboard(true)
+
+      try {
+        const savedPassword = localStorage.getItem("customPassword")
+        setCustomPassword(savedPassword || "")
+      } catch (error) {
+        console.error("Fehler beim Laden des benutzerdefinierten Passworts:", error)
+      }
     }
   }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (password === "cocktail") {
+    if (password === "cocktail" || (customPassword && password === customPassword)) {
       setError(false)
       setPassword("")
       onSuccess()
@@ -59,7 +65,7 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-md">
+      <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-[hsl(var(--cocktail-text))] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
@@ -87,31 +93,16 @@ export default function PasswordModal({ isOpen, onClose, onSuccess }: PasswordMo
           </div>
 
           {showKeyboard && (
-            <div className="mt-4">
+            <div className="mt-2">
               <AlphaKeyboard
                 onKeyPress={handleKeyPress}
                 onBackspace={handleBackspace}
                 onClear={handleClear}
                 onConfirm={handleSubmit}
+                onCancel={onClose}
               />
             </div>
           )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-              onClick={onClose}
-            >
-              Abbrechen
-            </Button>
-            <Button
-              type="submit"
-              className="bg-[hsl(var(--cocktail-primary))] text-black hover:bg-[hsl(var(--cocktail-primary-hover))]"
-            >
-              Bestätigen
-            </Button>
-          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

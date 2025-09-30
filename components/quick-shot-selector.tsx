@@ -37,18 +37,20 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
   const shotSize = 20 // Feste Größe: 20ml
 
   const getAllAvailableIngredients = () => {
-    return pumpConfig.map((pump) => {
-      const ingredient = allIngredients.find((i) => i.id === pump.ingredient)
-      const ingredientName = ingredient?.name || pump.ingredient.replace(/^custom-\d+-/, "")
+    return pumpConfig
+      .filter((pump) => pump.enabled) // Nur aktivierte Pumpen anzeigen
+      .map((pump) => {
+        const ingredient = allIngredients.find((i) => i.id === pump.ingredient)
+        const ingredientName = ingredient?.name || pump.ingredient.replace(/^custom-\d+-/, "")
 
-      return {
-        id: pump.ingredient,
-        name: ingredientName,
-        alcoholic: ingredient?.alcoholic || false,
-        pumpId: pump.id,
-        hasPump: true,
-      }
-    })
+        return {
+          id: pump.ingredient,
+          name: ingredientName,
+          alcoholic: ingredient?.alcoholic || false,
+          pumpId: pump.id,
+          hasPump: true,
+        }
+      })
   }
 
   const allAvailableIngredients = getAllAvailableIngredients()
@@ -57,8 +59,11 @@ export default function QuickShotSelector({ pumpConfig, ingredientLevels, onShot
   const nonAlcoholicIngredients = allAvailableIngredients.filter((i) => !i.alcoholic)
 
   const checkIngredientAvailable = (ingredientId: string) => {
-    const level = ingredientLevels.find((level) => level.ingredientId === ingredientId)
-    return level && level.currentAmount >= shotSize
+    const pump = pumpConfig.find((p) => p.ingredient === ingredientId)
+    if (!pump) return false
+
+    const level = ingredientLevels.find((level) => level.pumpId === pump.id)
+    return level && level.currentLevel >= shotSize
   }
 
   const handleQuickShot = async (ingredientId: string) => {

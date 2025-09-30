@@ -3,9 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Loader2, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -86,7 +85,7 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
           </AlertDescription>
         </Alert>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="password">Bitte gib das Passwort ein, um das Löschen zu bestätigen:</Label>
             <Input
@@ -112,30 +111,18 @@ export default function DeleteConfirmation({ isOpen, onClose, onConfirm, cocktai
                 onBackspace={handleBackspace}
                 onClear={handleClear}
                 onConfirm={handleSubmit}
+                onCancel={onClose}
               />
             </div>
           )}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              className="bg-[hsl(var(--cocktail-card-bg))] text-white border-[hsl(var(--cocktail-card-border))] hover:bg-[hsl(var(--cocktail-card-border))]"
-              onClick={onClose}
-            >
-              Abbrechen
-            </Button>
-            <Button type="submit" variant="destructive" disabled={isDeleting}>
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Wird gelöscht...
-                </>
-              ) : (
-                "Löschen bestätigen"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+          {isDeleting && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <span>Wird gelöscht...</span>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )
