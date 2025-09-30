@@ -5,25 +5,33 @@
 /* Update the custom color palette for the Cocktail-App */
 :root {
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --foreground: 220 13% 18%;
+  --card: 210 40% 98%;
+  --card-foreground: 220 13% 18%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
+  --popover-foreground: 220 13% 18%;
+  --primary: 220 13% 18%;
   --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --secondary: 262 83% 58%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 215 20.2% 65.1%;
+  --muted-foreground: 0 0% 100%;
+  --accent: 262 83% 58%;
+  --accent-foreground: 210 40% 98%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
+  --border: 220 13% 91%;
+  --input: 220 13% 97%;
+  --ring: 262 83% 58%;
   --radius: 0.5rem;
+  --sidebar: 210 40% 98%;
+  --sidebar-foreground: 220 13% 18%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 220 13% 18%;
+  --sidebar-accent: 262 83% 58%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 262 83% 58%;
 }
 
 .dark {
@@ -40,7 +48,7 @@
   --muted: 217.2 32.6% 17.5%;
   --muted-foreground: 215 20.2% 65.1%;
   --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
+  --accent-foreground: 222.2 47.4% 11.2%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
   --border: 217.2 32.6% 17.5%;
@@ -86,7 +94,6 @@
   scrollbar-width: none; /* Firefox */
 }
 
-/* Ersetzen durch: */
 /* Schwarze Scrollbalken für alle Elemente */
 ::-webkit-scrollbar {
   width: 12px;
@@ -116,9 +123,14 @@
 @media (pointer: coarse) {
   /* Verbesserte Scrolling-Bereiche */
   .overflow-auto,
-  .overflow-y-auto,
-  .overflow-x-auto {
+  .overflow-y-auto {
     touch-action: pan-y;
+    cursor: grab;
+  }
+
+  /* Spezielle Touch-Behandlung für horizontale Tabs */
+  .overflow-x-auto {
+    touch-action: pan-x;
     cursor: grab;
   }
 
@@ -128,8 +140,6 @@
     padding: 10px 16px;
   }
 }
-
-/* Nach den bestehenden CSS-Regeln folgende Anpassungen hinzufügen: */
 
 /* Größere Schrift für die gesamte App */
 html,

@@ -1,54 +1,56 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { promises as fs } from "fs"
+import fs from "fs"
 import path from "path"
 
 export const dynamic = "force-dynamic"
 
-const HIDDEN_COCKTAILS_FILE = path.join(process.cwd(), "data", "hidden-cocktails.json")
+const HIDDEN_COCKTAILS_PATH = path.join(process.cwd(), "data", "hidden-cocktails.json")
+
+function loadHiddenCocktails(): string[] {
+  try {
+    if (fs.existsSync(HIDDEN_COCKTAILS_PATH)) {
+      const data = fs.readFileSync(HIDDEN_COCKTAILS_PATH, "utf8")
+      return JSON.parse(data)
+    }
+    return []
+  } catch (error) {
+    console.error("Fehler beim Laden der versteckten Cocktails:", error)
+    return []
+  }
+}
+
+function saveHiddenCocktails(hiddenCocktails: string[]): void {
+  try {
+    // Stelle sicher, dass das Verzeichnis existiert
+    fs.mkdirSync(path.dirname(HIDDEN_COCKTAILS_PATH), { recursive: true })
+
+    // Speichere die versteckten Cocktails in der JSON-Datei
+    fs.writeFileSync(HIDDEN_COCKTAILS_PATH, JSON.stringify(hiddenCocktails, null, 2), "utf8")
+    console.log("Versteckte Cocktails erfolgreich gespeichert:", hiddenCocktails.length)
+  } catch (error) {
+    console.error("Fehler beim Speichern der versteckten Cocktails:", error)
+    throw error
+  }
+}
 
 export async function GET() {
-  try {
-    // Ensure data directory exists
-    const dataDir = path.dirname(HIDDEN_COCKTAILS_FILE)
-    try {
-      await fs.access(dataDir)
-    } catch {
-      await fs.mkdir(dataDir, { recursive: true })
-    }
-
-    // Try to read existing hidden cocktails file
-    try {
-      const data = await fs.readFile(HIDDEN_COCKTAILS_FILE, "utf-8")
-      const hiddenCocktails = JSON.parse(data)
-      return NextResponse.json({ hiddenCocktails })
-    } catch {
-      // File doesn't exist or is invalid, return empty array
-      return NextResponse.json({ hiddenCocktails: [] })
-    }
-  } catch (error) {
-    console.error("Error reading hidden cocktails:", error)
-    return NextResponse.json({ hiddenCocktails: [] })
-  }
+  const hiddenCocktails = loadHiddenCocktails()
+  return NextResponse.json({ success: true, hiddenCocktails })
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { hiddenCocktails } = await request.json()
-
-    // Ensure data directory exists
-    const dataDir = path.dirname(HIDDEN_COCKTAILS_FILE)
-    try {
-      await fs.access(dataDir)
-    } catch {
-      await fs.mkdir(dataDir, { recursive: true })
+    const body = await request.json()
+    const list = Array.isArray(body) ? body : (body?.hiddenCocktails ?? [])
+    if (!Array.isArray(list)) {
+      return NextResponse.json({ success: false, error: "Invalid payload" }, { status: 400 })
     }
 
-    // Write hidden cocktails to file
-    await fs.writeFile(HIDDEN_COCKTAILS_FILE, JSON.stringify(hiddenCocktails, null, 2))
+    saveHiddenCocktails(list)
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error saving hidden cocktails:", error)
-    return NextResponse.json({ error: "Failed to save hidden cocktails" }, { status: 500 })
+    console.error("Fehler beim Speichern der versteckten Cocktails:", error)
+    return NextResponse.json({ success: false, error: "Failed to save hidden cocktails" }, { status: 500 })
   }
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { exec } from "child_process"
 import { promisify } from "util"
-import fs from "fs"
 import path from "path"
 
 const execAsync = promisify(exec)
@@ -24,26 +23,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // Prüfe, ob das Python-Skript existiert
-    if (!fs.existsSync(PYTHON_SCRIPT)) {
-      console.error(`Python-Skript nicht gefunden: ${PYTHON_SCRIPT}`)
-      return NextResponse.json(
-        { success: false, error: `Python-Skript nicht gefunden: ${PYTHON_SCRIPT}` },
-        { status: 500 },
-      )
-    }
-
-    // Prüfe, ob das Python-Skript ausführbar ist
-    try {
-      fs.accessSync(PYTHON_SCRIPT, fs.constants.X_OK)
-    } catch (error) {
-      console.error(`Python-Skript ist nicht ausführbar: ${PYTHON_SCRIPT}`)
-      return NextResponse.json(
-        { success: false, error: `Python-Skript ist nicht ausführbar: ${PYTHON_SCRIPT}` },
-        { status: 500 },
-      )
-    }
-
     // Parse den Request-Body
     let data
     try {
