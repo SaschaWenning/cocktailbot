@@ -139,28 +139,6 @@
     ]
   },
   {
-    "id": "gin-tonic",
-    "name": "Gin & Tonic",
-    "description": "Klassischer Longdrink mit Gin und Tonic Water",
-    "image": "/images/cocktails/gin_tonic.jpg",
-    "alcoholic": true,
-    "ingredients": ["50ml Gin", "150ml Tonic Water", "Limettenscheibe"],
-    "recipe": [{ "ingredientId": "gin", "amount": 50 }, { "ingredientId": "tonic-water", "amount": 150 }]
-  },
-  {
-    "id": "cuba-libre",
-    "name": "Cuba Libre",
-    "description": "Rum-Cola mit einem Spritzer Limette",
-    "image": "/images/cocktails/cuba_libre.jpg",
-    "alcoholic": true,
-    "ingredients": ["50ml brauner Rum", "150ml Cola", "10ml Limettensaft"],
-    "recipe": [
-      { "ingredientId": "dark-rum", "amount": 50 },
-      { "ingredientId": "cola", "amount": 150 },
-      { "ingredientId": "lime-juice", "amount": 10 }
-    ]
-  },
-  {
     "id": "long-island-iced-tea",
     "name": "Long Island Iced Tea",
     "description": "Klassischer, starker Cocktail mit fünf verschiedenen Spirituosen und Cola",
