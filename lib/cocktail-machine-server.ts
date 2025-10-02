@@ -147,6 +147,8 @@ export async function saveRecipe(cocktail: Cocktail) {
     const { fs, path } = await getNodeModules()
     const COCKTAILS_PATH = getCocktailsPath()
 
+    console.log("[v0] saveRecipe - Cocktail to save:", JSON.stringify(cocktail, null, 2))
+
     // Stelle sicher, dass das Verzeichnis existiert
     fs.mkdirSync(path.dirname(COCKTAILS_PATH), { recursive: true })
 
