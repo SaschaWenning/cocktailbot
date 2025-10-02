@@ -99,13 +99,33 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
     try {
       const newCocktailId = `custom-${Date.now()}`
 
+      const convertedRecipe = recipe.map((item) => {
+        const baseItem: any = {
+          ingredientId: item.ingredientId,
+          amount: item.amount,
+        }
+
+        if (item.type === "manual") {
+          baseItem.manual = true
+          if (item.instruction) {
+            baseItem.instructions = item.instruction
+          }
+        }
+
+        if (item.delayed) {
+          baseItem.delayed = true
+        }
+
+        return baseItem
+      })
+
       const newCocktail: Cocktail = {
         id: newCocktailId,
         name: name.trim(),
         description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
         alcoholic: alcoholic,
-        recipe: recipe,
+        recipe: convertedRecipe,
         sizes: sizes.length > 0 ? sizes : [200, 300, 400],
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)

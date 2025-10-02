@@ -63,9 +63,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       setSizes(cocktail.sizes || [200, 300, 400])
       setRecipe(
         cocktail.recipe.map((item) => ({
-          ...item,
-          type: item.type || "automatic",
-          instruction: item.instruction || "",
+          ingredientId: item.ingredientId,
+          amount: item.amount,
+          type: item.manual ? "manual" : "automatic",
+          instruction: item.instructions || item.instruction || "",
           delayed: item.delayed || false,
         })),
       )
@@ -270,13 +271,33 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
     setSaving(true)
     try {
+      const convertedRecipe = recipe.map((item) => {
+        const baseItem: any = {
+          ingredientId: item.ingredientId,
+          amount: item.amount,
+        }
+
+        if (item.type === "manual") {
+          baseItem.manual = true
+          if (item.instruction) {
+            baseItem.instructions = item.instruction
+          }
+        }
+
+        if (item.delayed) {
+          baseItem.delayed = true
+        }
+
+        return baseItem
+      })
+
       const updatedCocktail: Cocktail = {
         ...cocktail,
         name: name.trim(),
         description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
         alcoholic,
-        recipe: recipe,
+        recipe: convertedRecipe,
         sizes: sizes.length > 0 ? sizes : [200, 300, 400],
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
