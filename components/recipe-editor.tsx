@@ -271,6 +271,8 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
     setSaving(true)
     try {
+      console.log("[v0] RecipeEditor - Original recipe:", JSON.stringify(recipe, null, 2))
+
       const convertedRecipe = recipe.map((item) => {
         const baseItem: any = {
           ingredientId: item.ingredientId,
@@ -291,6 +293,8 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         return baseItem
       })
 
+      console.log("[v0] RecipeEditor - Converted recipe:", JSON.stringify(convertedRecipe, null, 2))
+
       const updatedCocktail: Cocktail = {
         ...cocktail,
         name: name.trim(),
@@ -305,6 +309,8 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
         }),
       }
+
+      console.log("[v0] RecipeEditor - Final cocktail object:", JSON.stringify(updatedCocktail, null, 2))
 
       await saveRecipe(updatedCocktail)
       onSave(updatedCocktail)

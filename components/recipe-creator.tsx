@@ -99,6 +99,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
     try {
       const newCocktailId = `custom-${Date.now()}`
 
+      console.log("[v0] RecipeCreator - Original recipe:", JSON.stringify(recipe, null, 2))
+
       const convertedRecipe = recipe.map((item) => {
         const baseItem: any = {
           ingredientId: item.ingredientId,
@@ -119,6 +121,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
         return baseItem
       })
 
+      console.log("[v0] RecipeCreator - Converted recipe:", JSON.stringify(convertedRecipe, null, 2))
+
       const newCocktail: Cocktail = {
         id: newCocktailId,
         name: name.trim(),
@@ -133,6 +137,8 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
           return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
         }),
       }
+
+      console.log("[v0] RecipeCreator - Final cocktail object:", JSON.stringify(newCocktail, null, 2))
 
       await saveRecipe(newCocktail)
       onSave(newCocktail)
