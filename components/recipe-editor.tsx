@@ -589,17 +589,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 <Minus className="h-4 w-4" />
               </Button>
             </div>
-            {item.type === "manual" && (
-              <div className="col-span-12 mt-2">
-                <Input
-                  value={item.instruction || ""}
-                  onClick={() => openInstructionKeyboard(index, item.instruction || "")}
-                  readOnly
-                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
-                  placeholder="Anleitung (z.B. 'mit Eiswürfeln auffüllen')"
-                />
-              </div>
-            )}
           </div>
         ))}
       </div>
