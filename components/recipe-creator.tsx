@@ -109,8 +109,14 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
 
         if (item.type === "manual") {
           baseItem.manual = true
-          if (item.instruction) {
-            baseItem.instructions = item.instruction
+          // Wenn keine Instruktion vorhanden ist, automatisch generieren
+          if (item.instruction && item.instruction.trim()) {
+            baseItem.instructions = item.instruction.trim()
+          } else {
+            // Automatisch generierte Instruktion basierend auf Menge und Zutat
+            const ingredient = ingredients.find((i) => i.id === item.ingredientId)
+            const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
+            baseItem.instructions = `${item.amount}ml ${ingredientName} hinzufügen`
           }
         }
 
