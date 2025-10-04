@@ -58,22 +58,13 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
   }, [recipe])
 
   const openKeyboard = (
-    mode: "name" | "description" | "imageUrl" | "instruction" | "newSize" | string,
+    mode: "name" | "description" | "imageUrl" | "newSize" | string,
     currentValue: string,
     numeric = false,
   ) => {
     setKeyboardMode(mode)
     setKeyboardValue(currentValue)
     setIsNumericKeyboard(numeric)
-    setShowKeyboard(true)
-    setIsShiftActive(false)
-    setIsCapsLockActive(false)
-  }
-
-  const openInstructionKeyboard = (index: number, currentValue: string) => {
-    setKeyboardMode(`instruction-${index}`)
-    setKeyboardValue(currentValue || "")
-    setIsNumericKeyboard(false)
     setShowKeyboard(true)
     setIsShiftActive(false)
     setIsCapsLockActive(false)
@@ -269,15 +260,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
           const updatedRecipe = recipe.map((item, i) => {
             if (i === index) {
               return { ...item, amount: Number.parseFloat(keyboardValue) }
-            }
-            return item
-          })
-          setRecipe(updatedRecipe)
-        } else if (keyboardMode.startsWith("instruction-")) {
-          const index = Number.parseInt(keyboardMode.split("-")[1])
-          const updatedRecipe = recipe.map((item, i) => {
-            if (i === index) {
-              return { ...item, instruction: keyboardValue }
             }
             return item
           })
@@ -559,7 +541,6 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
                 {keyboardMode === "description" && "Beschreibung eingeben"}
                 {keyboardMode === "imageUrl" && "Bild-Pfad eingeben"}
                 {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
-                {keyboardMode === "instruction" && "Anleitung eingeben"}
                 {keyboardMode === "newSize" && "Neue Cocktailgröße eingeben (ml)"}
               </h3>
               <div className="bg-white text-black text-lg p-4 rounded mb-4 min-h-[60px] break-all border-2 border-[hsl(var(--cocktail-primary))]">
