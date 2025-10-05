@@ -53,27 +53,7 @@ export async function loadLightingConfig(): Promise<LightingConfig> {
 
 export async function setLightingMode(mode: "preparation" | "finished" | "idle") {
   try {
-    const config = await loadLightingConfig()
-
-    let lightingParams: { color?: string; blinking?: boolean } = {}
-
-    switch (mode) {
-      case "preparation":
-        lightingParams = {
-          color: config.cocktailPreparation.color,
-          blinking: config.cocktailPreparation.blinking,
-        }
-        break
-      case "finished":
-        lightingParams = {
-          color: config.cocktailFinished.color,
-          blinking: config.cocktailFinished.blinking,
-        }
-        break
-      case "idle":
-        // Idle mode uses scheme-based lighting
-        break
-    }
+    const apiMode = mode === "finished" ? "cocktailFinished" : mode
 
     await fetch("/api/lighting-control", {
       method: "POST",
@@ -81,12 +61,11 @@ export async function setLightingMode(mode: "preparation" | "finished" | "idle")
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        mode,
-        ...lightingParams,
+        mode: apiMode,
       }),
     })
 
-    console.log("[v0] Lighting mode set to:", mode, lightingParams)
+    console.log("[v0] Lighting mode set to:", apiMode)
   } catch (error) {
     console.error("[v0] Error setting lighting mode:", error)
   }
