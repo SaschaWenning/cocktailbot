@@ -28,6 +28,6 @@ async function runLedCommand(...args: string[]) {
     const command = `python3 ${ledClientPath} ${args.join(" ")}`
     await exec(command)
   } catch (error) {
-    console.error("Error running LED command:", error)
+    console.error("[v0] Error running LED command:", error)
   }
 }
