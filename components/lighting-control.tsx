@@ -6,36 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Lightbulb, Zap, Palette, Save, RotateCcw, Play } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
-
-interface LightingConfig {
-  cocktailPreparation: {
-    color: string
-    blinking: boolean
-  }
-  cocktailFinished: {
-    color: string
-    blinking: boolean
-  }
-  idleMode: {
-    scheme: string
-    colors: string[]
-  }
-}
-
-const defaultConfig: LightingConfig = {
-  cocktailPreparation: {
-    color: "#00ff00",
-    blinking: false,
-  },
-  cocktailFinished: {
-    color: "#0000ff",
-    blinking: true,
-  },
-  idleMode: {
-    scheme: "rainbow",
-    colors: ["#ff0000", "#00ff00", "#0000ff"],
-  },
-}
+import { type LightingConfig, defaultConfig } from "@/lib/lighting-config-types"
 
 const colorPresets = [
   { name: "Rot", value: "#ff0000" },
