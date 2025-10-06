@@ -504,6 +504,20 @@ export default function Home() {
     setManualIngredients([])
 
     try {
+      console.log("[v0] Activating cocktail preparation lighting...")
+      const lightingResponse = await fetch("/api/lighting-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "cocktailPreparation" }),
+      })
+      if (!lightingResponse.ok) {
+        console.error("[v0] Failed to activate preparation lighting:", await lightingResponse.text())
+      }
+    } catch (error) {
+      console.error("[v0] Error activating preparation lighting:", error)
+    }
+
+    try {
       const currentPumpConfig = pumpConfig
 
       const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
@@ -548,6 +562,20 @@ export default function Home() {
       clearInterval(intervalId)
       setProgress(100)
 
+      try {
+        console.log("[v0] Activating cocktail finished lighting...")
+        const lightingResponse = await fetch("/api/lighting-control", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "cocktailFinished" }),
+        })
+        if (!lightingResponse.ok) {
+          console.error("[v0] Failed to activate finished lighting:", await lightingResponse.text())
+        }
+      } catch (error) {
+        console.error("[v0] Error activating finished lighting:", error)
+      }
+
       if (manualRecipeItems.length > 0) {
         setStatusMessage(
           `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
@@ -577,6 +605,12 @@ export default function Home() {
           setIsMaking(false)
           setShowSuccess(false)
           setSelectedCocktail(null)
+
+          fetch("/api/lighting-control", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: "idle" }),
+          }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
         },
         manualRecipeItems.length > 0 ? 8000 : 3000,
       )
@@ -587,6 +621,13 @@ export default function Home() {
       setStatusMessage("Fehler bei der Zubereitung!")
       setErrorMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
       setManualIngredients([])
+
+      fetch("/api/lighting-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "idle" }),
+      }).catch((err) => console.error("[v0] Error returning to idle lighting:", err))
+
       setTimeout(() => setIsMaking(false), 3000)
     }
   }
