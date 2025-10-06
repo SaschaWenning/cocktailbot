@@ -27,6 +27,11 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] Lighting test POST request:", { mode, config })
 
+    if (typeof (config as any)?.brightness === "number") {
+      const b = Math.max(0, Math.min(255, Number((config as any).brightness)))
+      await runLed("BRIGHT", String(b))
+    }
+
     if (mode === "preparation") {
       const color = config?.cocktailPreparation?.color || "#ff0000"
       const rgb = hexToRgb(color)
