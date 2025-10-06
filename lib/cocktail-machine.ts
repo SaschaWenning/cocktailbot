@@ -2,52 +2,32 @@ import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
 
 // Client-compatible functions that call API endpoints instead of server actions
-export async function makeCocktail(
-  cocktail: Cocktail,
-  pumpConfig: PumpConfig[],
-  size = 200,
-): Promise<{ success: boolean; usedIngredients?: { ingredientId: string; amount: number }[] }> {
-  try {
-    const response = await fetch("/api/make-cocktail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cocktail, pumpConfig, size }),
-    })
+export async function makeCocktail(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
+  const response = await fetch("/api/make-cocktail", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cocktail, pumpConfig, size }),
+  })
 
-    if (!response.ok) {
-      throw new Error("Failed to make cocktail")
-    }
-
-    const result = await response.json()
-    return result
-  } catch (error) {
-    console.error("Error making cocktail:", error)
-    throw error
+  if (!response.ok) {
+    throw new Error(`Failed to make cocktail: ${response.statusText}`)
   }
+
+  return await response.json()
 }
 
-export async function makeSingleShot(
-  ingredientId: string,
-  size: number,
-  pumpConfig: PumpConfig[],
-): Promise<{ success: boolean; usedIngredients?: { ingredientId: string; amount: number }[] }> {
-  try {
-    const response = await fetch("/api/make-shot", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ingredient: ingredientId, size, pumpConfig }),
-    })
+export async function makeSingleShot(ingredientId: string, amount = 40, pumpConfig: PumpConfig[]) {
+  const response = await fetch("/api/make-shot", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ingredientId, amount, pumpConfig }),
+  })
 
-    if (!response.ok) {
-      throw new Error("Failed to make shot")
-    }
-
-    const result = await response.json()
-    return result
-  } catch (error) {
-    console.error("Error making shot:", error)
-    throw error
+  if (!response.ok) {
+    throw new Error(`Failed to make shot: ${response.statusText}`)
   }
+
+  return await response.json()
 }
 
 export async function testPump(pumpId: number) {

@@ -5,6 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const { cocktail, pumpConfig, size } = await request.json()
 
+    // Verwende die ursprüngliche Server Action für Raspberry Pi
     const result = await makeCocktailAction(cocktail, pumpConfig, size)
 
     return NextResponse.json(result)
