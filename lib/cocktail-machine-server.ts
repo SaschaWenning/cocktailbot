@@ -2,6 +2,7 @@
 
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
+import type { IngredientLevel } from "@/types/ingredient-level"
 
 let fs: typeof import("fs")
 let path: typeof import("path")
@@ -35,17 +36,71 @@ async function runLedCommand(...args: string[]) {
   }
 }
 
+async function loadIngredientLevels(): Promise<IngredientLevel[]> {
+  try {
+    const { fs: fsModule, path: pathModule } = await getNodeModules()
+    const levelsPath = pathModule.join(process.cwd(), "data", "ingredient-levels.json")
+
+    if (!fsModule.existsSync(levelsPath)) {
+      console.log("[v0] ingredient-levels.json nicht gefunden")
+      return []
+    }
+
+    const data = fsModule.readFileSync(levelsPath, "utf-8")
+    const levels = JSON.parse(data)
+    return Array.isArray(levels) ? levels : []
+  } catch (error) {
+    console.error("[v0] Fehler beim Laden der Füllstände:", error)
+    return []
+  }
+}
+
+async function saveIngredientLevels(levels: IngredientLevel[]): Promise<void> {
+  try {
+    const { fs: fsModule, path: pathModule } = await getNodeModules()
+    const levelsPath = pathModule.join(process.cwd(), "data", "ingredient-levels.json")
+
+    const data = JSON.stringify(levels, null, 2)
+    fsModule.writeFileSync(levelsPath, data, "utf-8")
+    console.log("[v0] Füllstände gespeichert")
+  } catch (error) {
+    console.error("[v0] Fehler beim Speichern der Füllstände:", error)
+  }
+}
+
+async function reduceIngredientLevels(usedIngredients: Array<{ pumpId: number; amount: number }>): Promise<void> {
+  try {
+    const levels = await loadIngredientLevels()
+
+    for (const used of usedIngredients) {
+      const levelIndex = levels.findIndex((l) => l.pumpId === used.pumpId)
+      if (levelIndex !== -1) {
+        const oldLevel = levels[levelIndex].currentLevel
+        levels[levelIndex].currentLevel = Math.max(0, oldLevel - used.amount)
+        levels[levelIndex].lastUpdated = new Date()
+        console.log(
+          `[v0] Pumpe ${used.pumpId}: ${oldLevel}ml -> ${levels[levelIndex].currentLevel}ml (verwendet: ${used.amount}ml)`,
+        )
+      }
+    }
+
+    await saveIngredientLevels(levels)
+  } catch (error) {
+    console.error("[v0] Fehler beim Reduzieren der Füllstände:", error)
+  }
+}
+
 export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpConfig[], size = 300) {
   try {
     console.log(`[v0] Starte Cocktail-Zubereitung: ${cocktail.name} (${size}ml)`)
 
-    // LED: Zubereitung startet (rot blinkend)
     await runLedCommand("BUSY")
 
     const { path: pathModule, execPromise: exec } = await getNodeModules()
 
-    // Berechne die Mengen basierend auf der Größe
-    const scaleFactor = size / 300 // Standard ist 300ml
+    const scaleFactor = size / 300
+
+    const usedIngredients: Array<{ pumpId: number; amount: number }> = []
 
     for (const ingredient of cocktail.recipe) {
       if (ingredient.manual) {
@@ -70,22 +125,23 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
 
       await exec(command)
 
-      // Kurze Pause zwischen den Pumpen
+      usedIngredients.push({ pumpId: pump.id, amount })
+
       await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+
+    if (usedIngredients.length > 0) {
+      await reduceIngredientLevels(usedIngredients)
     }
 
     console.log(`[v0] Cocktail ${cocktail.name} fertig!`)
 
-    // LED: Fertig (grün, dann automatisch Idle)
     await runLedCommand("READY")
 
     return { success: true, message: `${cocktail.name} wurde erfolgreich zubereitet!` }
   } catch (error) {
     console.error("[v0] Fehler bei der Cocktail-Zubereitung:", error)
-
-    // LED: Fehler (aus)
     await runLedCommand("OFF")
-
     throw error
   }
 }
@@ -109,6 +165,8 @@ export async function makeShotAction(ingredientId: string, amount: number, pumpC
     const command = `python3 ${pumpScript} activate ${pump.pin} ${Math.round(durationMs)}`
 
     await exec(command)
+
+    await reduceIngredientLevels([{ pumpId: pump.id, amount }])
 
     console.log(`[v0] Shot ${ingredientId} fertig!`)
 
