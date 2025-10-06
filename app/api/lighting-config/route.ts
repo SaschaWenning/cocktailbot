@@ -27,7 +27,11 @@ export async function POST(request: NextRequest) {
   try {
     const config: LightingConfig = await request.json()
 
+    console.log("[v0] Saving lighting config:", JSON.stringify(config))
+
     saveLightingConfig(config)
+
+    console.log("[v0] Config saved successfully")
 
     try {
       if (config.idleMode.scheme === "static" && config.idleMode.colors.length > 0) {
@@ -50,7 +54,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[v0] Error saving lighting config:", error)
-    return NextResponse.json({ error: "Failed to save config" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Failed to save config",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
 
