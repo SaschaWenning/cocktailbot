@@ -108,7 +108,7 @@ export default function ShotSelector({ pumpConfig, ingredientLevels, onShotCompl
         })
       }, 200)
 
-      await makeSingleShot(selectedIngredient, shotSize, pumpConfig)
+      const result = await makeSingleShot(selectedIngredient, shotSize, pumpConfig)
 
       clearInterval(intervalId)
       setProgress(100)
