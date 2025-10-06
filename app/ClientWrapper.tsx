@@ -9,6 +9,20 @@ export default function ClientWrapper({
   children: React.ReactNode
 }) {
   useEffect(() => {
+    const initializeLighting = async () => {
+      try {
+        await fetch("/api/lighting-init", {
+          method: "GET",
+          cache: "no-store",
+        })
+        console.log("[v0] LED-Beleuchtung initialisiert")
+      } catch (error) {
+        console.error("[v0] Fehler bei LED-Initialisierung:", error)
+      }
+    }
+
+    initializeLighting()
+
     const autoSaveInterval = setInterval(async () => {
       try {
         const response = await fetch("/api/ingredient-levels", {

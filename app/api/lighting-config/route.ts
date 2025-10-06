@@ -1,44 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { loadLightingConfig, saveLightingConfig, type LightingConfig } from "@/lib/lighting-config"
+import { execFile } from "child_process"
+import path from "path"
 
-interface LightingConfig {
-  cocktailPreparation: {
-    color: string
-    blinking: boolean
-  }
-  cocktailFinished: {
-    color: string
-    blinking: boolean
-  }
-  idleMode: {
-    scheme: string
-    colors: string[]
-  }
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
+function runLed(...args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const script = path.join(process.cwd(), "led_client.py")
+    execFile("python3", [script, ...args], (err) => (err ? reject(err) : resolve()))
+  })
 }
-
-const defaultConfig: LightingConfig = {
-  cocktailPreparation: {
-    color: "#00ff00",
-    blinking: false,
-  },
-  cocktailFinished: {
-    color: "#0000ff",
-    blinking: true,
-  },
-  idleMode: {
-    scheme: "rainbow",
-    colors: ["#ff0000", "#00ff00", "#0000ff"],
-  },
-}
-
-// In-memory storage for lighting config
-let storedLightingConfig: LightingConfig = defaultConfig
 
 export async function GET() {
   try {
-    return NextResponse.json(storedLightingConfig)
+    const config = loadLightingConfig()
+    return NextResponse.json(config)
   } catch (error) {
     console.error("[v0] Error reading lighting config:", error)
-    return NextResponse.json(defaultConfig, { status: 500 })
+    return NextResponse.json({ error: "Failed to load config" }, { status: 500 })
   }
 }
 
@@ -46,10 +27,25 @@ export async function POST(request: NextRequest) {
   try {
     const config: LightingConfig = await request.json()
 
-    storedLightingConfig = config
+    saveLightingConfig(config)
 
-    // Send command to Raspberry Pico 2 via serial
-    await sendLightingCommand("update_config", config)
+    try {
+      if (config.idleMode.scheme === "static" && config.idleMode.colors.length > 0) {
+        const color = config.idleMode.colors[0]
+        const rgb = hexToRgb(color)
+        if (rgb) {
+          await runLed("COLOR", String(rgb.r), String(rgb.g), String(rgb.b))
+        }
+      } else if (config.idleMode.scheme === "rainbow") {
+        await runLed("RAINBOW", "30")
+      } else if (config.idleMode.scheme === "off") {
+        await runLed("OFF")
+      } else {
+        await runLed("IDLE")
+      }
+    } catch (ledError) {
+      console.error("[v0] Error applying LED config:", ledError)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -58,19 +54,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendLightingCommand(command: string, data?: any) {
-  try {
-    // This would communicate with the Raspberry Pico 2
-    // For now, we'll just log the command
-    console.log("[v0] Sending lighting command to Pico 2:", { command, data })
-
-    // In a real implementation, this would use serial communication:
-    // const serialPort = new SerialPort('/dev/ttyUSB0', { baudRate: 115200 })
-    // serialPort.write(JSON.stringify({ command, data }))
-
-    return true
-  } catch (error) {
-    console.error("[v0] Error sending lighting command:", error)
-    return false
-  }
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? {
+        r: Number.parseInt(result[1], 16),
+        g: Number.parseInt(result[2], 16),
+        b: Number.parseInt(result[3], 16),
+      }
+    : null
 }
