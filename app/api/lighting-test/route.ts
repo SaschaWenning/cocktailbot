@@ -8,7 +8,16 @@ export const dynamic = "force-dynamic"
 function runLed(...args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const script = path.join(process.cwd(), "led_client.py")
-    execFile("python3", [script, ...args], (err) => (err ? reject(err) : resolve()))
+    console.log("[v0] LED test command:", { script, args })
+    execFile("python3", [script, ...args], (err, stdout, stderr) => {
+      if (err) {
+        console.error("[v0] LED test command failed:", { err, stdout, stderr })
+        reject(err)
+      } else {
+        console.log("[v0] LED test command success:", { stdout, stderr })
+        resolve()
+      }
+    })
   })
 }
 
@@ -16,7 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     const { mode, config } = await request.json()
 
-    console.log("[v0] Testing lighting mode:", mode)
+    console.log("[v0] Lighting test POST request:", { mode, config })
 
     if (mode === "preparation") {
       const color = config?.cocktailPreparation?.color || "#ff0000"

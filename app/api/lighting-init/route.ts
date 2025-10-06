@@ -9,30 +9,46 @@ export const dynamic = "force-dynamic"
 function runLed(...args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const script = path.join(process.cwd(), "led_client.py")
-    execFile("python3", [script, ...args], (err) => (err ? reject(err) : resolve()))
+    console.log("[v0] LED init command:", { script, args })
+    execFile("python3", [script, ...args], (err, stdout, stderr) => {
+      if (err) {
+        console.error("[v0] LED init command failed:", { err, stdout, stderr })
+        reject(err)
+      } else {
+        console.log("[v0] LED init command success:", { stdout, stderr })
+        resolve()
+      }
+    })
   })
 }
 
 export async function GET() {
   try {
+    console.log("[v0] Initializing lighting on app start")
     const config = loadLightingConfig()
+    console.log("[v0] Loaded lighting config:", config)
 
     // Apply idle mode from config (or default blue if no config)
     if (config.idleMode.scheme === "static" && config.idleMode.colors.length > 0) {
       const color = config.idleMode.colors[0]
       const rgb = hexToRgb(color)
       if (rgb) {
+        console.log("[v0] Setting static color:", rgb)
         await runLed("COLOR", String(rgb.r), String(rgb.g), String(rgb.b))
       }
     } else if (config.idleMode.scheme === "rainbow") {
+      console.log("[v0] Setting rainbow mode")
       await runLed("RAINBOW", "30")
     } else if (config.idleMode.scheme === "off") {
+      console.log("[v0] Turning LEDs off")
       await runLed("OFF")
     } else {
       // Default: Blue
+      console.log("[v0] Setting default blue color")
       await runLed("COLOR", "0", "0", "255")
     }
 
+    console.log("[v0] Lighting initialized successfully")
     return NextResponse.json({ success: true, config })
   } catch (error) {
     console.error("[v0] Error initializing lighting:", error)

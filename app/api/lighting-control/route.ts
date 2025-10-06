@@ -7,8 +7,10 @@ const execFileAsync = promisify(execFile)
 
 async function runLed(...args: string[]): Promise<void> {
   const scriptPath = path.join(process.cwd(), "led_client.py")
+  console.log("[v0] LED command:", { scriptPath, args })
   try {
-    await execFileAsync("python3", [scriptPath, ...args])
+    const result = await execFileAsync("python3", [scriptPath, ...args])
+    console.log("[v0] LED command success:", result)
   } catch (error) {
     console.error("[v0] LED command failed:", error)
     throw error
@@ -30,10 +32,11 @@ export async function POST(request: NextRequest) {
   try {
     const { mode, color, brightness, blinking } = await request.json()
 
-    console.log("[v0] Setting lighting mode:", { mode, color, brightness, blinking })
+    console.log("[v0] Lighting control POST request:", { mode, color, brightness, blinking })
 
     await sendLightingControlCommand(mode, color, brightness, blinking)
 
+    console.log("[v0] Lighting control command sent successfully")
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[v0] Error controlling lighting:", error)
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    console.log("[v0] Testing lighting with rainbow effect")
+    console.log("[v0] Lighting control GET request - testing with rainbow")
     await runLed("RAINBOW", "30")
     return NextResponse.json({ success: true, message: "Rainbow test started" })
   } catch (error) {
