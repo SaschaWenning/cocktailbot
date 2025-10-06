@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Lightbulb, Zap, Palette, Save, RotateCcw } from "lucide-react"
+import { Lightbulb, Zap, Palette, Save, RotateCcw, Play } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 
 interface LightingConfig {
@@ -168,6 +168,58 @@ export default function LightingControl() {
     }
   }
 
+  const applyLighting = async (mode: "preparation" | "finished" | "idle" | "off") => {
+    try {
+      let body: any = {}
+
+      if (mode === "preparation") {
+        body = {
+          mode: "cocktailPreparation",
+          blinking: config.cocktailPreparation.blinking,
+          color: config.cocktailPreparation.color,
+        }
+      } else if (mode === "finished") {
+        body = {
+          mode: "cocktailFinished",
+          blinking: config.cocktailFinished.blinking,
+          color: config.cocktailFinished.color,
+        }
+      } else if (mode === "idle") {
+        if (config.idleMode.scheme === "static" && config.idleMode.colors.length > 0) {
+          body = { mode: "color", color: config.idleMode.colors[0] }
+        } else if (config.idleMode.scheme === "off") {
+          body = { mode: "off" }
+        } else {
+          body = { mode: "idle" }
+        }
+      } else if (mode === "off") {
+        body = { mode: "off" }
+      }
+
+      const res = await fetch("/api/lighting-control", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      })
+
+      if (!res.ok) {
+        throw new Error(await res.text())
+      }
+
+      toast({
+        title: "Angewendet",
+        description: `${mode === "preparation" ? "Zubereitung" : mode === "finished" ? "Fertig" : mode === "idle" ? "Idle" : "Aus"} Beleuchtung wurde dauerhaft aktiviert.`,
+      })
+    } catch (error) {
+      console.error("[v0] Error applying lighting:", error)
+      toast({
+        title: "Fehler",
+        description: "Beleuchtung konnte nicht angewendet werden.",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 bg-[hsl(var(--cocktail-bg))] min-h-[400px]">
@@ -269,14 +321,24 @@ export default function LightingControl() {
                 {config.cocktailPreparation.blinking ? "Ein" : "Aus"}
               </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => testLighting("preparation")}
-              className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-            >
-              Test
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => testLighting("preparation")}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+              >
+                Test (5s)
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => applyLighting("preparation")}
+                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
+              >
+                <Play className="h-4 w-4 mr-1" />
+                Anwenden
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -328,14 +390,24 @@ export default function LightingControl() {
                 {config.cocktailFinished.blinking ? "Ein" : "Aus"}
               </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => testLighting("finished")}
-              className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-            >
-              Test
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => testLighting("finished")}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+              >
+                Test (5s)
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => applyLighting("finished")}
+                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
+              >
+                <Play className="h-4 w-4 mr-1" />
+                Anwenden
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -396,14 +468,24 @@ export default function LightingControl() {
                 />
               </div>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => testLighting("idle")}
-              className="w-full bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
-            >
-              Test
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => testLighting("idle")}
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+              >
+                Test (5s)
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => applyLighting("idle")}
+                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
+              >
+                <Play className="h-4 w-4 mr-1" />
+                Anwenden
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
