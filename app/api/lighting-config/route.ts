@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { loadLightingConfig, saveLightingConfig, type LightingConfig } from "@/lib/lighting-config"
+import type { LightingConfig } from "@/lib/lighting-config-types"
+import { loadLightingConfig, saveLightingConfig } from "@/lib/lighting-config"
 import { execFile } from "child_process"
 import path from "path"
 
@@ -15,7 +16,7 @@ function runLed(...args: string[]): Promise<void> {
 
 export async function GET() {
   try {
-    const config = loadLightingConfig()
+    const config = await loadLightingConfig()
     return NextResponse.json(config)
   } catch (error) {
     console.error("[v0] Error reading lighting config:", error)
@@ -29,14 +30,14 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] Saving lighting config:", JSON.stringify(config))
 
-    saveLightingConfig(config)
+    await saveLightingConfig(config)
 
     console.log("[v0] Config saved successfully")
 
     try {
       if (config.idleMode.scheme === "static" && config.idleMode.colors.length > 0) {
         const color = config.idleMode.colors[0]
-        const rgb = hexToRgb(color)
+        const rgb = await hexToRgb(color)
         if (rgb) {
           await runLed("COLOR", String(rgb.r), String(rgb.g), String(rgb.b))
         }
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+async function hexToRgb(hex: string): Promise<{ r: number; g: number; b: number } | null> {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result
     ? {

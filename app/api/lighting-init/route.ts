@@ -25,13 +25,13 @@ function runLed(...args: string[]): Promise<void> {
 export async function GET() {
   try {
     console.log("[v0] Initializing lighting on app start")
-    const config = loadLightingConfig()
+    const config = await loadLightingConfig()
     console.log("[v0] Loaded lighting config:", config)
 
     // Apply idle mode from config (or default blue if no config)
     if (config.idleMode.scheme === "static" && config.idleMode.colors.length > 0) {
       const color = config.idleMode.colors[0]
-      const rgb = hexToRgb(color)
+      const rgb = await hexToRgb(color)
       if (rgb) {
         console.log("[v0] Setting static color:", rgb)
         await runLed("COLOR", String(rgb.r), String(rgb.g), String(rgb.b))
@@ -56,7 +56,7 @@ export async function GET() {
   }
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+async function hexToRgb(hex: string): Promise<{ r: number; g: number; b: number } | null> {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result
     ? {
