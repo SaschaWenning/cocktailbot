@@ -207,38 +207,40 @@ export default function LightingControl() {
   }
 
   return (
-    <div className="space-y-6 bg-[hsl(var(--cocktail-bg))] min-h-screen p-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Lightbulb className="h-8 w-8 text-[hsl(var(--cocktail-primary))]" />
-          <h2 className="text-2xl font-bold text-[hsl(var(--cocktail-text))]">LED-Beleuchtung</h2>
+    <div className="space-y-4 md:space-y-6 bg-[hsl(var(--cocktail-bg))] min-h-screen p-3 md:p-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
+          <Lightbulb className="h-6 w-6 md:h-8 md:w-8 text-[hsl(var(--cocktail-primary))]" />
+          <h2 className="text-xl md:text-2xl font-bold text-[hsl(var(--cocktail-text))]">LED-Beleuchtung</h2>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 md:gap-3">
           <Button
             onClick={saveConfig}
             disabled={saving || !hasChanges}
-            className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
+            size="sm"
+            className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold flex-1 sm:flex-none"
           >
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? "Speichert..." : "Speichern"}
+            <Save className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="text-sm md:text-base">{saving ? "Speichert..." : "Speichern"}</span>
           </Button>
           <Button
             variant="outline"
             onClick={resetToDefault}
             disabled={saving}
-            className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+            size="sm"
+            className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] flex-1 sm:flex-none"
           >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Standard
+            <RotateCcw className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="text-sm md:text-base">Standard</span>
           </Button>
         </div>
       </div>
 
       {hasChanges && (
-        <div className="p-4 rounded-xl border border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-card-bg))]">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full animate-pulse bg-[hsl(var(--cocktail-primary))]" />
-            <p className="font-medium text-[hsl(var(--cocktail-primary))]">
+        <div className="p-3 md:p-4 rounded-xl border border-[hsl(var(--cocktail-primary))] bg-[hsl(var(--cocktail-card-bg))]">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-2 h-2 rounded-full animate-pulse bg-[hsl(var(--cocktail-primary))] flex-shrink-0" />
+            <p className="text-sm md:text-base font-medium text-[hsl(var(--cocktail-primary))]">
               Sie haben ungespeicherte Änderungen. Klicken Sie auf "Speichern", um die Änderungen zu übernehmen.
             </p>
           </div>
@@ -246,19 +248,19 @@ export default function LightingControl() {
       )}
 
       <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-[hsl(var(--cocktail-text))]">
-            <Lightbulb className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg text-[hsl(var(--cocktail-text))]">
+            <Lightbulb className="h-4 w-4 md:h-5 md:w-5 text-[hsl(var(--cocktail-primary))]" />
             Globale Helligkeit
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-[hsl(var(--cocktail-text))]">
+              <label className="text-xs md:text-sm font-medium text-[hsl(var(--cocktail-text))]">
                 Helligkeit: {config.brightness || 255}
               </label>
-              <span className="text-sm text-[hsl(var(--cocktail-text-muted))]">
+              <span className="text-xs md:text-sm text-[hsl(var(--cocktail-text-muted))]">
                 {Math.round(((config.brightness || 255) / 255) * 100)}%
               </span>
             </div>
@@ -270,38 +272,40 @@ export default function LightingControl() {
               onChange={(e) => updateConfig("brightness", Number.parseInt(e.target.value))}
               className="w-full h-2 bg-[hsl(var(--cocktail-card-border))] rounded-lg appearance-none cursor-pointer accent-[hsl(var(--cocktail-primary))]"
             />
-            <div className="flex justify-between text-xs text-[hsl(var(--cocktail-text-muted))]">
-              <span>Aus (0)</span>
+            <div className="flex justify-between text-[10px] md:text-xs text-[hsl(var(--cocktail-text-muted))]">
+              <span>Aus</span>
               <span>25%</span>
               <span>50%</span>
               <span>75%</span>
-              <span>Max (255)</span>
+              <span>Max</span>
             </div>
           </div>
-          <p className="text-sm text-[hsl(var(--cocktail-text-muted))]">
-            Die Helligkeit wird auf alle LED-Modi angewendet (Zubereitung, Fertig, Idle).
+          <p className="text-xs md:text-sm text-[hsl(var(--cocktail-text-muted))]">
+            Die Helligkeit wird auf alle LED-Modi angewendet.
           </p>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
         {/* Cocktail-Zubereitung */}
         <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[hsl(var(--cocktail-text))]">
-              <Zap className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
-              Cocktail-Zubereitung
+          <CardHeader className="pb-3 md:pb-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg text-[hsl(var(--cocktail-text))]">
+              <Zap className="h-4 w-4 md:h-5 md:w-5 text-[hsl(var(--cocktail-primary))]" />
+              Zubereitung
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div>
-              <label className="text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2 block">Farbe</label>
-              <div className="grid grid-cols-5 gap-2 mb-3">
+              <label className="text-xs md:text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2 block">
+                Farbe
+              </label>
+              <div className="grid grid-cols-5 sm:grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2 mb-2 md:mb-3">
                 {colorPresets.map((preset) => (
                   <button
                     key={preset.value}
                     onClick={() => updateConfig("cocktailPreparation.color", preset.value)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                    className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${
                       config.cocktailPreparation.color === preset.value
                         ? "border-[hsl(var(--cocktail-primary))] scale-110"
                         : "border-gray-300 hover:scale-105"
@@ -315,19 +319,19 @@ export default function LightingControl() {
                 type="color"
                 value={config.cocktailPreparation.color}
                 onChange={(e) => updateConfig("cocktailPreparation.color", e.target.value)}
-                className="w-full h-10 rounded-lg border border-[hsl(var(--cocktail-card-border))]"
+                className="w-full h-9 md:h-10 rounded-lg border border-[hsl(var(--cocktail-card-border))]"
               />
             </div>
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-[hsl(var(--cocktail-text))]">Blinken</label>
+              <label className="text-xs md:text-sm font-medium text-[hsl(var(--cocktail-text))]">Blinken</label>
               <Button
                 variant={config.cocktailPreparation.blinking ? "default" : "outline"}
                 size="sm"
                 onClick={() => updateConfig("cocktailPreparation.blinking", !config.cocktailPreparation.blinking)}
                 className={
                   config.cocktailPreparation.blinking
-                    ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                    : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                    ? "bg-[hsl(var(--cocktail-primary))] text-black text-xs md:text-sm h-8"
+                    : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] text-xs md:text-sm h-8"
                 }
               >
                 {config.cocktailPreparation.blinking ? "Ein" : "Aus"}
@@ -338,16 +342,16 @@ export default function LightingControl() {
                 variant="outline"
                 size="sm"
                 onClick={() => testLighting("preparation")}
-                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] text-xs md:text-sm h-8 md:h-9"
               >
-                Test (5s)
+                Test
               </Button>
               <Button
                 size="sm"
                 onClick={() => applyLighting("preparation")}
-                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
+                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold text-xs md:text-sm h-8 md:h-9"
               >
-                <Play className="h-4 w-4 mr-1" />
+                <Play className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                 Anwenden
               </Button>
             </div>
@@ -356,21 +360,25 @@ export default function LightingControl() {
 
         {/* Cocktail fertig */}
         <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[hsl(var(--cocktail-text))]">
-              <Badge className="bg-[hsl(var(--cocktail-primary))] text-black">✓</Badge>
-              Cocktail fertig
+          <CardHeader className="pb-3 md:pb-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg text-[hsl(var(--cocktail-text))]">
+              <Badge className="bg-[hsl(var(--cocktail-primary))] text-black text-xs md:text-sm h-5 md:h-6 px-1.5 md:px-2">
+                ✓
+              </Badge>
+              Fertig
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div>
-              <label className="text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2 block">Farbe</label>
-              <div className="grid grid-cols-5 gap-2 mb-3">
+              <label className="text-xs md:text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2 block">
+                Farbe
+              </label>
+              <div className="grid grid-cols-5 sm:grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2 mb-2 md:mb-3">
                 {colorPresets.map((preset) => (
                   <button
                     key={preset.value}
                     onClick={() => updateConfig("cocktailFinished.color", preset.value)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                    className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${
                       config.cocktailFinished.color === preset.value
                         ? "border-[hsl(var(--cocktail-primary))] scale-110"
                         : "border-gray-300 hover:scale-105"
@@ -384,19 +392,19 @@ export default function LightingControl() {
                 type="color"
                 value={config.cocktailFinished.color}
                 onChange={(e) => updateConfig("cocktailFinished.color", e.target.value)}
-                className="w-full h-10 rounded-lg border border-[hsl(var(--cocktail-card-border))]"
+                className="w-full h-9 md:h-10 rounded-lg border border-[hsl(var(--cocktail-card-border))]"
               />
             </div>
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-[hsl(var(--cocktail-text))]">Blinken</label>
+              <label className="text-xs md:text-sm font-medium text-[hsl(var(--cocktail-text))]">Blinken</label>
               <Button
                 variant={config.cocktailFinished.blinking ? "default" : "outline"}
                 size="sm"
                 onClick={() => updateConfig("cocktailFinished.blinking", !config.cocktailFinished.blinking)}
                 className={
                   config.cocktailFinished.blinking
-                    ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                    : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                    ? "bg-[hsl(var(--cocktail-primary))] text-black text-xs md:text-sm h-8"
+                    : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] text-xs md:text-sm h-8"
                 }
               >
                 {config.cocktailFinished.blinking ? "Ein" : "Aus"}
@@ -407,16 +415,16 @@ export default function LightingControl() {
                 variant="outline"
                 size="sm"
                 onClick={() => testLighting("finished")}
-                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] text-xs md:text-sm h-8 md:h-9"
               >
-                Test (5s)
+                Test
               </Button>
               <Button
                 size="sm"
                 onClick={() => applyLighting("finished")}
-                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
+                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold text-xs md:text-sm h-8 md:h-9"
               >
-                <Play className="h-4 w-4 mr-1" />
+                <Play className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                 Anwenden
               </Button>
             </div>
@@ -425,16 +433,18 @@ export default function LightingControl() {
 
         {/* Idle-Modus */}
         <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[hsl(var(--cocktail-text))]">
-              <Palette className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+          <CardHeader className="pb-3 md:pb-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg text-[hsl(var(--cocktail-text))]">
+              <Palette className="h-4 w-4 md:h-5 md:w-5 text-[hsl(var(--cocktail-primary))]" />
               Idle-Modus
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div>
-              <label className="text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2 block">Farbschema</label>
-              <div className="grid grid-cols-1 gap-2">
+              <label className="text-xs md:text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2 block">
+                Farbschema
+              </label>
+              <div className="grid grid-cols-1 gap-1.5 md:gap-2">
                 {idleSchemes.map((scheme) => (
                   <Button
                     key={scheme.value}
@@ -443,8 +453,8 @@ export default function LightingControl() {
                     onClick={() => updateConfig("idleMode.scheme", scheme.value)}
                     className={
                       config.idleMode.scheme === scheme.value
-                        ? "bg-[hsl(var(--cocktail-primary))] text-black"
-                        : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                        ? "bg-[hsl(var(--cocktail-primary))] text-black text-xs md:text-sm h-8 md:h-9"
+                        : "bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] text-xs md:text-sm h-8 md:h-9"
                     }
                   >
                     {scheme.name}
@@ -454,15 +464,15 @@ export default function LightingControl() {
             </div>
             {config.idleMode.scheme === "static" && (
               <div>
-                <label className="text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2 block">
+                <label className="text-xs md:text-sm font-medium text-[hsl(var(--cocktail-text))] mb-2 block">
                   Statische Farbe
                 </label>
-                <div className="grid grid-cols-5 gap-2 mb-3">
+                <div className="grid grid-cols-5 sm:grid-cols-4 md:grid-cols-5 gap-1.5 md:gap-2 mb-2 md:mb-3">
                   {colorPresets.map((preset) => (
                     <button
                       key={preset.value}
                       onClick={() => updateConfig("idleMode.colors", [preset.value])}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${
                         config.idleMode.colors[0] === preset.value
                           ? "border-[hsl(var(--cocktail-primary))] scale-110"
                           : "border-gray-300 hover:scale-105"
@@ -476,7 +486,7 @@ export default function LightingControl() {
                   type="color"
                   value={config.idleMode.colors[0] || "#ffffff"}
                   onChange={(e) => updateConfig("idleMode.colors", [e.target.value])}
-                  className="w-full h-10 rounded-lg border border-[hsl(var(--cocktail-card-border))]"
+                  className="w-full h-9 md:h-10 rounded-lg border border-[hsl(var(--cocktail-card-border))]"
                 />
               </div>
             )}
@@ -485,16 +495,16 @@ export default function LightingControl() {
                 variant="outline"
                 size="sm"
                 onClick={() => testLighting("idle")}
-                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]"
+                className="bg-[hsl(var(--cocktail-card-bg))] text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))] text-xs md:text-sm h-8 md:h-9"
               >
-                Test (5s)
+                Test
               </Button>
               <Button
                 size="sm"
                 onClick={() => applyLighting("idle")}
-                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold"
+                className="bg-[hsl(var(--cocktail-primary))] hover:bg-[hsl(var(--cocktail-primary-hover))] text-black font-semibold text-xs md:text-sm h-8 md:h-9"
               >
-                <Play className="h-4 w-4 mr-1" />
+                <Play className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                 Anwenden
               </Button>
             </div>
@@ -503,11 +513,11 @@ export default function LightingControl() {
       </div>
 
       <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
-        <CardHeader>
-          <CardTitle className="text-[hsl(var(--cocktail-text))]">Hardware-Information</CardTitle>
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="text-base md:text-lg text-[hsl(var(--cocktail-text))]">Hardware-Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
             <div>
               <span className="font-medium text-[hsl(var(--cocktail-text))]">Controller:</span>
               <span className="ml-2 text-[hsl(var(--cocktail-text-muted))]">Raspberry Pico 2</span>
