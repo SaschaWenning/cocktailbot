@@ -31,6 +31,7 @@ import PumpCalibration from "@/components/pump-calibration"
 import { Progress } from "@/components/ui/progress"
 import { Check, GlassWater } from "lucide-react"
 import TermsOfService from "@/components/terms-of-service"
+import LightingControl from "@/components/lighting-control"
 
 // Anzahl der Cocktails pro Seite
 const COCKTAILS_PER_PAGE = 9
@@ -1229,6 +1230,8 @@ export default function Home() {
             onShotComplete={loadIngredientLevels}
           />
         )
+      case "beleuchtung":
+        return <LightingControl />
       case "service":
         return (
           <ServiceMenu
