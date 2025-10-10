@@ -148,20 +148,22 @@ export default function LightingControl() {
           mode: "cocktailPreparation",
           blinking: config.cocktailPreparation.blinking,
           color: config.cocktailPreparation.color,
+          brightness: config.brightness,
         }
       } else if (mode === "finished") {
         body = {
           mode: "cocktailFinished",
           blinking: config.cocktailFinished.blinking,
           color: config.cocktailFinished.color,
+          brightness: config.brightness,
         }
       } else if (mode === "idle") {
         if (config.idleMode.scheme === "static" && config.idleMode.colors.length > 0) {
-          body = { mode: "color", color: config.idleMode.colors[0] }
+          body = { mode: "color", color: config.idleMode.colors[0], brightness: config.brightness }
         } else if (config.idleMode.scheme === "off") {
           body = { mode: "off" }
         } else {
-          body = { mode: "idle" }
+          body = { mode: "idle", brightness: config.brightness }
         }
       } else if (mode === "off") {
         body = { mode: "off" }
@@ -242,6 +244,45 @@ export default function LightingControl() {
           </div>
         </div>
       )}
+
+      <Card className="bg-[hsl(var(--cocktail-card-bg))] border-[hsl(var(--cocktail-card-border))]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-[hsl(var(--cocktail-text))]">
+            <Lightbulb className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+            Globale Helligkeit
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-medium text-[hsl(var(--cocktail-text))]">
+                Helligkeit: {config.brightness || 255}
+              </label>
+              <span className="text-sm text-[hsl(var(--cocktail-text-muted))]">
+                {Math.round(((config.brightness || 255) / 255) * 100)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="255"
+              value={config.brightness || 255}
+              onChange={(e) => updateConfig("brightness", Number.parseInt(e.target.value))}
+              className="w-full h-2 bg-[hsl(var(--cocktail-card-border))] rounded-lg appearance-none cursor-pointer accent-[hsl(var(--cocktail-primary))]"
+            />
+            <div className="flex justify-between text-xs text-[hsl(var(--cocktail-text-muted))]">
+              <span>Aus (0)</span>
+              <span>25%</span>
+              <span>50%</span>
+              <span>75%</span>
+              <span>Max (255)</span>
+            </div>
+          </div>
+          <p className="text-sm text-[hsl(var(--cocktail-text-muted))]">
+            Die Helligkeit wird auf alle LED-Modi angewendet (Zubereitung, Fertig, Idle).
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Cocktail-Zubereitung */}
