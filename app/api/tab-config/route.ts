@@ -1,14 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { type AppConfig, defaultTabConfig } from "@/lib/tab-config"
-import { promises as fs } from "fs"
-import path from "path"
 
 export const dynamic = "force-dynamic"
 
-const TAB_CONFIG_PATH = path.join(process.cwd(), "data", "tab-config.json")
+let storedTabConfig: AppConfig = defaultTabConfig
+
+const isNodeEnvironment = typeof process !== "undefined" && process.versions && process.versions.node
 
 async function loadTabConfigFromFile(): Promise<AppConfig> {
+  if (!isNodeEnvironment) {
+    console.log("[v0] Running in browser, using memory storage")
+    return storedTabConfig
+  }
+
   try {
+    const fs = await import("fs/promises")
+    const path = await import("path")
+    const TAB_CONFIG_PATH = path.join(process.cwd(), "data", "tab-config.json")
+
     const fileContent = await fs.readFile(TAB_CONFIG_PATH, "utf-8")
     const config = JSON.parse(fileContent)
     console.log("[v0] Tab config loaded from file:", config)
@@ -20,9 +29,19 @@ async function loadTabConfigFromFile(): Promise<AppConfig> {
 }
 
 async function saveTabConfigToFile(config: AppConfig): Promise<void> {
+  if (!isNodeEnvironment) {
+    console.log("[v0] Running in browser, saving to memory")
+    storedTabConfig = config
+    return
+  }
+
   try {
-    // Stelle sicher, dass das data-Verzeichnis existiert
+    const fs = await import("fs/promises")
+    const path = await import("path")
+    const TAB_CONFIG_PATH = path.join(process.cwd(), "data", "tab-config.json")
     const dataDir = path.join(process.cwd(), "data")
+
+    // Stelle sicher, dass das data-Verzeichnis existiert
     try {
       await fs.access(dataDir)
     } catch {
