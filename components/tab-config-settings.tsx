@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback, memo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,128 @@ import { toast } from "@/components/ui/use-toast"
 interface TabConfigSettingsProps {
   onClose: () => void
 }
+
+const TabCard = memo(
+  ({
+    tab,
+    showMoveButtons,
+    tabIndex,
+    totalTabs,
+    onMoveUp,
+    onMoveDown,
+    onMoveToMain,
+    onMoveToService,
+  }: {
+    tab: TabConfig
+    showMoveButtons: boolean
+    tabIndex?: number
+    totalTabs?: number
+    onMoveUp: (id: string) => void
+    onMoveDown: (id: string) => void
+    onMoveToMain: (id: string) => void
+    onMoveToService: (id: string) => void
+  }) => (
+    <Card
+      className="group bg-gray-900 border-gray-700 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] backdrop-blur-sm hover:border-green-500/50"
+      style={{ backgroundColor: "hsl(var(--cocktail-card-bg))" }}
+    >
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-2 h-8 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"
+              style={{ backgroundColor: "hsl(var(--cocktail-primary))" }}
+            />
+            <div className="flex flex-col">
+              <span className="font-semibold text-lg" style={{ color: "hsl(var(--cocktail-text))" }}>
+                {tab.name}
+              </span>
+              {tab.alwaysVisible && (
+                <div className="mt-1">
+                  <Badge
+                    variant="outline"
+                    className="text-xs border-gray-600"
+                    style={{
+                      backgroundColor: "hsl(var(--cocktail-button-bg))",
+                      color: "hsl(var(--cocktail-text-muted))",
+                    }}
+                  >
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Fest
+                  </Badge>
+                </div>
+              )}
+            </div>
+          </div>
+          {showMoveButtons && !tab.alwaysVisible && (
+            <div className="flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              {tab.location === "main" && typeof tabIndex === "number" && typeof totalTabs === "number" && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onMoveUp(tab.id)}
+                    disabled={tabIndex === 0}
+                    className="h-8 w-8 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
+                    style={{
+                      backgroundColor: "hsl(var(--cocktail-button-bg))",
+                      color: "hsl(var(--cocktail-text))",
+                    }}
+                  >
+                    ↑
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onMoveDown(tab.id)}
+                    disabled={tabIndex === totalTabs - 1}
+                    className="h-8 w-8 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
+                    style={{
+                      backgroundColor: "hsl(var(--cocktail-button-bg))",
+                      color: "hsl(var(--cocktail-text))",
+                    }}
+                  >
+                    ↓
+                  </Button>
+                </>
+              )}
+              {tab.location === "service" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onMoveToMain(tab.id)}
+                  className="h-10 w-10 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
+                  style={{
+                    backgroundColor: "hsl(var(--cocktail-button-bg))",
+                    color: "hsl(var(--cocktail-text))",
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              {tab.location === "main" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onMoveToService(tab.id)}
+                  className="h-10 w-10 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
+                  style={{
+                    backgroundColor: "hsl(var(--cocktail-button-bg))",
+                    color: "hsl(var(--cocktail-text))",
+                  }}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  ),
+)
+
+TabCard.displayName = "TabCard"
 
 export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
   const [config, setConfig] = useState<AppConfig | null>(null)
@@ -105,197 +227,114 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
     }
   }
 
-  const moveTabToMain = async (tabId: string) => {
-    if (!config) return
+  const moveTabToMain = useCallback(
+    (tabId: string) => {
+      if (!config) return
 
-    const tab = config.tabs.find((t) => t.id === tabId)
-    if (!tab || tab.alwaysVisible) return
+      const tab = config.tabs.find((t) => t.id === tabId)
+      if (!tab || tab.alwaysVisible) return
 
-    setConfig((prev) => {
-      if (!prev) return prev
-      const newConfig = {
-        ...prev,
-        tabs: prev.tabs.map((t) => (t.id === tabId ? { ...t, location: "main" as const } : t)),
-      }
-      setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
-      return newConfig
-    })
-  }
+      setConfig((prev) => {
+        if (!prev) return prev
+        const newConfig = {
+          ...prev,
+          tabs: prev.tabs.map((t) => (t.id === tabId ? { ...t, location: "main" as const } : t)),
+        }
+        setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
+        return newConfig
+      })
+    },
+    [config, originalConfig],
+  )
 
-  const moveTabToService = async (tabId: string) => {
-    if (!config) return
+  const moveTabToService = useCallback(
+    (tabId: string) => {
+      if (!config) return
 
-    const tab = config.tabs.find((t) => t.id === tabId)
-    if (!tab || tab.alwaysVisible) return
+      const tab = config.tabs.find((t) => t.id === tabId)
+      if (!tab || tab.alwaysVisible) return
 
-    setConfig((prev) => {
-      if (!prev) return prev
-      const newConfig = {
-        ...prev,
-        tabs: prev.tabs.map((t) => (t.id === tabId ? { ...t, location: "service" as const } : t)),
-      }
-      setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
-      return newConfig
-    })
-  }
+      setConfig((prev) => {
+        if (!prev) return prev
+        const newConfig = {
+          ...prev,
+          tabs: prev.tabs.map((t) => (t.id === tabId ? { ...t, location: "service" as const } : t)),
+        }
+        setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
+        return newConfig
+      })
+    },
+    [config, originalConfig],
+  )
 
-  const resetToDefault = async () => {
+  const resetToDefault = useCallback(() => {
     setConfig(defaultTabConfig)
     setHasChanges(JSON.stringify(defaultTabConfig) !== JSON.stringify(originalConfig))
-  }
+  }, [originalConfig])
 
-  const moveTabUp = (tabId: string) => {
-    if (!config) return
+  const moveTabUp = useCallback(
+    (tabId: string) => {
+      if (!config) return
 
-    setConfig((prev) => {
-      if (!prev) return prev
+      setConfig((prev) => {
+        if (!prev) return prev
 
-      const mainTabs = prev.tabs.filter((t) => t.location === "main")
-      const otherTabs = prev.tabs.filter((t) => t.location !== "main")
+        const mainTabs = prev.tabs.filter((t) => t.location === "main")
+        const otherTabs = prev.tabs.filter((t) => t.location !== "main")
 
-      const currentIndex = mainTabs.findIndex((t) => t.id === tabId)
-      if (currentIndex <= 0) return prev
+        const currentIndex = mainTabs.findIndex((t) => t.id === tabId)
+        if (currentIndex <= 0) return prev
 
-      const newMainTabs = [...mainTabs]
-      const [movedTab] = newMainTabs.splice(currentIndex, 1)
-      newMainTabs.splice(currentIndex - 1, 0, movedTab)
+        const newMainTabs = [...mainTabs]
+        const [movedTab] = newMainTabs.splice(currentIndex, 1)
+        newMainTabs.splice(currentIndex - 1, 0, movedTab)
 
-      const newConfig = {
-        ...prev,
-        tabs: [...newMainTabs, ...otherTabs],
-      }
+        const newConfig = {
+          ...prev,
+          tabs: [...newMainTabs, ...otherTabs],
+        }
 
-      setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
-      return newConfig
-    })
-  }
-
-  const moveTabDown = (tabId: string) => {
-    if (!config) return
-
-    setConfig((prev) => {
-      if (!prev) return prev
-
-      const mainTabs = prev.tabs.filter((t) => t.location === "main")
-      const otherTabs = prev.tabs.filter((t) => t.location !== "main")
-
-      const currentIndex = mainTabs.findIndex((t) => t.id === tabId)
-      if (currentIndex >= mainTabs.length - 1) return prev
-
-      const newMainTabs = [...mainTabs]
-      const [movedTab] = newMainTabs.splice(currentIndex, 1)
-      newMainTabs.splice(currentIndex + 1, 0, movedTab)
-
-      const newConfig = {
-        ...prev,
-        tabs: [...newMainTabs, ...otherTabs],
-      }
-
-      setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
-      return newConfig
-    })
-  }
-
-  const renderTabCard = (tab: TabConfig, showMoveButtons = true, tabIndex?: number, totalTabs?: number) => (
-    <Card
-      key={tab.id}
-      className="group bg-gray-900 border-gray-700 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] backdrop-blur-sm hover:border-green-500/50"
-      style={{ backgroundColor: "hsl(var(--cocktail-card-bg))" }}
-    >
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-2 h-8 rounded-full opacity-60 group-hover:opacity-100 transition-opacity"
-              style={{ backgroundColor: "hsl(var(--cocktail-primary))" }}
-            />
-            <div className="flex flex-col">
-              <span className="font-semibold text-lg" style={{ color: "hsl(var(--cocktail-text))" }}>
-                {tab.name}
-              </span>
-              {tab.alwaysVisible && (
-                <div className="mt-1">
-                  <Badge
-                    variant="outline"
-                    className="text-xs border-gray-600"
-                    style={{
-                      backgroundColor: "hsl(var(--cocktail-button-bg))",
-                      color: "hsl(var(--cocktail-text-muted))",
-                    }}
-                  >
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    Fest
-                  </Badge>
-                </div>
-              )}
-            </div>
-          </div>
-          {showMoveButtons && !tab.alwaysVisible && (
-            <div className="flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-              {tab.location === "main" && typeof tabIndex === "number" && typeof totalTabs === "number" && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => moveTabUp(tab.id)}
-                    disabled={tabIndex === 0}
-                    className="h-8 w-8 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
-                    style={{
-                      backgroundColor: "hsl(var(--cocktail-button-bg))",
-                      color: "hsl(var(--cocktail-text))",
-                    }}
-                  >
-                    ↑
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => moveTabDown(tab.id)}
-                    disabled={tabIndex === totalTabs - 1}
-                    className="h-8 w-8 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
-                    style={{
-                      backgroundColor: "hsl(var(--cocktail-button-bg))",
-                      color: "hsl(var(--cocktail-text))",
-                    }}
-                  >
-                    ↓
-                  </Button>
-                </>
-              )}
-              {tab.location === "service" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => moveTabToMain(tab.id)}
-                  className="h-10 w-10 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
-                  style={{
-                    backgroundColor: "hsl(var(--cocktail-button-bg))",
-                    color: "hsl(var(--cocktail-text))",
-                  }}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
-              {tab.location === "main" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => moveTabToService(tab.id)}
-                  className="h-10 w-10 p-0 border-gray-600 hover:border-green-500 transition-all duration-200"
-                  style={{
-                    backgroundColor: "hsl(var(--cocktail-button-bg))",
-                    color: "hsl(var(--cocktail-text))",
-                  }}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
+        return newConfig
+      })
+    },
+    [config, originalConfig],
   )
+
+  const moveTabDown = useCallback(
+    (tabId: string) => {
+      if (!config) return
+
+      setConfig((prev) => {
+        if (!prev) return prev
+
+        const mainTabs = prev.tabs.filter((t) => t.location === "main")
+        const otherTabs = prev.tabs.filter((t) => t.location !== "main")
+
+        const currentIndex = mainTabs.findIndex((t) => t.id === tabId)
+        if (currentIndex >= mainTabs.length - 1) return prev
+
+        const newMainTabs = [...mainTabs]
+        const [movedTab] = newMainTabs.splice(currentIndex, 1)
+        newMainTabs.splice(currentIndex + 1, 0, movedTab)
+
+        const newConfig = {
+          ...prev,
+          tabs: [...newMainTabs, ...otherTabs],
+        }
+
+        setHasChanges(JSON.stringify(newConfig) !== JSON.stringify(originalConfig))
+        return newConfig
+      })
+    },
+    [config, originalConfig],
+  )
+
+  const mainTabs = useMemo(() => config?.tabs.filter((tab) => tab.location === "main") ?? [], [config])
+
+  const serviceTabs = useMemo(() => config?.tabs.filter((tab) => tab.location === "service") ?? [], [config])
+
+  const hasPasswordProtectedServiceTabs = useMemo(() => serviceTabs.some((tab) => tab.passwordProtected), [serviceTabs])
 
   if (loading) {
     return (
@@ -346,10 +385,6 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
       </div>
     )
   }
-
-  const mainTabs = config.tabs.filter((tab) => tab.location === "main")
-  const serviceTabs = config.tabs.filter((tab) => tab.location === "service")
-  const hasPasswordProtectedServiceTabs = serviceTabs.some((tab) => tab.passwordProtected)
 
   return (
     <div
@@ -506,7 +541,19 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
                 <p style={{ color: "hsl(var(--cocktail-text-muted))" }}>Keine Tabs in der Hauptnavigation</p>
               </div>
             ) : (
-              mainTabs.map((tab, index) => renderTabCard(tab, true, index, mainTabs.length))
+              mainTabs.map((tab, index) => (
+                <TabCard
+                  key={tab.id}
+                  tab={tab}
+                  showMoveButtons={true}
+                  tabIndex={index}
+                  totalTabs={mainTabs.length}
+                  onMoveUp={moveTabUp}
+                  onMoveDown={moveTabDown}
+                  onMoveToMain={moveTabToMain}
+                  onMoveToService={moveTabToService}
+                />
+              ))
             )}
           </CardContent>
         </Card>
@@ -570,7 +617,17 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
                 <p style={{ color: "hsl(var(--cocktail-text-muted))" }}>Keine Tabs im Servicemenü</p>
               </div>
             ) : (
-              serviceTabs.map((tab) => renderTabCard(tab))
+              serviceTabs.map((tab) => (
+                <TabCard
+                  key={tab.id}
+                  tab={tab}
+                  showMoveButtons={true}
+                  onMoveUp={moveTabUp}
+                  onMoveDown={moveTabDown}
+                  onMoveToMain={moveTabToMain}
+                  onMoveToService={moveTabToService}
+                />
+              ))
             )}
           </CardContent>
         </Card>
