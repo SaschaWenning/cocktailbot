@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, memo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import LowLevelWarning from "@/components/low-level-warning"
@@ -17,7 +17,7 @@ interface CocktailCardProps {
   onEdit?: (id: string) => void
 }
 
-export default function CocktailCard({ cocktail, onClick, onEdit }: CocktailCardProps) {
+const CocktailCard = memo(function CocktailCard({ cocktail, onClick, onEdit }: CocktailCardProps) {
   const [imageSrc, setImageSrc] = useState<string>("")
   const [imageLoaded, setImageLoaded] = useState<boolean>(false)
   const [ingredientLevels, setIngredientLevels] = useState<IngredientLevel[]>([])
@@ -51,7 +51,7 @@ export default function CocktailCard({ cocktail, onClick, onEdit }: CocktailCard
       console.log("[v0] CocktailCard: Auto-refreshing data...")
       loadData()
       setRefreshTrigger((prev) => prev + 1)
-    }, 5000) // Alle 5 Sekunden aktualisieren
+    }, 30000) // Alle 30 Sekunden aktualisieren statt 5
 
     return () => clearInterval(interval)
   }, [])
@@ -281,4 +281,6 @@ export default function CocktailCard({ cocktail, onClick, onEdit }: CocktailCard
       </CardContent>
     </Card>
   )
-}
+})
+
+export default CocktailCard
