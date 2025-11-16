@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic"
 
 function runLed(...args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const script = path.join(process.cwd(), "led_client.py")
+    const script = path.join(process.cwd(), "scripts", "led_client.py")
     execFile("python3", [script, ...args], (err) => (err ? reject(err) : resolve()))
   })
 }
@@ -43,11 +43,24 @@ export async function POST(request: NextRequest) {
         }
       } else if (config.idleMode.scheme === "rainbow") {
         await runLed("RAINBOW", "30")
+      } else if (config.idleMode.scheme === "pulse" && config.idleMode.colors.length > 0) {
+        const color = config.idleMode.colors[0]
+        const rgb = await hexToRgb(color)
+        if (rgb) {
+          await runLed("PULSE", String(rgb.r), String(rgb.g), String(rgb.b))
+        }
+      } else if (config.idleMode.scheme === "blink" && config.idleMode.colors.length > 0) {
+        const color = config.idleMode.colors[0]
+        const rgb = await hexToRgb(color)
+        if (rgb) {
+          await runLed("BLINK", String(rgb.r), String(rgb.g), String(rgb.b), "300")
+        }
       } else if (config.idleMode.scheme === "off") {
         await runLed("OFF")
       } else {
         await runLed("IDLE")
       }
+      console.log("[v0] Idle mode applied successfully after save")
     } catch (ledError) {
       console.error("[v0] Error applying LED config:", ledError)
     }

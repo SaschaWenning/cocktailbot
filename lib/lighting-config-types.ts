@@ -8,7 +8,7 @@ export interface LightingConfig {
     blinking: boolean
   }
   idleMode: {
-    scheme: string
+    scheme: "static" | "rainbow" | "pulse" | "blink" | "off"
     colors: string[]
   }
 }

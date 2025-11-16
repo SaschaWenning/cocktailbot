@@ -3,56 +3,79 @@
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
 
-let fs: typeof import("fs")
-let path: typeof import("path")
-let execPromise: any
+// Check if we're in a Node.js environment
+function isNodeEnvironment(): boolean {
+  return (
+    typeof process !== "undefined" &&
+    process.versions != null &&
+    process.versions.node != null &&
+    typeof window === "undefined"
+  )
+}
+
+let fs: typeof import("fs/promises") | null = null
+let fsSync: typeof import("fs") | null = null
+let path: typeof import("path") | null = null
+let execPromise: any = null
 
 // Lazy loading für Node.js Module nur auf dem Server
 async function getNodeModules() {
-  if (typeof window !== "undefined") {
+  if (!isNodeEnvironment()) {
     throw new Error("Node.js modules not available in browser")
   }
 
   if (!fs) {
-    fs = await import("fs")
-    path = await import("path")
-    const { exec } = await import("child_process")
-    const { promisify } = await import("util")
-    execPromise = promisify(exec)
+    try {
+      fsSync = require("fs")
+      fs = require("fs/promises")
+      path = require("path")
+      const { exec } = require("child_process")
+      const { promisify } = require("util")
+      execPromise = promisify(exec)
+    } catch (error) {
+      console.error("[v0] Failed to load Node.js modules:", error)
+      throw new Error("Failed to load Node.js modules")
+    }
   }
 
-  return { fs, path, execPromise }
+  return { fs, fsSync, path, execPromise }
 }
 
 // Pfad zur JSON-Datei für die Pumpenkonfiguration
 const getPumpConfigPath = () => {
-  if (typeof window !== "undefined") return ""
-  return require("path").join(process.cwd(), "data", "pump-config.json")
+  if (!isNodeEnvironment() || !path) return ""
+  return path.join(process.cwd(), "data", "pump-config.json")
 }
 
 const getCocktailsPath = () => {
-  if (typeof window !== "undefined") return ""
-  return require("path").join(process.cwd(), "data", "cocktails.json")
+  if (!isNodeEnvironment() || !path) return ""
+  return path.join(process.cwd(), "data", "cocktails.json")
 }
 
 // Funktion zum Laden der Pumpenkonfiguration
 export async function getPumpConfig(): Promise<PumpConfig[]> {
   try {
-    const { fs, path } = await getNodeModules()
+    if (!isNodeEnvironment()) {
+      console.log("[v0] Not in Node environment, returning default config")
+      const { pumpConfig } = await import("@/data/pump-config")
+      return pumpConfig
+    }
+
+    const { fsSync, path } = await getNodeModules()
     const PUMP_CONFIG_PATH = getPumpConfigPath()
 
     // Prüfe, ob die Datei existiert
-    if (fs.existsSync(PUMP_CONFIG_PATH)) {
+    if (fsSync!.existsSync(PUMP_CONFIG_PATH)) {
       // Lese die Datei
-      const data = fs.readFileSync(PUMP_CONFIG_PATH, "utf8")
+      const data = fsSync!.readFileSync(PUMP_CONFIG_PATH, "utf8")
       return JSON.parse(data)
     } else {
       // Wenn die Datei nicht existiert, lade die Standardkonfiguration
       const { pumpConfig } = await import("@/data/pump-config")
 
       // Speichere die Standardkonfiguration in der JSON-Datei
-      fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
-      fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+      fsSync!.mkdirSync(path!.dirname(PUMP_CONFIG_PATH), { recursive: true })
+      fsSync!.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
 
       return pumpConfig
     }
@@ -68,16 +91,20 @@ export async function getPumpConfig(): Promise<PumpConfig[]> {
 // Funktion zum Speichern der Pumpen-Konfiguration
 export async function savePumpConfig(pumpConfig: PumpConfig[]) {
   try {
-    const { fs, path } = await getNodeModules()
+    if (!isNodeEnvironment()) {
+      throw new Error("Cannot save config in browser environment")
+    }
+
+    const { fsSync, path } = await getNodeModules()
     const PUMP_CONFIG_PATH = getPumpConfigPath()
 
     console.log("Speichere Pumpen-Konfiguration:", pumpConfig)
 
     // Stelle sicher, dass das Verzeichnis existiert
-    fs.mkdirSync(path.dirname(PUMP_CONFIG_PATH), { recursive: true })
+    fsSync!.mkdirSync(path!.dirname(PUMP_CONFIG_PATH), { recursive: true })
 
     // Speichere die Konfiguration in der JSON-Datei
-    fs.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
+    fsSync!.writeFileSync(PUMP_CONFIG_PATH, JSON.stringify(pumpConfig, null, 2), "utf8")
 
     console.log("Pumpen-Konfiguration erfolgreich gespeichert")
     return { success: true }
@@ -91,20 +118,26 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
   try {
     console.log("[v0] Loading cocktails from getAllCocktails...")
 
-    const { fs, path } = await getNodeModules()
+    if (!isNodeEnvironment()) {
+      console.log("[v0] Not in Node environment, returning default cocktails")
+      const { cocktails } = await import("@/data/cocktails")
+      return cocktails
+    }
+
+    const { fsSync, path } = await getNodeModules()
     const COCKTAILS_PATH = getCocktailsPath()
 
     // Stelle sicher, dass das data Verzeichnis existiert
-    const dataDir = path.dirname(COCKTAILS_PATH)
-    if (!fs.existsSync(dataDir)) {
+    const dataDir = path!.dirname(COCKTAILS_PATH)
+    if (!fsSync!.existsSync(dataDir)) {
       console.log("[v0] Creating data directory:", dataDir)
-      fs.mkdirSync(dataDir, { recursive: true })
+      fsSync!.mkdirSync(dataDir, { recursive: true })
     }
 
     // Prüfe, ob die Cocktails-Datei existiert
-    if (fs.existsSync(COCKTAILS_PATH)) {
+    if (fsSync!.existsSync(COCKTAILS_PATH)) {
       console.log("[v0] Loading cocktails from:", COCKTAILS_PATH)
-      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+      const data = fsSync!.readFileSync(COCKTAILS_PATH, "utf8")
       const cocktails: Cocktail[] = JSON.parse(data)
       console.log("[v0] Total cocktails loaded:", cocktails.length)
       return cocktails
@@ -123,7 +156,7 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
         ),
       }))
 
-      fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(updatedCocktails, null, 2), "utf8")
+      fsSync!.writeFileSync(COCKTAILS_PATH, JSON.stringify(updatedCocktails, null, 2), "utf8")
       console.log("[v0] Created cocktails file with", updatedCocktails.length, "default cocktails")
       return updatedCocktails
     }
@@ -144,18 +177,18 @@ export async function getAllCocktails(): Promise<Cocktail[]> {
 
 export async function saveRecipe(cocktail: Cocktail) {
   try {
-    const { fs, path } = await getNodeModules()
+    const { fsSync, path } = await getNodeModules()
     const COCKTAILS_PATH = getCocktailsPath()
 
-    console.log("[v0] saveRecipe - Cocktail to save:", JSON.stringify(cocktail, null, 2))
+    console.log("Speichere Rezept:", cocktail)
 
     // Stelle sicher, dass das Verzeichnis existiert
-    fs.mkdirSync(path.dirname(COCKTAILS_PATH), { recursive: true })
+    fsSync!.mkdirSync(path!.dirname(COCKTAILS_PATH), { recursive: true })
 
     // Lade alle bestehenden Cocktails
     let allCocktails: Cocktail[] = []
-    if (fs.existsSync(COCKTAILS_PATH)) {
-      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+    if (fsSync!.existsSync(COCKTAILS_PATH)) {
+      const data = fsSync!.readFileSync(COCKTAILS_PATH, "utf8")
       allCocktails = JSON.parse(data)
     } else {
       // Falls die Datei nicht existiert, lade Standard-Cocktails
@@ -184,7 +217,7 @@ export async function saveRecipe(cocktail: Cocktail) {
     }
 
     // Speichere alle Cocktails zurück in die Datei
-    fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(allCocktails, null, 2), "utf8")
+    fsSync!.writeFileSync(COCKTAILS_PATH, JSON.stringify(allCocktails, null, 2), "utf8")
 
     console.log("Rezept erfolgreich gespeichert. Total cocktails:", allCocktails.length)
     return { success: true }
@@ -196,15 +229,15 @@ export async function saveRecipe(cocktail: Cocktail) {
 
 export async function deleteRecipe(cocktailId: string) {
   try {
-    const { fs, path } = await getNodeModules()
+    const { fsSync, path } = await getNodeModules()
     const COCKTAILS_PATH = getCocktailsPath()
 
     console.log("[v0] Deleting cocktail from file:", cocktailId)
 
     // Lade alle bestehenden Cocktails
     let allCocktails: Cocktail[] = []
-    if (fs.existsSync(COCKTAILS_PATH)) {
-      const data = fs.readFileSync(COCKTAILS_PATH, "utf8")
+    if (fsSync!.existsSync(COCKTAILS_PATH)) {
+      const data = fsSync!.readFileSync(COCKTAILS_PATH, "utf8")
       allCocktails = JSON.parse(data)
     } else {
       // Falls die Datei nicht existiert, lade Standard-Cocktails
@@ -229,7 +262,7 @@ export async function deleteRecipe(cocktailId: string) {
     }
 
     // Speichere die aktualisierte Liste zurück in die Datei
-    fs.writeFileSync(COCKTAILS_PATH, JSON.stringify(allCocktails, null, 2), "utf8")
+    fsSync!.writeFileSync(COCKTAILS_PATH, JSON.stringify(allCocktails, null, 2), "utf8")
 
     console.log("[v0] Cocktail successfully deleted from file. Remaining cocktails:", allCocktails.length)
     return { success: true, message: `Cocktail ${cocktailId} deleted successfully` }
@@ -242,17 +275,17 @@ export async function deleteRecipe(cocktailId: string) {
 // Diese Funktion aktiviert eine Pumpe für eine bestimmte Zeit
 async function activatePump(pin: number, durationMs: number) {
   try {
-    const { fs, path, execPromise } = await getNodeModules()
+    const { fsSync, path, execPromise } = await getNodeModules()
 
     console.log(`[PUMP DEBUG] ==========================================`)
     console.log(`[PUMP DEBUG] Aktiviere Pumpe an GPIO Pin ${pin} für ${durationMs}ms`)
     console.log(`[PUMP DEBUG] Aktueller Arbeitsordner: ${process.cwd()}`)
 
     // Verwende das Python-Skript zur Steuerung der Pumpe
-    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const PUMP_CONTROL_SCRIPT = path!.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 
-    if (!fs.existsSync(PUMP_CONTROL_SCRIPT)) {
+    if (!fsSync!.existsSync(PUMP_CONTROL_SCRIPT)) {
       console.error(`[PUMP DEBUG] ❌ Python-Skript nicht gefunden: ${PUMP_CONTROL_SCRIPT}`)
       throw new Error(`Python-Skript nicht gefunden: ${PUMP_CONTROL_SCRIPT}`)
     }
@@ -377,7 +410,17 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     console.error("Error updating levels:", error)
   }
 
-  return { success: true }
+  // Return ingredient usage data so client can save statistics
+  return {
+    success: true,
+    ingredientUsage: levelUpdates.map((update) => {
+      const pump = pumpConfig.find((p) => p.id === update.pumpId)
+      return {
+        ingredientId: pump?.ingredient || `pump-${update.pumpId}`,
+        amount: update.amount,
+      }
+    }),
+  }
 }
 
 export async function makeSingleShotAction(ingredientId: string, amount = 40, pumpConfig: PumpConfig[]) {
@@ -444,11 +487,11 @@ export async function calibratePumpAction(pumpId: number, durationMs: number) {
       console.warn(`[CALIBRATE DEBUG] ⚠️  Pumpe ${pumpId} ist deaktiviert (enabled: false)`)
     }
 
-    const { fs, path, execPromise } = await getNodeModules()
-    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const { fsSync, path, execPromise } = await getNodeModules()
+    const PUMP_CONTROL_SCRIPT = path!.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 
-    if (!fs.existsSync(PUMP_CONTROL_SCRIPT)) {
+    if (!fsSync!.existsSync(PUMP_CONTROL_SCRIPT)) {
       console.error(`[CALIBRATE DEBUG] ❌ Python-Skript nicht gefunden: ${PUMP_CONTROL_SCRIPT}`)
       throw new Error(`Python-Skript nicht gefunden: ${PUMP_CONTROL_SCRIPT}`)
     }
@@ -493,8 +536,8 @@ export async function cleanPumpAction(pumpId: number, durationMs: number) {
     }
 
     // Aktiviere die Pumpe über das Python-Skript
-    const { fs, path, execPromise } = await getNodeModules()
-    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const { fsSync, path, execPromise } = await getNodeModules()
+    const PUMP_CONTROL_SCRIPT = path!.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 
     await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
@@ -534,8 +577,8 @@ export async function ventPumpAction(pumpId: number, durationMs: number) {
     }
 
     // Aktiviere die Pumpe über das Python-Skript
-    const { fs, path, execPromise } = await getNodeModules()
-    const PUMP_CONTROL_SCRIPT = path.join(process.cwd(), "pump_control.py")
+    const { fsSync, path, execPromise } = await getNodeModules()
+    const PUMP_CONTROL_SCRIPT = path!.join(process.cwd(), "pump_control.py")
     const roundedDuration = Math.round(durationMs)
 
     await execPromise(`python3 ${PUMP_CONTROL_SCRIPT} activate ${pump.pin} ${roundedDuration}`)
@@ -586,5 +629,13 @@ export async function makeShotAction(ingredient: string, pumpConfig: PumpConfig[
     console.error("Error updating levels after shot:", error)
   }
 
-  return { success: true }
+  return {
+    success: true,
+    ingredientUsage: [
+      {
+        ingredientId: ingredient,
+        amount: size,
+      },
+    ],
+  }
 }

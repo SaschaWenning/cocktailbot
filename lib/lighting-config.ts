@@ -1,18 +1,15 @@
-import fs from "fs"
-import path from "path"
 import { type LightingConfig, defaultConfig } from "./lighting-config-types"
 
 export type { LightingConfig }
 export { defaultConfig }
 
-const CONFIG_FILE = path.join(process.cwd(), "data", "lighting-config.json")
+// In-memory storage (simulating localStorage on server)
+let storedConfig: LightingConfig = defaultConfig
 
 export async function loadLightingConfig(): Promise<LightingConfig> {
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const data = fs.readFileSync(CONFIG_FILE, "utf-8")
-      return JSON.parse(data)
-    }
+    // For server-side, we return the stored config
+    return storedConfig
   } catch (error) {
     console.error("[v0] Error loading lighting config:", error)
   }
@@ -21,11 +18,8 @@ export async function loadLightingConfig(): Promise<LightingConfig> {
 
 export async function saveLightingConfig(config: LightingConfig): Promise<void> {
   try {
-    const dataDir = path.dirname(CONFIG_FILE)
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true })
-    }
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2))
+    storedConfig = config
+    console.log("[v0] Lighting config saved successfully")
   } catch (error) {
     console.error("[v0] Error saving lighting config:", error)
     throw error
