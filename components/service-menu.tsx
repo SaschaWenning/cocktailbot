@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Lock, Settings, Info } from "lucide-react"
+import { Lock, Settings, Info } from 'lucide-react'
 import PumpCleaning from "@/components/pump-cleaning"
 import PumpVenting from "@/components/pump-venting"
 import PumpCalibration from "@/components/pump-calibration"
@@ -95,6 +95,7 @@ export default function ServiceMenu({
           "recipe-creator",
           "hidden-cocktails",
           "beleuchtung",
+          // Removed statistics from fallback tabs
         ])
         setActiveServiceTab("levels")
       }

@@ -63,10 +63,9 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       setSizes(cocktail.sizes || [200, 300, 400])
       setRecipe(
         cocktail.recipe.map((item) => ({
-          ingredientId: item.ingredientId,
-          amount: item.amount,
-          type: item.manual ? "manual" : "automatic",
-          instruction: item.instructions || item.instruction || "",
+          ...item,
+          type: item.type || "automatic",
+          instruction: item.instruction || "",
           delayed: item.delayed || false,
         })),
       )
@@ -98,13 +97,22 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   }, [cocktail, isOpen])
 
   const openKeyboard = (
-    mode: "name" | "description" | "imageUrl" | "newSize" | string,
+    mode: "name" | "description" | "imageUrl" | "instruction" | "newSize" | string,
     currentValue: string,
     numeric = false,
   ) => {
     setKeyboardMode(mode)
     setKeyboardValue(currentValue)
     setIsNumericKeyboard(numeric)
+    setShowKeyboard(true)
+    setIsShiftActive(false)
+    setIsCapsLockActive(false)
+  }
+
+  const openInstructionKeyboard = (index: number, currentValue: string) => {
+    setKeyboardMode(`instruction-${index}`)
+    setKeyboardValue(currentValue || "")
+    setIsNumericKeyboard(false)
     setShowKeyboard(true)
     setIsShiftActive(false)
     setIsCapsLockActive(false)
@@ -187,6 +195,15 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             return item
           })
           setRecipe(updatedRecipe)
+        } else if (keyboardMode.startsWith("instruction-")) {
+          const index = Number.parseInt(keyboardMode.split("-")[1])
+          const updatedRecipe = recipe.map((item, i) => {
+            if (i === index) {
+              return { ...item, instruction: keyboardValue }
+            }
+            return item
+          })
+          setRecipe(updatedRecipe)
         }
         break
     }
@@ -253,43 +270,13 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
     setSaving(true)
     try {
-      console.log("[v0] RecipeEditor - Original recipe:", JSON.stringify(recipe, null, 2))
-
-      const convertedRecipe = recipe.map((item) => {
-        const baseItem: any = {
-          ingredientId: item.ingredientId,
-          amount: item.amount,
-        }
-
-        if (item.type === "manual") {
-          baseItem.manual = true
-          // Wenn keine Instruktion vorhanden ist, automatisch generieren
-          if (item.instruction && item.instruction.trim()) {
-            baseItem.instructions = item.instruction.trim()
-          } else {
-            // Automatisch generierte Instruktion basierend auf Menge und Zutat
-            const ingredient = ingredients.find((i) => i.id === item.ingredientId)
-            const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
-            baseItem.instructions = `${item.amount}ml ${ingredientName} hinzufügen`
-          }
-        }
-
-        if (item.delayed) {
-          baseItem.delayed = true
-        }
-
-        return baseItem
-      })
-
-      console.log("[v0] RecipeEditor - Converted recipe:", JSON.stringify(convertedRecipe, null, 2))
-
       const updatedCocktail: Cocktail = {
         ...cocktail,
         name: name.trim(),
         description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
         alcoholic,
-        recipe: convertedRecipe,
+        recipe: recipe,
         sizes: sizes.length > 0 ? sizes : [200, 300, 400],
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
@@ -297,8 +284,6 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
         }),
       }
-
-      console.log("[v0] RecipeEditor - Final cocktail object:", JSON.stringify(updatedCocktail, null, 2))
 
       await saveRecipe(updatedCocktail)
       onSave(updatedCocktail)
@@ -571,6 +556,17 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
                 <Minus className="h-4 w-4" />
               </Button>
             </div>
+            {item.type === "manual" && (
+              <div className="col-span-12 mt-2">
+                <Input
+                  value={item.instruction || ""}
+                  onClick={() => openInstructionKeyboard(index, item.instruction || "")}
+                  readOnly
+                  className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+                  placeholder="Anleitung (z.B. 'mit Eiswürfeln auffüllen')"
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -587,6 +583,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             {keyboardMode === "imageUrl" && "Bild-URL eingeben"}
             {keyboardMode === "newSize" && "Neue Cocktailgröße eingeben (ml)"}
             {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
+            {keyboardMode.startsWith("instruction-") && "Anleitung eingeben"}
           </h3>
           <div className="bg-white text-black text-lg p-4 rounded mb-4 min-h-[60px] break-all border-2 border-[hsl(var(--cocktail-primary))]">
             {keyboardValue || <span className="text-gray-400">Eingabe...</span>}

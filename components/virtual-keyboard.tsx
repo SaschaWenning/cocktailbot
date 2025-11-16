@@ -10,7 +10,6 @@ interface VirtualKeyboardProps {
   onConfirm?: () => void
   onCancel?: () => void
   title?: string
-  unit?: string // z.B. "ml", "s", "%" etc.
   // Legacy props for backward compatibility
   onKeyPress?: (key: string) => void
   onBackspace?: () => void
@@ -24,7 +23,6 @@ export function VirtualKeyboard({
   onConfirm,
   onCancel,
   title,
-  unit = "ml",
   onKeyPress,
   onBackspace,
   onClear,
@@ -78,9 +76,7 @@ export function VirtualKeyboard({
       {title && (
         <div className="text-center mb-4">
           <h3 className="text-white text-lg font-medium mb-2">{title}</h3>
-          <div className="text-green-400 text-2xl font-bold">
-            {value || "0"} {unit}
-          </div>
+          <div className="text-green-400 text-2xl font-bold">{value || "0"} ml</div>
         </div>
       )}
 
