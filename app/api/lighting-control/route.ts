@@ -40,9 +40,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    if (brightness !== undefined && mode !== "brightness") {
+    if (brightness !== undefined) {
       await runLed("BRIGHT", String(brightness))
-      console.log(`[v0] LED Brightness set to: ${brightness} before mode command`)
+      console.log(`[v0] LED Brightness set to: ${brightness}`)
     }
 
     await sendLightingControlCommand(mode, color, brightness, blinking, scheme)

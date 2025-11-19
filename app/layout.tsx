@@ -16,9 +16,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="de" suppressHydrationWarning>
-      <body className="min-h-screen bg-[hsl(var(--cocktail-bg))]">
+      <body className="min-h-screen bg-[hsl(var(--cocktail-bg))] flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
-          <ClientWrapper>{children}</ClientWrapper>
+          <ClientWrapper>
+            <div className="flex-1">{children}</div>
+            <footer className="py-4 text-center text-sm text-[hsl(var(--cocktail-text-muted))] border-t border-[hsl(var(--cocktail-card-border))] bg-[hsl(var(--cocktail-card-bg))]/30">
+              © 2025 CocktailBot v2.0 - printcore@outlook.de
+            </footer>
+          </ClientWrapper>
         </ThemeProvider>
       </body>
     </html>
