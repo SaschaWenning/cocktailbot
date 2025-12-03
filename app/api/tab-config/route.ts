@@ -3,8 +3,7 @@ import { type AppConfig, defaultTabConfig } from "@/lib/tab-config"
 
 export const dynamic = "force-dynamic"
 
-// In-memory storage for tab config
-let storedTabConfig: AppConfig = defaultTabConfig
+let storedTabConfig: AppConfig | null = null
 
 function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
   const requiredTabIds = defaultTabConfig.tabs.map((tab) => tab.id)
@@ -35,8 +34,13 @@ function validateAndUpdateConfig(storedConfig: AppConfig): AppConfig {
 
 async function getStoredConfig(): Promise<AppConfig> {
   try {
-    console.log("[v0] Tab config loaded from memory:", storedTabConfig)
-    return validateAndUpdateConfig(storedTabConfig)
+    if (storedTabConfig) {
+      console.log("[v0] Tab config loaded from memory:", storedTabConfig)
+      return validateAndUpdateConfig(storedTabConfig)
+    }
+
+    console.log("[v0] No stored config, returning default")
+    return defaultTabConfig
   } catch (error) {
     console.error("[v0] Error in getStoredConfig:", error)
     return defaultTabConfig
@@ -46,7 +50,7 @@ async function getStoredConfig(): Promise<AppConfig> {
 async function saveStoredConfig(config: AppConfig): Promise<void> {
   try {
     storedTabConfig = config
-    console.log("[v0] Tab config saved to memory")
+    console.log("[v0] Tab config saved to memory:", config)
   } catch (error) {
     console.error("[v0] Error saving tab config:", error)
     throw error

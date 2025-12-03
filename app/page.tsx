@@ -286,22 +286,47 @@ export default function Home() {
 
   const loadTabConfig = async () => {
     try {
-      console.log("[v0] Loading tab config from API...")
-      const response = await fetch("/api/tab-config")
+      console.log("[v0] Loading tab config...")
 
-      if (!response.ok) {
-        console.error("[v0] Tab config API response not ok:", response.status, response.statusText)
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      const stored = localStorage.getItem("tab-config")
+      let config: AppConfig
+
+      if (stored) {
+        console.log("[v0] Tab config found in localStorage")
+        config = JSON.parse(stored)
+
+        try {
+          await fetch("/api/tab-config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(config),
+          })
+          console.log("[v0] Synced localStorage config to API")
+        } catch (error) {
+          console.warn("[v0] Could not sync config to API:", error)
+        }
+      } else {
+        console.log("[v0] No localStorage config, fetching from API...")
+        const response = await fetch("/api/tab-config")
+
+        if (!response.ok) {
+          console.error("[v0] Tab config API response not ok:", response.status, response.statusText)
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+
+        config = await response.json()
+
+        localStorage.setItem("tab-config", JSON.stringify(config))
+        console.log("[v0] Saved API config to localStorage")
       }
 
-      const config: AppConfig = await response.json()
       const mainTabIds = config.tabs.filter((tab) => tab.location === "main").map((tab) => tab.id)
 
       console.log("[v0] Tab config loaded successfully:", config)
       setTabConfig(config)
       setMainTabs(mainTabIds)
 
-      if (mainTabIds.length > 0 && !mainTabIds.includes(activeTab) && activeTab !== "service") {
+      if (mainTabIds.length > 0 && !mainTabs.includes(activeTab) && activeTab !== "service") {
         setActiveTab(mainTabIds[0])
       }
     } catch (error) {
