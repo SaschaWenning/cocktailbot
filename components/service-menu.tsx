@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Lock, Settings, Info } from 'lucide-react'
+import { Lock, Settings, Info } from "lucide-react"
 import PumpCleaning from "@/components/pump-cleaning"
 import PumpVenting from "@/components/pump-venting"
 import PumpCalibration from "@/components/pump-calibration"
@@ -60,10 +60,34 @@ export default function ServiceMenu({
   useEffect(() => {
     const loadTabConfig = async () => {
       try {
-        const response = await fetch("/api/tab-config")
-        if (!response.ok) throw new Error("Failed to load tab config")
+        const stored = localStorage.getItem("tab-config")
+        let config: AppConfig
 
-        const config: AppConfig = await response.json()
+        if (stored) {
+          console.log("[v0] Service menu: Tab config found in localStorage")
+          config = JSON.parse(stored)
+
+          try {
+            await fetch("/api/tab-config", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(config),
+            })
+            console.log("[v0] Synced localStorage config to API from service menu")
+          } catch (error) {
+            console.warn("[v0] Could not sync config to API:", error)
+          }
+        } else {
+          console.log("[v0] Service menu: No localStorage config, fetching from API...")
+          const response = await fetch("/api/tab-config")
+          if (!response.ok) throw new Error("Failed to load tab config")
+
+          config = await response.json()
+
+          localStorage.setItem("tab-config", JSON.stringify(config))
+          console.log("[v0] Saved API config to localStorage from service menu")
+        }
+
         const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
 
         setTabConfig(config)
@@ -195,10 +219,17 @@ export default function ServiceMenu({
                 // Reload local service menu config
                 const loadTabConfig = async () => {
                   try {
-                    const response = await fetch("/api/tab-config")
-                    if (!response.ok) throw new Error("Failed to load tab config")
+                    const stored = localStorage.getItem("tab-config")
+                    let config: AppConfig
 
-                    const config: AppConfig = await response.json()
+                    if (stored) {
+                      config = JSON.parse(stored)
+                    } else {
+                      const response = await fetch("/api/tab-config")
+                      if (!response.ok) throw new Error("Failed to load tab config")
+                      config = await response.json()
+                    }
+
                     const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
 
                     setTabConfig(config)
