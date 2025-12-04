@@ -362,7 +362,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const keys = isNumericKeyboard ? numericKeys : alphaKeys
 
   const renderFormView = () => (
-    <div className="space-y-6 my-4 max-h-[60vh] overflow-y-auto pr-2">
+    <div className="space-y-6 my-4 max-h-[50vh] overflow-y-auto pr-2">
       <div className="space-y-2">
         <Label htmlFor="name" className="text-white">
           Name des Cocktails
@@ -574,10 +574,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   )
 
   const renderKeyboardView = () => (
-    <div className="flex gap-3 my-2 h-[80vh]">
+    <div className="flex gap-3 my-2 h-[50vh]">
       <div className="flex-1 flex flex-col">
         <div className="text-center mb-2">
-          <h3 className="text-base font-semibold text-white mb-1">
+          <h3 className="text-sm font-semibold text-white mb-1">
             {keyboardMode === "name" && "Name eingeben"}
             {keyboardMode === "description" && "Beschreibung eingeben"}
             {keyboardMode === "imageUrl" && "Bild-URL eingeben"}
@@ -585,7 +585,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
             {keyboardMode.startsWith("instruction-") && "Anleitung eingeben"}
           </h3>
-          <div className="bg-white text-black text-lg p-4 rounded mb-4 min-h-[60px] break-all border-2 border-[hsl(var(--cocktail-primary))]">
+          <div className="bg-white text-black text-base p-2 rounded mb-2 min-h-[40px] break-all border-2 border-[hsl(var(--cocktail-primary))]">
             {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
           </div>
         </div>
@@ -684,10 +684,12 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white w-[95vw] h-[95vh] max-w-none max-h-none overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>Rezept bearbeiten: {cocktail?.name}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white w-screen h-screen max-w-none max-h-screen overflow-hidden flex flex-col p-0">
+          {!showKeyboard && (
+            <DialogHeader className="px-6 pt-4 pb-2 border-b border-[hsl(var(--cocktail-card-border))]">
+              <DialogTitle>Rezept bearbeiten: {cocktail?.name}</DialogTitle>
+            </DialogHeader>
+          )}
 
           {!showKeyboard ? renderFormView() : renderKeyboardView()}
 
