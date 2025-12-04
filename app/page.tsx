@@ -292,8 +292,9 @@ export default function Home() {
       let config: AppConfig
 
       if (stored) {
-        console.log("[v0] Tab config found in localStorage")
+        console.log("[v0] Tab config found in localStorage:", stored)
         config = JSON.parse(stored)
+        console.log("[v0] Parsed config:", config)
 
         try {
           await fetch("/api/tab-config", {
@@ -315,6 +316,7 @@ export default function Home() {
         }
 
         config = await response.json()
+        console.log("[v0] Received config from API:", config)
 
         localStorage.setItem("tab-config", JSON.stringify(config))
         console.log("[v0] Saved API config to localStorage")
@@ -322,7 +324,8 @@ export default function Home() {
 
       const mainTabIds = config.tabs.filter((tab) => tab.location === "main").map((tab) => tab.id)
 
-      console.log("[v0] Tab config loaded successfully:", config)
+      console.log("[v0] Final tab config to apply:", config)
+      console.log("[v0] Main tab IDs:", mainTabIds)
       setTabConfig(config)
       setMainTabs(mainTabIds)
 
