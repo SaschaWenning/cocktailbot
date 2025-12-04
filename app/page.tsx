@@ -286,40 +286,22 @@ export default function Home() {
 
   const loadTabConfig = async () => {
     try {
-      console.log("[v0] Loading tab config...")
+      console.log("[v0] Loading tab config from localStorage...")
 
       const stored = localStorage.getItem("tab-config")
       let config: AppConfig
 
       if (stored) {
-        console.log("[v0] Tab config found in localStorage:", stored)
+        console.log("[v0] Tab config found in localStorage")
         config = JSON.parse(stored)
         console.log("[v0] Parsed config:", config)
-
-        try {
-          await fetch("/api/tab-config", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(config),
-          })
-          console.log("[v0] Synced localStorage config to API")
-        } catch (error) {
-          console.warn("[v0] Could not sync config to API:", error)
-        }
       } else {
-        console.log("[v0] No localStorage config, fetching from API...")
-        const response = await fetch("/api/tab-config")
-
-        if (!response.ok) {
-          console.error("[v0] Tab config API response not ok:", response.status, response.statusText)
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-        }
-
-        config = await response.json()
-        console.log("[v0] Received config from API:", config)
-
+        console.log("[v0] No localStorage config, using default config")
+        // Import default config
+        const { defaultTabConfig } = await import("@/lib/tab-config")
+        config = defaultTabConfig
         localStorage.setItem("tab-config", JSON.stringify(config))
-        console.log("[v0] Saved API config to localStorage")
+        console.log("[v0] Saved default config to localStorage")
       }
 
       const mainTabIds = config.tabs.filter((tab) => tab.location === "main").map((tab) => tab.id)
@@ -329,8 +311,8 @@ export default function Home() {
       setTabConfig(config)
       setMainTabs(mainTabIds)
 
-      if (mainTabIds.length > 0 && !mainTabs.includes(activeTab) && activeTab !== "service") {
-        setActiveTab(mainTabIds[0])
+      if (mainTabs.length > 0 && !mainTabs.includes(activeTab) && activeTab !== "service") {
+        setActiveTab(mainTabs[0])
       }
     } catch (error) {
       console.error("[v0] Error loading tab config:", error)
