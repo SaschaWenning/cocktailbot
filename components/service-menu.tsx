@@ -60,36 +60,24 @@ export default function ServiceMenu({
   useEffect(() => {
     const loadTabConfig = async () => {
       try {
+        console.log("[v0] Service menu: Loading tab config from localStorage...")
         const stored = localStorage.getItem("tab-config")
         let config: AppConfig
 
         if (stored) {
           console.log("[v0] Service menu: Tab config found in localStorage")
           config = JSON.parse(stored)
-
-          try {
-            await fetch("/api/tab-config", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(config),
-            })
-            console.log("[v0] Synced localStorage config to API from service menu")
-          } catch (error) {
-            console.warn("[v0] Could not sync config to API:", error)
-          }
         } else {
-          console.log("[v0] Service menu: No localStorage config, fetching from API...")
-          const response = await fetch("/api/tab-config")
-          if (!response.ok) throw new Error("Failed to load tab config")
-
-          config = await response.json()
-
+          console.log("[v0] Service menu: No localStorage config, using default config")
+          const { defaultTabConfig } = await import("@/lib/tab-config")
+          config = defaultTabConfig
           localStorage.setItem("tab-config", JSON.stringify(config))
-          console.log("[v0] Saved API config to localStorage from service menu")
+          console.log("[v0] Service menu: Saved default config to localStorage")
         }
 
         const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
 
+        console.log("[v0] Service menu: Service tab IDs:", serviceTabIds)
         setTabConfig(config)
         setServiceTabs(serviceTabIds)
 
@@ -119,7 +107,6 @@ export default function ServiceMenu({
           "recipe-creator",
           "hidden-cocktails",
           "beleuchtung",
-          // Removed statistics from fallback tabs
         ])
         setActiveServiceTab("levels")
       }
@@ -214,24 +201,25 @@ export default function ServiceMenu({
               onClose={() => {
                 const firstTab = serviceTabs.length > 0 ? serviceTabs[0] : "levels"
                 setActiveServiceTab(firstTab)
-                // Reload tab config in parent component
                 onTabConfigReload?.()
-                // Reload local service menu config
                 const loadTabConfig = async () => {
                   try {
+                    console.log("[v0] Service menu: Reloading tab config from localStorage...")
                     const stored = localStorage.getItem("tab-config")
                     let config: AppConfig
 
                     if (stored) {
+                      console.log("[v0] Service menu: Reloaded config from localStorage")
                       config = JSON.parse(stored)
                     } else {
-                      const response = await fetch("/api/tab-config")
-                      if (!response.ok) throw new Error("Failed to load tab config")
-                      config = await response.json()
+                      console.log("[v0] Service menu: No config in localStorage after save, using default")
+                      const { defaultTabConfig } = await import("@/lib/tab-config")
+                      config = defaultTabConfig
                     }
 
                     const serviceTabIds = config.tabs.filter((tab) => tab.location === "service").map((tab) => tab.id)
 
+                    console.log("[v0] Service menu: Reloaded service tab IDs:", serviceTabIds)
                     setTabConfig(config)
                     setServiceTabs(serviceTabIds)
                   } catch (error) {
