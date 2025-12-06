@@ -224,7 +224,11 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const handleTypeChange = (index: number, type: "automatic" | "manual") => {
     const updatedRecipe = [...recipe]
-    updatedRecipe[index] = { ...updatedRecipe[index], type }
+    updatedRecipe[index] = {
+      ...updatedRecipe[index],
+      type,
+      manual: type === "manual" ? true : undefined,
+    }
     setRecipe(updatedRecipe)
   }
 

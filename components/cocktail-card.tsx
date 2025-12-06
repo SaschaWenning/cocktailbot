@@ -97,7 +97,7 @@ export default function CocktailCard({ cocktail, onClick, onEdit }: CocktailCard
     )
 
     for (const recipeItem of cocktail.recipe) {
-      if (recipeItem.manual) {
+      if (recipeItem.manual || recipeItem.type === "manual") {
         continue
       }
 
