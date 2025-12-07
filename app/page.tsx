@@ -661,7 +661,8 @@ export default function Home() {
     )
 
     for (const recipeItem of cocktail.recipe) {
-      if (recipeItem.manual) {
+      if (recipeItem.manual || recipeItem.type === "manual") {
+        console.log("[v0] Main page: Skipping manual ingredient", recipeItem.ingredientId)
         continue
       }
 
