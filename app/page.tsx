@@ -536,6 +536,7 @@ export default function Home() {
           }
         })
 
+      console.log("[v0] Manual recipe items:", manualRecipeItems)
       setManualIngredients(manualRecipeItems)
 
       const estimatedDuration = calculateCocktailDuration(cocktail, currentPumpConfig, selectedSize)
@@ -1046,18 +1047,19 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {/* ADDED CODE START */}
         {isCompleted &&
           statusMessage.includes("Bitte manuelle Zutaten hinzufügen.") &&
           cocktail &&
           manualRecipeItems.length > 0 && (
             <div className="mt-3 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-b-lg">
-              <div className="font-medium">
+              <div className="font-medium text-foreground">
                 Bitte folgende Zutat{manualRecipeItems.length > 1 ? "en" : ""} hinzufügen:
               </div>
-              <ul className="list-disc pl-6 mt-1 space-y-1">
+              <ul className="list-disc pl-6 mt-1 space-y-1 text-foreground">
                 {manualRecipeItems.map((item, index) => (
                   <li key={index} className="text-base leading-tight">
-                    <div>
+                    <div className="font-semibold">
                       {item.ml}ml {item.ingredientName}
                     </div>
                     {item.instruction && (
@@ -1068,6 +1070,7 @@ export default function Home() {
               </ul>
             </div>
           )}
+        {/* ADDED CODE END */}
       </Card>
     )
   }
@@ -1400,29 +1403,28 @@ export default function Home() {
                   </div>
 
                   <div className="space-y-4">
-                    {manualIngredients.map((item, index) => {
-                      const ingredient = allIngredientsData.find((ing) => ing.id === item.ingredientId)
-                      return (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-4 rounded-lg bg-[hsl(var(--cocktail-card-bg))]/50 border border-[hsl(var(--cocktail-card-border))]"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-3 h-3 rounded-full bg-[hsl(var(--cocktail-primary))]"></div>
-                            <span className="font-medium text-[hsl(var(--cocktail-text))]">
-                              {ingredient?.name || item.ingredientId}
-                            </span>
+                    {manualIngredients.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 rounded-lg bg-[hsl(var(--cocktail-card-bg))]/50 border border-[hsl(var(--cocktail-card-border))]"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-10 h-10 rounded-full bg-[hsl(var(--cocktail-primary))]/20 flex items-center justify-center flex-shrink-0">
+                            <Plus className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
                           </div>
-                          <span className="text-lg font-semibold text-[hsl(var(--cocktail-primary))]">
-                            {item.amount}ml
-                          </span>
+                          <div className="flex-1">
+                            {/* Fixed modal to use ingredientName instead of ingredientId */}
+                            <div className="font-semibold text-[hsl(var(--cocktail-text))]">{item.ingredientName}</div>
+                            <div className="text-sm text-[hsl(var(--cocktail-text))]/70">{item.ml}ml</div>
+                            {item.instruction && (
+                              <div className="text-sm text-[hsl(var(--cocktail-text))]/60 italic mt-1">
+                                {item.instruction}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )
-                    })}
-                  </div>
-
-                  <div className="text-center text-sm text-[hsl(var(--cocktail-text-muted))]">
-                    Dieses Fenster schließt sich automatisch...
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
