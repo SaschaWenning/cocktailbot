@@ -519,11 +519,22 @@ export default function Home() {
 
       const manualRecipeItems = cocktail.recipe
         .filter((item) => item?.manual === true || item?.type === "manual")
-        .map((item) => ({
-          ingredientId: item.ingredientId,
-          amount: Math.round(item.amount * scaleFactor),
-          instructions: item.instruction || item.instructions,
-        }))
+        .map((item) => {
+          const ingredientName =
+            allIngredientsData.reduce(
+              (acc, ingredient) => {
+                acc[ingredient.id] = { name: ingredient.name }
+                return acc
+              },
+              {} as Record<string, { name: string }>,
+            )?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "")
+          const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
+          return {
+            ingredientName,
+            ml,
+            instruction: item.instruction, // Include the instruction/description
+          }
+        })
 
       setManualIngredients(manualRecipeItems)
 
@@ -908,7 +919,7 @@ export default function Home() {
         const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
         const scaleFactor = selectedSize / totalRecipeVolume
         const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
-        return { ingredientName, ml }
+        return { ingredientName, ml, instruction: item.instruction } // Include the instruction/description
       })
 
     return (
@@ -1046,7 +1057,12 @@ export default function Home() {
               <ul className="list-disc pl-6 mt-1 space-y-1">
                 {manualRecipeItems.map((item, index) => (
                   <li key={index} className="text-base leading-tight">
-                    {item.ml}ml {item.ingredientName}
+                    <div>
+                      {item.ml}ml {item.ingredientName}
+                    </div>
+                    {item.instruction && (
+                      <div className="text-sm text-muted-foreground italic mt-1">{item.instruction}</div>
+                    )}
                   </li>
                 ))}
               </ul>
