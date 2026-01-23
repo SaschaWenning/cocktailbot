@@ -231,35 +231,20 @@ export default function Home() {
 
   const loadIngredientLevels = async () => {
     try {
-      console.log("[v0] Loading ingredient levels from server...")
+      console.log("[v0] Loading ingredient levels - checking localStorage first...")
 
-      const response = await fetch("/api/ingredient-levels")
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.levels.length > 0) {
-          console.log("[v0] Loaded levels from server:", data.levels)
-          setIngredientLevels(
-            data.levels.map((level: any) => ({
-              ...level,
-              currentAmount: level.currentLevel,
-            })),
-          )
-
-          const lowLevels = data.levels.filter((level: any) => level.currentLevel < 100)
-          setLowIngredients(lowLevels.map((level: any) => level.ingredientId))
-          return
-        }
-      }
-
-      console.log("[v0] Falling back to localStorage...")
+      // Primary source: localStorage (most up-to-date)
       const levels = await getIngredientLevels()
+      console.log("[v0] Loaded levels from localStorage:", levels.map(l => `Pump ${l.pumpId}: ${l.currentLevel}ml`))
+      
       setIngredientLevels(levels)
 
-      const lowLevels = levels.filter((level) => level.currentAmount < 100)
+      const lowLevels = levels.filter((level) => level.currentLevel < 100)
       setLowIngredients(lowLevels.map((level) => level.ingredientId))
+      console.log("[v0] Low ingredients detected:", lowLevels.map(l => `${l.ingredientId} (${l.currentLevel}ml)`))
     } catch (error) {
       console.error("Fehler beim Laden der Füllstände:", error)
-      console.log("[v0] Using empty ingredient levels as fallback")
+      console.log("[v0] Using default ingredient levels as fallback")
       const defaultLevels: IngredientLevel[] = initialPumpConfig.map((pump) => ({
         pumpId: pump.id,
         ingredientId: pump.ingredient,
