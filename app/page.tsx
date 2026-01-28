@@ -231,20 +231,23 @@ export default function Home() {
 
   const loadIngredientLevels = async () => {
     try {
-      console.log("[v0] Loading ingredient levels - checking localStorage first...")
+      console.log("[v0] Loading ingredient levels from localStorage...")
 
-      // Primary source: localStorage (most up-to-date)
-      const levels = await getIngredientLevels()
-      console.log("[v0] Loaded levels from localStorage:", levels.map(l => `Pump ${l.pumpId}: ${l.currentLevel}ml`))
+      // Single source of truth: localStorage
+      const levels = getIngredientLevels()
+      console.log("[v0] Loaded levels:", levels.map(l => `P${l.pumpId}:${l.currentLevel}/${l.containerSize}ml`).join(", "))
       
       setIngredientLevels(levels)
 
       const lowLevels = levels.filter((level) => level.currentLevel < 100)
       setLowIngredients(lowLevels.map((level) => level.ingredientId))
-      console.log("[v0] Low ingredients detected:", lowLevels.map(l => `${l.ingredientId} (${l.currentLevel}ml)`))
+      
+      if (lowLevels.length > 0) {
+        console.log("[v0] Low ingredients:", lowLevels.map(l => `${l.ingredientId}:${l.currentLevel}ml`).join(", "))
+      }
     } catch (error) {
-      console.error("Fehler beim Laden der Füllstände:", error)
-      console.log("[v0] Using default ingredient levels as fallback")
+      console.error("[v0] CRITICAL: Failed to load ingredient levels:", error)
+      // This should never happen with the new robust implementation
       const defaultLevels: IngredientLevel[] = initialPumpConfig.map((pump) => ({
         pumpId: pump.id,
         ingredientId: pump.ingredient,
