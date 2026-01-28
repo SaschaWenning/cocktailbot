@@ -121,7 +121,9 @@ export function IngredientLevels() {
       return ingredient.name
     }
 
-    return ingredientId
+    const cleanId = ingredientId.replace(/^custom-\d+-/, "")
+
+    return cleanId
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ")
