@@ -1,5 +1,6 @@
 import type { Cocktail } from "@/types/cocktail"
 import type { PumpConfig } from "@/types/pump"
+import { updateLevelsAfterCocktail } from "@/lib/ingredient-level-service"
 
 // Helper function to save statistics to localStorage
 function saveStatistics(
@@ -55,6 +56,20 @@ export async function makeCocktail(
 
   if (result.success && result.ingredientUsage) {
     saveStatistics(cocktail, size, result.ingredientUsage, category)
+    
+    // Update ingredient levels in localStorage (client-side)
+    try {
+      // Convert ingredientUsage to pumpId-based updates
+      const pumpUpdates = result.ingredientUsage.map((usage: { ingredientId: string; amount: number }) => {
+        const pump = pumpConfig.find(p => p.ingredient === usage.ingredientId)
+        return pump ? { pumpId: pump.id, amount: usage.amount } : null
+      }).filter(Boolean) as { pumpId: number; amount: number }[]
+      
+      console.log("[v0] Updating ingredient levels after cocktail:", pumpUpdates)
+      await updateLevelsAfterCocktail(pumpUpdates)
+    } catch (error) {
+      console.error("[v0] Error updating ingredient levels:", error)
+    }
   }
 
   return result
@@ -73,7 +88,7 @@ export async function makeSingleShot(ingredientId: string, amount = 40, pumpConf
 
   const result = await response.json()
 
-  if (result.success && result.ingredientUsage) {
+  if (result.success) {
     // Create a simple shot "cocktail" object for statistics
     const shotCocktail = {
       id: `shot-${ingredientId}`,
@@ -82,7 +97,20 @@ export async function makeSingleShot(ingredientId: string, amount = 40, pumpConf
       ingredients: [ingredientId],
       recipe: [{ ingredientId, amount }],
     }
-    saveStatistics(shotCocktail, amount, result.ingredientUsage, "shots")
+    
+    const ingredientUsage = [{ ingredientId, amount }]
+    saveStatistics(shotCocktail, amount, ingredientUsage, "shots")
+    
+    // Update ingredient levels in localStorage (client-side)
+    try {
+      const pump = pumpConfig.find(p => p.ingredient === ingredientId)
+      if (pump) {
+        console.log("[v0] Updating ingredient level after shot:", pump.id, amount)
+        await updateLevelsAfterCocktail([{ pumpId: pump.id, amount }])
+      }
+    } catch (error) {
+      console.error("[v0] Error updating ingredient levels:", error)
+    }
   }
 
   return result
