@@ -389,28 +389,8 @@ export async function makeCocktailAction(cocktail: Cocktail, pumpConfig: PumpCon
     }
   }
 
-  // Aktualisiere die Füllstände über API
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/ingredient-levels/update`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: levelUpdates }),
-      },
-    )
-
-    if (response.ok) {
-      const data = await response.json()
-      console.log("[v0] Füllstände erfolgreich aktualisiert:", data.levels?.length || 0, "Levels")
-    } else {
-      console.error("Fehler beim Aktualisieren der Füllstände:", response.statusText)
-    }
-  } catch (error) {
-    console.error("Error updating levels:", error)
-  }
-
-  // Return ingredient usage data so client can save statistics
+  // Return ingredient usage data so client can update localStorage levels
+  console.log("[v0] Cocktail fertig. Sende ingredientUsage an Client für Füllstand-Update:", levelUpdates)
   return {
     success: true,
     ingredientUsage: levelUpdates.map((update) => {
@@ -441,28 +421,12 @@ export async function makeSingleShotAction(ingredientId: string, amount = 40, pu
   // Aktiviere die Pumpe
   await activatePump(pump.pin, pumpTimeMs)
 
-  // Aktualisiere den Füllstand über API
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/ingredient-levels/update`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: [{ pumpId: pump.id, amount }] }),
-      },
-    )
-
-    if (response.ok) {
-      const data = await response.json()
-      console.log("[v0] Füllstände erfolgreich aktualisiert:", data.levels?.length || 0, "Levels")
-    } else {
-      console.error("Fehler beim Aktualisieren der Füllstände:", response.statusText)
-    }
-  } catch (error) {
-    console.error("Error updating levels:", error)
+  // Return ingredient usage data so client can update localStorage levels
+  console.log("[v0] Shot fertig. Sende ingredientUsage an Client:", pump.id, amount)
+  return {
+    success: true,
+    ingredientUsage: [{ ingredientId, amount }],
   }
-
-  return { success: true }
 }
 
 export async function calibratePumpAction(pumpId: number, durationMs: number) {
