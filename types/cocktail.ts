@@ -7,7 +7,8 @@ export interface Cocktail {
   recipe: {
     ingredientId: string
     amount: number
-    type: "automatic" | "manual" // 'automatic' for machine-dispensed, 'manual' for user-added
+    type?: "automatic" | "manual" // Preferred format for new recipes
+    manual?: boolean // Legacy format from old recipes (equivalent to type: "manual")
     instruction?: string // Optional instruction for manual ingredients
     delayed?: boolean // Optional flag for delayed ingredient addition
   }[]

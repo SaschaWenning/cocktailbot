@@ -1,56 +1,64 @@
 import { type LightingConfig, defaultConfig } from "./lighting-config-types"
-import fs from "fs"
+import { promises as fs } from "fs"
 import path from "path"
 
 export type { LightingConfig }
 export { defaultConfig }
 
-const CONFIG_FILE = path.join(process.cwd(), "data", "lighting-config.json")
+const LIGHTING_CONFIG_PATH = path.join(process.cwd(), "data", "lighting-config.json")
+
+// In-memory cache
+let cachedConfig: LightingConfig | null = null
+
+function isNodeEnvironment(): boolean {
+  return typeof process !== "undefined" && process.versions != null && process.versions.node != null
+}
 
 export async function loadLightingConfig(): Promise<LightingConfig> {
-  try {
-    // Check if running in Node environment
-    if (typeof window === "undefined") {
-      // Server-side: Read from file
-      if (fs.existsSync(CONFIG_FILE)) {
-        const data = fs.readFileSync(CONFIG_FILE, "utf-8")
-        const config = JSON.parse(data)
-        console.log("[v0] Loaded lighting config from file:", config)
-        return config
-      }
-      console.log("[v0] No lighting config file found, using default")
-    } else {
-      // Client-side: Read from localStorage
-      const stored = localStorage.getItem("lighting-config")
-      if (stored) {
-        const config = JSON.parse(stored)
-        console.log("[v0] Loaded lighting config from localStorage:", config)
-        return config
-      }
-      console.log("[v0] No lighting config in localStorage, using default")
-    }
-  } catch (error) {
-    console.error("[v0] Error loading lighting config:", error)
+  if (!isNodeEnvironment()) {
+    console.log("[v0] Not in Node environment, returning default config")
+    return defaultConfig
   }
-  return defaultConfig
+
+  // Return cached config if available
+  if (cachedConfig) {
+    return cachedConfig
+  }
+
+  try {
+    const data = await fs.readFile(LIGHTING_CONFIG_PATH, "utf-8")
+    cachedConfig = JSON.parse(data)
+    console.log("[v0] Loaded lighting config from file:", LIGHTING_CONFIG_PATH)
+    return cachedConfig!
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      console.log("[v0] No lighting config file found, using default config")
+      // Save default config to file
+      await saveLightingConfig(defaultConfig)
+      return defaultConfig
+    }
+    console.error("[v0] Error loading lighting config:", error)
+    return defaultConfig
+  }
 }
 
 export async function saveLightingConfig(config: LightingConfig): Promise<void> {
+  if (!isNodeEnvironment()) {
+    console.log("[v0] Not in Node environment, cannot save to file")
+    return
+  }
+
   try {
-    // Check if running in Node environment
-    if (typeof window === "undefined") {
-      // Server-side: Save to file
-      const dataDir = path.join(process.cwd(), "data")
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true })
-      }
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2))
-      console.log("[v0] Lighting config saved to file successfully")
-    } else {
-      // Client-side: Save to localStorage
-      localStorage.setItem("lighting-config", JSON.stringify(config))
-      console.log("[v0] Lighting config saved to localStorage successfully")
-    }
+    // Ensure data directory exists
+    await fs.mkdir(path.dirname(LIGHTING_CONFIG_PATH), { recursive: true })
+    
+    // Write config to file
+    await fs.writeFile(LIGHTING_CONFIG_PATH, JSON.stringify(config, null, 2), "utf-8")
+    
+    // Update cache
+    cachedConfig = config
+    
+    console.log("[v0] Lighting config saved to file:", LIGHTING_CONFIG_PATH)
   } catch (error) {
     console.error("[v0] Error saving lighting config:", error)
     throw error

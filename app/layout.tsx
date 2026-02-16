@@ -2,6 +2,7 @@ import type React from "react"
 import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import ClientWrapper from "./ClientWrapper"
+import Footer from "@/components/footer"
 
 export const metadata = {
   title: "CocktailBot - Automatische Cocktailmaschine",
@@ -18,12 +19,10 @@ export default function RootLayout({
     <html lang="de" suppressHydrationWarning>
       <body className="min-h-screen bg-[hsl(var(--cocktail-bg))] flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
-          <ClientWrapper>
-            <div className="flex-1">{children}</div>
-            <footer className="py-4 text-center text-sm text-[hsl(var(--cocktail-text-muted))] border-t border-[hsl(var(--cocktail-card-border))] bg-[hsl(var(--cocktail-card-bg))]/30">
-              © 2025 CocktailBot v2.1 - printcore@outlook.de
-            </footer>
-          </ClientWrapper>
+          <div className="flex-1">
+            <ClientWrapper>{children}</ClientWrapper>
+          </div>
+          <Footer />
         </ThemeProvider>
       </body>
     </html>

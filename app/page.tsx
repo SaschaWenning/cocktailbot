@@ -22,7 +22,7 @@ import RecipeCreator from "@/components/recipe-creator"
 import DeleteConfirmation from "@/components/delete-confirmation"
 import ImageEditor from "@/components/image-editor"
 import QuickShotSelector from "@/components/quick-shot-selector"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import ServiceMenu from "@/components/service-menu"
 import { getAllIngredients } from "@/lib/ingredients"
 import type { AppConfig } from "@/lib/tab-config"
@@ -60,7 +60,7 @@ export default function Home() {
   const [showImageEditor, setShowImageEditor] = useState(false)
   const [allIngredientsData, setAllIngredientsData] = useState<any[]>([])
   const [manualIngredients, setManualIngredients] = useState<
-    Array<{ ingredientId: string; amount: number; instructions?: string }>
+    Array<{ ingredientId: string; amount: number; instructions?: string; name?: string }>
   >([])
   const [showManualIngredientsModal, setShowManualIngredientsModal] = useState(false)
   const [showImageEditorPasswordModal, setShowImageEditorPasswordModal] = useState(false)
@@ -231,23 +231,35 @@ export default function Home() {
 
   const loadIngredientLevels = async () => {
     try {
-      console.log("[v0] Loading ingredient levels from localStorage...")
+      console.log("[v0] Loading ingredient levels from server...")
 
-      // Single source of truth: localStorage
-      const levels = getIngredientLevels()
-      console.log("[v0] Loaded levels:", levels.map(l => `P${l.pumpId}:${l.currentLevel}/${l.containerSize}ml`).join(", "))
-      
+      const response = await fetch("/api/ingredient-levels")
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.levels.length > 0) {
+          console.log("[v0] Loaded levels from server:", data.levels)
+          setIngredientLevels(
+            data.levels.map((level: any) => ({
+              ...level,
+              currentAmount: level.currentLevel,
+            })),
+          )
+
+          const lowLevels = data.levels.filter((level: any) => level.currentLevel < 100)
+          setLowIngredients(lowLevels.map((level: any) => level.ingredientId))
+          return
+        }
+      }
+
+      console.log("[v0] Falling back to localStorage...")
+      const levels = await getIngredientLevels()
       setIngredientLevels(levels)
 
-      const lowLevels = levels.filter((level) => level.currentLevel < 100)
+      const lowLevels = levels.filter((level) => level.currentAmount < 100)
       setLowIngredients(lowLevels.map((level) => level.ingredientId))
-      
-      if (lowLevels.length > 0) {
-        console.log("[v0] Low ingredients:", lowLevels.map(l => `${l.ingredientId}:${l.currentLevel}ml`).join(", "))
-      }
     } catch (error) {
-      console.error("[v0] CRITICAL: Failed to load ingredient levels:", error)
-      // This should never happen with the new robust implementation
+      console.error("Fehler beim Laden der Füllstände:", error)
+      console.log("[v0] Using empty ingredient levels as fallback")
       const defaultLevels: IngredientLevel[] = initialPumpConfig.map((pump) => ({
         pumpId: pump.id,
         ingredientId: pump.ingredient,
@@ -274,33 +286,23 @@ export default function Home() {
 
   const loadTabConfig = async () => {
     try {
-      console.log("[v0] Loading tab config from localStorage...")
+      console.log("[v0] Loading tab config from API...")
+      const response = await fetch("/api/tab-config")
 
-      const stored = localStorage.getItem("tab-config")
-      let config: AppConfig
-
-      if (stored) {
-        console.log("[v0] Tab config found in localStorage")
-        config = JSON.parse(stored)
-        console.log("[v0] Parsed config:", config)
-      } else {
-        console.log("[v0] No localStorage config, using default config")
-        // Import default config
-        const { defaultTabConfig } = await import("@/lib/tab-config")
-        config = defaultTabConfig
-        localStorage.setItem("tab-config", JSON.stringify(config))
-        console.log("[v0] Saved default config to localStorage")
+      if (!response.ok) {
+        console.error("[v0] Tab config API response not ok:", response.status, response.statusText)
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
+      const config: AppConfig = await response.json()
       const mainTabIds = config.tabs.filter((tab) => tab.location === "main").map((tab) => tab.id)
 
-      console.log("[v0] Final tab config to apply:", config)
-      console.log("[v0] Main tab IDs:", mainTabIds)
+      console.log("[v0] Tab config loaded successfully:", config)
       setTabConfig(config)
       setMainTabs(mainTabIds)
 
-      if (mainTabs.length > 0 && !mainTabs.includes(activeTab) && activeTab !== "service") {
-        setActiveTab(mainTabs[0])
+      if (mainTabIds.length > 0 && !mainTabIds.includes(activeTab) && activeTab !== "service") {
+        setActiveTab(mainTabIds[0])
       }
     } catch (error) {
       console.error("[v0] Error loading tab config:", error)
@@ -505,27 +507,52 @@ export default function Home() {
       const totalRecipeVolume = cocktail.recipe.reduce((total, item) => total + item.amount, 0)
       const scaleFactor = selectedSize / totalRecipeVolume
 
+      const freshIngredients = await getAllIngredients() // Directly fetch ingredients here
+      const ingredientLookup = freshIngredients.reduce(
+        (acc, ingredient) => {
+          acc[ingredient.id] = { name: ingredient.name }
+          return acc
+        },
+        {} as Record<string, { name: string }>,
+      )
+
       const manualRecipeItems = cocktail.recipe
         .filter((item) => item?.manual === true || item?.type === "manual")
         .map((item) => {
           const ingredientName =
-            allIngredientsData.reduce(
-              (acc, ingredient) => {
-                acc[ingredient.id] = { name: ingredient.name }
-                return acc
-              },
-              {} as Record<string, { name: string }>,
-            )?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "")
+            ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "").trim()
+          const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
+          const scaleFactor = selectedSize / totalRecipeVolume
           const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
-          return {
-            ingredientName,
-            ml,
-            instruction: item.instruction, // Include the instruction/description
-          }
+          return { ingredientName, ml }
         })
 
-      console.log("[v0] Manual recipe items:", manualRecipeItems)
-      setManualIngredients(manualRecipeItems)
+      if (manualRecipeItems.length > 0) {
+        const freshIngredients = await getAllIngredients()
+        const ingredientLookupMap = new Map(freshIngredients.map((ing) => [ing.id, ing.name]))
+
+        const manualIngredientsWithNames = cocktail.recipe
+          .filter((item) => item?.manual === true || item?.type === "manual")
+          .map((item) => {
+            let name = ingredientLookupMap.get(item.ingredientId)
+
+            // If not found in lookup, try to extract name from custom ingredient ID
+            if (!name && item.ingredientId.startsWith("custom-")) {
+              name = item.ingredientId.replace(/^custom-\d+-/, "").trim()
+            }
+
+            return {
+              ...item,
+              name: name || item.ingredientId,
+            }
+          })
+
+        setManualIngredients(manualIngredientsWithNames)
+        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fast fertig!\nBitte manuelle Zutaten hinzufügen.`)
+      } else {
+        setManualIngredients([])
+        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
+      }
 
       const estimatedDuration = calculateCocktailDuration(cocktail, currentPumpConfig, selectedSize)
       const progressInterval = Math.max(100, estimatedDuration / 100)
@@ -575,20 +602,8 @@ export default function Home() {
         console.error("[v0] Error activating finished lighting:", error)
       }
 
-      if (manualRecipeItems.length > 0) {
-        setStatusMessage(
-          `${cocktail.name} (${selectedSize}ml) automatisch zubereitet! Bitte manuelle Zutaten hinzufügen.`,
-        )
-        setTimeout(() => {
-          setShowManualIngredientsModal(true)
-          setTimeout(() => {
-            setShowManualIngredientsModal(false)
-            setManualIngredients([])
-          }, 6000)
-        }, 2000)
-      } else {
-        setStatusMessage(`${cocktail.name} (${selectedSize}ml) fertig!`)
-      }
+      // The status message is set above, so no need to set it again here.
+      // The setShowManualIngredientsModal is also handled above.
 
       setShowSuccess(true)
 
@@ -600,17 +615,40 @@ export default function Home() {
       window.dispatchEvent(new CustomEvent("cocktail-data-refresh"))
 
       const displayDuration = manualRecipeItems.length > 0 ? 8000 : 3000
-      setTimeout(() => {
-        setIsMaking(false)
-        setShowSuccess(false)
-        setSelectedCocktail(null)
 
-        fetch("/api/lighting-control", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "idle" }),
-        }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
-      }, displayDuration)
+      if (manualRecipeItems.length > 0) {
+        // Show success dialog for 3 seconds, then show manual ingredients modal for 8 seconds
+        setTimeout(() => {
+          setShowSuccess(false)
+          setShowManualIngredientsModal(true)
+
+          // Hide manual ingredients modal after 8 seconds and return to idle
+          setTimeout(() => {
+            setShowManualIngredientsModal(false)
+            setIsMaking(false)
+            setSelectedCocktail(null)
+
+            fetch("/api/lighting-control", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mode: "idle" }),
+            }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
+          }, 8000)
+        }, 3000)
+      } else {
+        // No manual ingredients, just hide success dialog after 3 seconds
+        setTimeout(() => {
+          setIsMaking(false)
+          setShowSuccess(false)
+          setSelectedCocktail(null)
+
+          fetch("/api/lighting-control", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: "idle" }),
+          }).catch((error) => console.error("[v0] Error returning to idle lighting:", error))
+        }, displayDuration)
+      }
     } catch (error) {
       let intervalId: NodeJS.Timeout
       clearInterval(intervalId)
@@ -662,7 +700,6 @@ export default function Home() {
 
     for (const recipeItem of cocktail.recipe) {
       if (recipeItem.manual || recipeItem.type === "manual") {
-        console.log("[v0] Main page: Skipping manual ingredient", recipeItem.ingredientId)
         continue
       }
 
@@ -892,7 +929,8 @@ export default function Home() {
 
     const isCompleted = progress === 100
 
-    const ingredientLookup = allIngredients.reduce(
+    const freshIngredients = getAllIngredients()
+    const ingredientLookup = freshIngredients.reduce(
       (acc, ingredient) => {
         acc[ingredient.id] = { name: ingredient.name }
         return acc
@@ -904,11 +942,11 @@ export default function Home() {
       .filter((item) => item?.manual === true || item?.type === "manual")
       .map((item) => {
         const ingredientName =
-          ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "")
+          ingredientLookup?.[item.ingredientId]?.name ?? item.ingredientId.replace(/^custom-\d+-/, "").trim()
         const totalRecipeVolume = cocktail.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
         const scaleFactor = selectedSize / totalRecipeVolume
         const ml = Math.round((Number(item.amount) || 0) * scaleFactor)
-        return { ingredientName, ml, instruction: item.instruction } // Include the instruction/description
+        return { ingredientName, ml }
       })
 
     return (
@@ -948,11 +986,15 @@ export default function Home() {
                   <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--cocktail-text))]">Zutaten:</h4>
                   <ul className="space-y-2 text-[hsl(var(--cocktail-text))]">
                     {cocktail.recipe.map((item, index) => {
-                      const ingredient = allIngredients.find((i) => i.id === item.ingredientId)
+                      const ingredient = freshIngredients.find((i) => i.id === item.ingredientId)
                       let ingredientName = ingredient ? ingredient.name : item.ingredientId
 
                       if (!ingredient && item.ingredientId.startsWith("custom-")) {
-                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "")
+                        ingredientName = item.ingredientId.replace(/^custom-\d+-/, "").trim()
+                        // If extraction still results in empty or just "custom", try to get from lookup
+                        if (!ingredientName || ingredientName === "custom") {
+                          ingredientName = ingredientLookup?.[item.ingredientId]?.name || item.ingredientId
+                        }
                       }
 
                       const isManual = item.manual === true || item.type === "manual"
@@ -960,7 +1002,7 @@ export default function Home() {
                       return (
                         <li key={index} className={`flex items-center ${isManual ? "opacity-60" : ""}`}>
                           <span className="mr-2 text-[hsl(var(--cocktail-primary))]">•</span>
-                          <span>
+                          <span className={isManual ? "italic text-gray-400" : ""}>
                             {Math.round(
                               item.amount * (selectedSize / (cocktail.recipe.reduce((t, it) => t + it.amount, 0) || 1)),
                             )}
@@ -1035,30 +1077,23 @@ export default function Home() {
             </div>
           </div>
         </div>
-        {/* ADDED CODE START */}
         {isCompleted &&
           statusMessage.includes("Bitte manuelle Zutaten hinzufügen.") &&
           cocktail &&
           manualRecipeItems.length > 0 && (
             <div className="mt-3 p-4 bg-[hsl(var(--cocktail-card-bg))]/50 rounded-b-lg">
-              <div className="font-medium text-foreground">
+              <div className="font-medium">
                 Bitte folgende Zutat{manualRecipeItems.length > 1 ? "en" : ""} hinzufügen:
               </div>
-              <ul className="list-disc pl-6 mt-1 space-y-1 text-foreground">
+              <ul className="list-disc pl-6 mt-1 space-y-1">
                 {manualRecipeItems.map((item, index) => (
                   <li key={index} className="text-base leading-tight">
-                    <div className="font-semibold">
-                      {item.ml}ml {item.ingredientName}
-                    </div>
-                    {item.instruction && (
-                      <div className="text-sm text-muted-foreground italic mt-1">{item.instruction}</div>
-                    )}
+                    {item.ml}ml {item.ingredientName}
                   </li>
                 ))}
               </ul>
             </div>
           )}
-        {/* ADDED CODE END */}
       </Card>
     )
   }
@@ -1391,28 +1426,27 @@ export default function Home() {
                   </div>
 
                   <div className="space-y-4">
-                    {manualIngredients.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 rounded-lg bg-[hsl(var(--cocktail-card-bg))]/50 border border-[hsl(var(--cocktail-card-border))]"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-[hsl(var(--cocktail-primary))]/20 flex items-center justify-center flex-shrink-0">
-                            <Plus className="h-5 w-5 text-[hsl(var(--cocktail-primary))]" />
+                    {manualIngredients.map((item, index) => {
+                      const totalRecipeVolume =
+                        selectedCocktail?.recipe.reduce((t, it) => t + (Number(it?.amount) || 0), 0) || 1
+                      const scaleFactor = selectedSize / totalRecipeVolume
+                      const scaledAmount = Math.round((Number(item.amount) || 0) * scaleFactor)
+
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-4 rounded-lg bg-[hsl(var(--cocktail-card-bg))]/50 border border-[hsl(var(--cocktail-card-border))]"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-[hsl(var(--cocktail-primary))]"></div>
+                            <span className="font-medium text-[hsl(var(--cocktail-text))]">{item.name}</span>
                           </div>
-                          <div className="flex-1">
-                            {/* Fixed modal to use ingredientName instead of ingredientId */}
-                            <div className="font-semibold text-[hsl(var(--cocktail-text))]">{item.ingredientName}</div>
-                            <div className="text-sm text-[hsl(var(--cocktail-text))]/70">{item.ml}ml</div>
-                            {item.instruction && (
-                              <div className="text-sm text-[hsl(var(--cocktail-text))]/60 italic mt-1">
-                                {item.instruction}
-                              </div>
-                            )}
-                          </div>
+                          <span className="text-lg font-semibold text-[hsl(var(--cocktail-primary))]">
+                            {scaledAmount}ml
+                          </span>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
