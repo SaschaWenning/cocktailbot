@@ -105,18 +105,12 @@ export default function RecipeCreator({ isOpen, onClose, onSave, asTab = false }
         description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
         alcoholic: alcoholic,
-        recipe: recipe.map((item) => ({
-          ingredientId: item.ingredientId,
-          amount: item.amount,
-          type: item.type,
-          instruction: item.instruction,
-          delayed: item.delayed,
-        })),
+        recipe: recipe,
         sizes: sizes.length > 0 ? sizes : [200, 300, 400],
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
           const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
-          return `${item.amount}ml ${ingredientName}${item.type === "manual" ? " (manuell)" : ""}`
+          return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
         }),
       }
 

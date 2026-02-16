@@ -92,21 +92,12 @@ export function IngredientLevels() {
       return
     }
     try {
-      const response = await fetch("/api/ingredient-levels")
-
-      if (response.ok) {
-        const data = await response.json()
-
-        if (data.success && data.levels) {
-          setLevels(data.levels)
-          await setIngredientLevels(data.levels)
-          return
-        }
-      }
-    } catch (error) {}
-
-    const currentLevels = getIngredientLevels()
-    setLevels(currentLevels)
+      // Load directly from localStorage (single source of truth)
+      const currentLevels = getIngredientLevels()
+      setLevels(currentLevels)
+    } catch (error) {
+      console.error("[v0] Error loading ingredient levels:", error)
+    }
   }
 
   const handleManualRefresh = async () => {
@@ -115,23 +106,17 @@ export function IngredientLevels() {
     setTimeout(() => setIsRefreshing(false), 500)
   }
 
-  const getIngredientDisplayName = (ingredientId: string) => {
-    const ingredient = getIngredientById(ingredientId)
+  const getIngredientDisplayName = (level: IngredientLevel) => {
+    // Use ingredientId from the level (this is what's set in pump-config)
+    const ingredient = getIngredientById(level.ingredientId)
     if (ingredient) {
       return ingredient.name
     }
 
-    // Handle custom ingredients - remove the custom-timestamp- prefix
-    if (ingredientId.startsWith("custom-")) {
-      const withoutPrefix = ingredientId.replace(/^custom-\d+-/, "")
-      return withoutPrefix
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ")
-    }
+    // Fallback: clean up the ingredient ID
+    const cleanId = level.ingredientId.replace(/^custom-\d+-/, "")
 
-    // Handle regular ingredient IDs
-    return ingredientId
+    return cleanId
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ")
@@ -299,7 +284,7 @@ export function IngredientLevels() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {enabledLevels.map((level) => {
             const percentage = (level.currentLevel / level.containerSize) * 100
-            const displayName = getIngredientDisplayName(level.ingredient)
+            const displayName = getIngredientDisplayName(level)
 
             return (
               <Card

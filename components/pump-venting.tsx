@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, Wind, Play } from "lucide-react"
 import type { PumpConfig } from "@/types/pump"
 import { cleanPump } from "@/lib/cocktail-machine"
-import { getAllIngredients } from "@/lib/ingredients"
 
 interface PumpVentingProps {
   pumpConfig: PumpConfig[]
@@ -76,25 +75,6 @@ export default function PumpVenting({ pumpConfig }: PumpVentingProps) {
     setCurrentPump(null)
     setProgress(0)
     setPumpsDone([])
-  }
-
-  const getIngredientDisplayName = (ingredientId: string): string => {
-    if (!ingredientId) return ""
-
-    const allIngredients = getAllIngredients()
-    const ingredient = allIngredients.find((i) => i.id === ingredientId)
-
-    if (ingredient) {
-      return ingredient.name
-    }
-
-    // If it's a custom ingredient, extract the name from the ID
-    if (ingredientId.startsWith("custom-")) {
-      const extractedName = ingredientId.replace(/^custom-\d+-/, "").trim()
-      return extractedName || ingredientId
-    }
-
-    return ingredientId
   }
 
   return (
@@ -208,19 +188,22 @@ export default function PumpVenting({ pumpConfig }: PumpVentingProps) {
                 <Button
                   onClick={() => ventSinglePump(pump.id)}
                   disabled={autoVentingStatus === "venting"}
-                  className={`w-full h-16 text-2xl font-bold ${
+                  className={`w-full h-12 ${
                     manualVentingPumps.has(pump.id)
                       ? "bg-[hsl(var(--cocktail-primary))]/30 border border-[hsl(var(--cocktail-primary))]/50"
                       : "bg-[hsl(var(--cocktail-card-bg))] hover:bg-[hsl(var(--cocktail-primary))] hover:text-black"
                   } text-[hsl(var(--cocktail-text))] border-[hsl(var(--cocktail-card-border))]`}
                 >
-                  {pump.id}
+                  {manualVentingPumps.has(pump.id) ? (
+                    <Wind className="h-4 w-4 animate-pulse" />
+                  ) : (
+                    <Wind className="h-4 w-4" />
+                  )}
                 </Button>
-                {pump.ingredient && (
-                  <span className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
-                    {getIngredientDisplayName(pump.ingredient)}
-                  </span>
-                )}
+                <span className="text-xs text-[hsl(var(--cocktail-text-muted))] text-center">
+                  Pumpe {pump.id}
+                  {pump.ingredient && <div className="text-[10px] opacity-70">{pump.ingredient}</div>}
+                </span>
               </div>
             ))}
           </div>

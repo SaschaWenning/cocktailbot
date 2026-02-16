@@ -11,9 +11,10 @@ import { toast } from "@/components/ui/use-toast"
 
 interface TabConfigSettingsProps {
   onClose: () => void
+  open: boolean
 }
 
-export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
+export default function TabConfigSettings({ onClose, open }: TabConfigSettingsProps) {
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -22,27 +23,33 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
 
   useEffect(() => {
     loadConfig()
-  }, [])
+  }, [open])
 
   const loadConfig = async () => {
     try {
       setLoading(true)
+
       let currentConfig: AppConfig
 
       try {
+        console.log("[v0] Loading tab config in settings...")
         const stored = localStorage.getItem("tab-config")
         if (stored) {
+          console.log("[v0] Found stored config in localStorage")
           currentConfig = JSON.parse(stored)
         } else {
+          console.log("[v0] No stored config, fetching from API")
           const response = await fetch("/api/tab-config")
           if (!response.ok) throw new Error("Failed to load tab config")
           currentConfig = await response.json()
+          localStorage.setItem("tab-config", JSON.stringify(currentConfig))
         }
       } catch (error) {
         console.error("[v0] Error loading tab config:", error)
         currentConfig = defaultTabConfig
       }
 
+      console.log("[v0] Loaded config in settings:", currentConfig)
       setConfig(currentConfig)
       setOriginalConfig(JSON.parse(JSON.stringify(currentConfig)))
       setHasChanges(false)
@@ -64,6 +71,7 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
     try {
       setSaving(true)
 
+      console.log("[v0] Saving tab config to localStorage:", config)
       localStorage.setItem("tab-config", JSON.stringify(config))
 
       try {
@@ -77,6 +85,8 @@ export default function TabConfigSettings({ onClose }: TabConfigSettingsProps) {
 
         if (!response.ok) {
           console.warn("[v0] API save failed, but localStorage save succeeded")
+        } else {
+          console.log("[v0] Successfully synced to API")
         }
       } catch (error) {
         console.warn("[v0] API save failed, but localStorage save succeeded:", error)
