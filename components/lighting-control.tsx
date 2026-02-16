@@ -225,6 +225,9 @@ export default function LightingControl() {
         throw new Error("Failed to set brightness")
       }
 
+      // Re-apply current idle lighting mode to make brightness change visible immediately
+      await applyLighting("idle", false)
+
       toast({
         title: "Helligkeit angewendet",
         description: `Helligkeit auf ${Math.round((tempBrightness / 255) * 100)}% eingestellt.`,

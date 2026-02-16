@@ -29,7 +29,7 @@ import {
   GlassWater,
 } from "lucide-react"
 import type { StatisticsData, IngredientPrice, CocktailPreparationLog } from "@/types/statistics"
-import { ingredients as allIngredientsData } from "@/data/ingredients"
+import { getAllIngredients } from "@/lib/ingredients"
 import VirtualKeyboard from "./virtual-keyboard"
 import { toast } from "@/components/ui/use-toast"
 
@@ -47,6 +47,7 @@ export default function Statistics() {
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [keyboardValue, setKeyboardValue] = useState("")
   const [currentEditingIngredient, setCurrentEditingIngredient] = useState<string | null>(null)
+  const [allIngredients, setAllIngredients] = useState<Array<{ id: string; name: string }>>([])
 
   const processStatistics = (logs: CocktailPreparationLog[]) => {
     // Generate cocktail statistics
@@ -105,7 +106,7 @@ export default function Statistics() {
 
     const ingredientConsumption = Array.from(ingredientMap.entries())
       .map(([id, data]) => {
-        const ingredientInfo = allIngredientsData.find((ing) => ing.id === id)
+        const ingredientInfo = allIngredients.find((ing) => ing.id === id)
         return {
           ingredientId: id,
           ingredientName: ingredientInfo?.name || id,
@@ -131,6 +132,10 @@ export default function Statistics() {
   const loadStatistics = () => {
     try {
       setRefreshing(true)
+
+      const ingredients = getAllIngredients()
+      setAllIngredients(ingredients)
+      console.log("[v0] Loaded all ingredients including custom:", ingredients.length)
 
       // Load from localStorage
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -376,7 +381,7 @@ export default function Statistics() {
           <CardContent>
             <div className="space-y-4">
               <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
-                {allIngredientsData.map((ingredient) => {
+                {allIngredients.map((ingredient) => {
                   const currentPrice =
                     ingredientPrices.find((p) => p.ingredientId === ingredient.id)?.pricePerLiter || 0
 
@@ -947,7 +952,7 @@ export default function Statistics() {
           <div className="space-y-4 py-4">
             <p className="text-sm" style={{ color: "hsl(var(--cocktail-text-muted))" }}>
               {currentEditingIngredient &&
-                `Preis für ${allIngredientsData.find((i) => i.id === currentEditingIngredient)?.name || "Zutat"} (€/L):`}
+                `Preis für ${allIngredients.find((i) => i.id === currentEditingIngredient)?.name || "Zutat"} (€/L):`}
             </p>
 
             <div className="flex items-center gap-2">

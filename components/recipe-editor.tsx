@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -64,7 +64,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
       setRecipe(
         cocktail.recipe.map((item) => ({
           ...item,
-          type: item.type || "automatic",
+          type: item.type || (item.manual === true ? "manual" : "automatic"),
           instruction: item.instruction || "",
           delayed: item.delayed || false,
         })),
@@ -224,11 +224,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
 
   const handleTypeChange = (index: number, type: "automatic" | "manual") => {
     const updatedRecipe = [...recipe]
-    updatedRecipe[index] = {
-      ...updatedRecipe[index],
-      type,
-      manual: type === "manual" ? true : undefined,
-    }
+    updatedRecipe[index] = { ...updatedRecipe[index], type }
     setRecipe(updatedRecipe)
   }
 
@@ -280,12 +276,18 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
         description: description.trim(),
         image: imageUrl || "/placeholder.svg?height=200&width=400",
         alcoholic,
-        recipe: recipe,
+        recipe: recipe.map((item) => ({
+          ingredientId: item.ingredientId,
+          amount: item.amount,
+          type: item.type,
+          instruction: item.instruction,
+          delayed: item.delayed,
+        })),
         sizes: sizes.length > 0 ? sizes : [200, 300, 400],
         ingredients: recipe.map((item) => {
           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
           const ingredientName = ingredient?.name || item.ingredientId.replace(/^custom-\d+-/, "")
-          return `${item.amount}ml ${ingredientName} ${item.type === "manual" ? "(manuell)" : ""}`
+          return `${item.amount}ml ${ingredientName}${item.type === "manual" ? " (manuell)" : ""}`
         }),
       }
 
@@ -366,7 +368,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   const keys = isNumericKeyboard ? numericKeys : alphaKeys
 
   const renderFormView = () => (
-    <div className="space-y-6 my-4 max-h-[50vh] overflow-y-auto pr-2">
+    <div className="space-y-6 my-4 max-h-[60vh] overflow-y-auto pr-2">
       <div className="space-y-2">
         <Label htmlFor="name" className="text-white">
           Name des Cocktails
@@ -376,7 +378,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           value={name}
           onClick={() => openKeyboard("name", name)}
           readOnly
-          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer h-10"
           placeholder="z.B. Mein Cocktail"
         />
       </div>
@@ -390,7 +392,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
           value={description}
           onClick={() => openKeyboard("description", description)}
           readOnly
-          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer"
+          className="bg-white border-[hsl(var(--cocktail-card-border))] text-black cursor-pointer h-10"
           placeholder="Beschreibe deinen Cocktail..."
         />
       </div>
@@ -578,10 +580,10 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   )
 
   const renderKeyboardView = () => (
-    <div className="flex gap-3 my-2 h-[50vh]">
+    <div className="flex gap-3 my-2 h-[80vh]">
       <div className="flex-1 flex flex-col">
         <div className="text-center mb-2">
-          <h3 className="text-sm font-semibold text-white mb-1">
+          <h3 className="text-base font-semibold text-white mb-1">
             {keyboardMode === "name" && "Name eingeben"}
             {keyboardMode === "description" && "Beschreibung eingeben"}
             {keyboardMode === "imageUrl" && "Bild-URL eingeben"}
@@ -589,7 +591,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
             {keyboardMode.startsWith("amount-") && "Menge eingeben (ml)"}
             {keyboardMode.startsWith("instruction-") && "Anleitung eingeben"}
           </h3>
-          <div className="bg-white text-black text-base p-2 rounded mb-2 min-h-[40px] break-all border-2 border-[hsl(var(--cocktail-primary))]">
+          <div className="bg-white text-black text-lg p-1 rounded mb-4 h-8 break-all border-2 border-[hsl(var(--cocktail-primary))] overflow-auto">
             {keyboardValue || <span className="text-gray-400">Eingabe...</span>}
           </div>
         </div>
@@ -688,13 +690,7 @@ export default function RecipeEditor({ isOpen, onClose, cocktail, onSave, onRequ
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white w-screen h-screen max-w-none max-h-screen overflow-hidden flex flex-col p-0">
-          {!showKeyboard && (
-            <DialogHeader className="px-6 pt-4 pb-2 border-b border-[hsl(var(--cocktail-card-border))]">
-              <DialogTitle>Rezept bearbeiten: {cocktail?.name}</DialogTitle>
-            </DialogHeader>
-          )}
-
+        <DialogContent className="bg-black border-[hsl(var(--cocktail-card-border))] text-white w-[95vw] h-[95vh] max-w-none max-h-none overflow-hidden">
           {!showKeyboard ? renderFormView() : renderKeyboardView()}
 
           {!showKeyboard && (
